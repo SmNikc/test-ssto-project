@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { Signal } from '../models/signal.model';
+import Signal from '../models/signal.model';
+import { Sequelize } from 'sequelize';
 
 @Injectable()
 export class SignalService {
@@ -25,13 +26,16 @@ export class SignalService {
   }
 
   async getSignalsByType(signalType: string, startDate: Date, endDate: Date): Promise<Signal[]> {
-    return this.signalModel.findAll({
-      where: {
-        signal_type: signalType,
-        received_at: {
-          [Sequelize.Op.between]: [startDate, endDate],
-        },
+    const where: any = {
+      received_at: {
+        [Sequelize.Op.between]: [startDate, endDate],
       },
-    });
+    };
+
+    if (signalType !== 'all') {
+      where.signal_type = signalType;
+    }
+
+    return this.signalModel.findAll({ where });
   }
 }
