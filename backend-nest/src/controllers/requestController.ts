@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param, Patch } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Patch, Query } from '@nestjs/common';
 import { RequestService } from '../request/request.service';
 
 @Controller('requests')
@@ -34,8 +34,8 @@ export class RequestController {
 
   @Get('period')
   async getRequestsByPeriod(
-    @Body('startDate') startDate: string,
-    @Body('endDate') endDate: string,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
   ) {
     const requests = await this.requestService.getRequestsByPeriod(
       new Date(startDate),
