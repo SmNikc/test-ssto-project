@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
-import { TestingScenario } from '../models/testingScenario';
+import TestingScenario from '../models/testingScenario.model';
 import { TestingController } from '../controllers/testingController';
 import { TestingService } from './testing.service';
 

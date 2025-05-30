@@ -1,5 +1,5 @@
 import { Controller, Post, Body, Get, Param, Patch, Query } from '@nestjs/common';
-import { SignalService } from './signal.service';
+import { SignalService } from '../signal/signal.service';
 
 @Controller('signals')
 export class SignalController {
