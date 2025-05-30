@@ -12,11 +12,12 @@ import { UserModule } from './user/user.module';
 import { LogModule } from './log/log.module';
 import { IntegrationModule } from './integration/integration.module';
 import { BackupModule } from './backup/backup.module';
-import { SSASRequest } from './models/request';
-import { Signal } from './models/signal.model';
-import { TestingScenario } from './models/testingScenario.model';
-import { User } from './models/user.model';
-import { Log } from './models/log.model';
+import { HealthModule } from './health/health.module';
+import SSASRequest from './models/request';
+import Signal from './models/signal.model';
+import TestingScenario from './models/testingScenario.model';
+import User from './models/user.model';
+import Log from './models/log.model';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { Log } from './models/log.model';
     LogModule,
     IntegrationModule,
     BackupModule,
+    HealthModule,
   ],
 })
 export class AppModule {}
