@@ -1,7 +1,11 @@
+
 import React, { useEffect, useRef } from 'react';
 import 'ol/ol.css';
 import Map from 'ol/Map';
 import View from 'ol/View';
+import TileLayer from 'ol/layer/Tile';
+import OSM from 'ol/source/OSM';
+import XYZ from 'ol/source/XYZ';
 import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
 import { fromLonLat } from 'ol/proj';
@@ -9,7 +13,6 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import Style from 'ol/style/Style';
 import Icon from 'ol/style/Icon';
-import { openSeaMapLayer, osmLayer } from '../config/map.config';
 
 interface Signal {
   signal_id: string;
@@ -40,7 +43,12 @@ const MapComponent: React.FC<{ signals: Signal[] }> = ({ signals }) => {
       source: vectorSource,
       style: (feature) => {
         const signalType = (feature.get('signal') as Signal).signal_type;
-        const iconSrc = signalType === 'alert' ? '/icons/alert.png' : signalType === 'test' ? '/icons/test.png' : '/icons/unscheduled.png';
+        const iconSrc =
+          signalType === 'alert'
+            ? '/icons/alert.png'
+            : signalType === 'test'
+            ? '/icons/test.png'
+            : '/icons/unscheduled.png';
         return new Style({
           image: new Icon({
             src: iconSrc,
@@ -53,12 +61,17 @@ const MapComponent: React.FC<{ signals: Signal[] }> = ({ signals }) => {
     const map = new Map({
       target: mapRef.current,
       layers: [
-        osmLayer, // Базовый слой OpenStreetMap
-        openSeaMapLayer, // Слой OpenSea Map для морских данных
-        vectorLayer, // Слой с сигналами
+        new TileLayer({ source: new OSM() }),
+        new TileLayer({
+          source: new XYZ({
+            url: 'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',
+            attributions: '© OpenSeaMap contributors',
+          }),
+        }),
+        vectorLayer,
       ],
       view: new View({
-        center: fromLonLat([37.5678, 55.1234]), // Примерные координаты для центрирования
+        center: fromLonLat([37.5678, 55.1234]),
         zoom: 5,
       }),
     });
