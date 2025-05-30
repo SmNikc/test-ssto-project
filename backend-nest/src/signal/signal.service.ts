@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { Signal } from '../models/signal.model';
+import Signal from '../models/signal.model';
 import { Sequelize } from 'sequelize';
 
 @Injectable()

@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
-import { Log } from '../models/log.model';
+import Log from '../models/log.model';
 import { LogService } from './log.service';
-import { LogController } from '../controllers/logController';
+import { LogController } from '../controllers/log.controller';
 
 @Module({
   imports: [
