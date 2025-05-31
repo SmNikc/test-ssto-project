@@ -1,3 +1,4 @@
+import config from 'config';
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import RequestForm from './components/RequestForm';

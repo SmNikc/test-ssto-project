@@ -1,3 +1,4 @@
+import config from '../config';
 
 import React, { useEffect, useRef } from 'react';
 import 'ol/ol.css';

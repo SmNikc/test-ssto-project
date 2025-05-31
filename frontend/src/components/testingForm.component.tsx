@@ -1,3 +1,4 @@
+import config from '../config';
 import React from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { TextField, Button, Select, MenuItem, Grid, Typography, Box } from '@mui/material';
@@ -24,7 +25,7 @@ const TestingForm: React.FC = () => {
 
   const onSubmit = async (data: TestingScenario) => {
     try {
-      await axios.post('http://localhost:3000/api/testing/scenarios', data);
+      await axios.post('${config.API_BASE_URL}/api/testing/scenarios', data);
       alert('Сценарий успешно создан!');
       reset();
     } catch (error) {

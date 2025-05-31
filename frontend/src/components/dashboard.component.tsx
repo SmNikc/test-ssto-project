@@ -1,3 +1,4 @@
+import config from '../config';
 import React, { useState, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableRow, TextField, Select, MenuItem, Button } from '@mui/material';
 import axios from 'axios';
@@ -20,7 +21,7 @@ const Dashboard: React.FC = () => {
 
   const fetchSignals = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/signals/type/all', {
+      const response = await axios.get('${config.API_BASE_URL}/api/signals/type/all', {
         params: {
           startDate: filters.startDate || '2025-01-01',
           endDate: filters.endDate || new Date().toISOString().split('T')[0],

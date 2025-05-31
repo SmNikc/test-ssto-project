@@ -1,3 +1,4 @@
+import config from '../config';
 import React from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { TextField, Button, Grid, Typography, Box, CircularProgress } from '@mui/material';
@@ -56,7 +57,7 @@ const RequestForm: React.FC = () => {
         notes: data.notes || null,
       };
 
-      await axios.post('http://localhost:3000/api/requests', payload);
+      await axios.post('${config.API_BASE_URL}/api/requests', payload);
       alert('Заявка успешно отправлена!');
       reset();
     } catch (error) {
