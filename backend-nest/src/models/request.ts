@@ -1,9 +1,5 @@
-import { Sequelize, DataTypes } from 'sequelize';
-import dotenv from 'dotenv';
-
-dotenv.config();
-
-const sequelize = new Sequelize(process.env.DB_URL!, { dialect: 'postgres' });
+import { DataTypes } from 'sequelize';
+import sequelize from '../database/sequelize';
 
 const SSASRequest = sequelize.define('SSASRequest', {
   request_id: {
@@ -60,8 +56,5 @@ const SSASRequest = sequelize.define('SSASRequest', {
     type: DataTypes.DATE,
     defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
   },
-});
-
-sequelize.sync();
 
 export default SSASRequest;

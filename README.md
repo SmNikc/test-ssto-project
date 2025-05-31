@@ -12,7 +12,7 @@
 
 ## Установка и запуск
 1. Клонируйте репозиторий:
-    git clone <repository-url>
+    git clone https://github.com/SmNikc/test-ssto-project
 
 2. Установите зависимости:
     - Frontend:

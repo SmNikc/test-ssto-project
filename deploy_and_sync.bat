@@ -2,7 +2,7 @@
 chcp 65001 >nul
 
 echo Переход в директорию проекта
-cd /d "C:\Users\Admin\OneDrive\РАБОТА\ТЕСТ_ССТО\История разработки\test-ssto-project"
+cd /d "%~dp0"
 
 echo Удаление лишних файлов перед созданием архива
 if exist node_modules (
@@ -11,7 +11,7 @@ if exist node_modules (
 )
 
 echo Установка зависимостей для backend
-cd /d "C:\Users\Admin\OneDrive\РАБОТА\ТЕСТ_ССТО\История разработки\test-ssto-project\backend-nest"
+cd /d "%~dp0backend-nest"
 npm install
 if %ERRORLEVEL% NEQ 0 (
     echo Ошибка при установке зависимостей для backend. Проверьте логи npm.
@@ -36,7 +36,7 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo Установка зависимостей для frontend
-cd /d "C:\Users\Admin\OneDrive\РАБОТА\ТЕСТ_ССТО\История разработки\test-ssto-project\frontend"
+cd /d "%~dp0frontend"
 npm install
 if %ERRORLEVEL% NEQ 0 (
     echo Ошибка при установке зависимостей для frontend.
@@ -45,7 +45,7 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo Сборка Docker контейнеров
-cd /d "C:\Users\Admin\OneDrive\РАБОТА\ТЕСТ_ССТО\История разработки\test-ssto-project"
+cd /d "%~dp0"
 docker-compose up -d
 if %ERRORLEVEL% NEQ 0 (
     echo Ошибка при сборке Docker контейнеров. Проверьте логи Docker.
@@ -68,11 +68,11 @@ if exist node_modules (
 )
 
 echo Создание архива проекта
-cd /d "C:\Users\Admin\OneDrive\РАБОТА\ТЕСТ_ССТО\История разработки\test-ssto-project"
+cd /d "%~dp0"
 if exist test-ssto-project.zip (
     del test-ssto-project.zip
 )
-powershell -command "Compress-Archive -Path 'C:\Users\Admin\OneDrive\РАБОТА\ТЕСТ_ССТО\История разработки\test-ssto-project' -DestinationPath 'C:\Users\Admin\OneDrive\РАБОТА\ТЕСТ_ССТО\История разработки\test-ssto-project\test-ssto-project.zip'"
+powershell -command "Compress-Archive -Path '%~dp0' -DestinationPath '%~dp0test-ssto-project.zip'"
 if %ERRORLEVEL% NEQ 0 (
     echo Ошибка при создании архива.
     pause
@@ -80,7 +80,7 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo Копирование архива в C:\Projects
-copy "C:\Users\Admin\OneDrive\РАБОТА\ТЕСТ_ССТО\История разработки\test-ssto-project\test-ssto-project.zip" "C:\Projects\test-ssto-project.zip"
+copy "%~dp0test-ssto-project.zip" "C:\Projects\test-ssto-project.zip"
 if %ERRORLEVEL% NEQ 0 (
     echo Ошибка при копировании архива.
     pause
