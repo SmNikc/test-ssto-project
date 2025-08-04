@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+CopyEdit
+>>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)
 {
   "compilerOptions": {
     "target": "ESNext",

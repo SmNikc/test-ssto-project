@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { Sequelize, DataTypes } from 'sequelize';
 import dotenv from 'dotenv';
 
@@ -5,6 +6,13 @@ dotenv.config();
 
 const sequelize = new Sequelize(process.env.DB_URL!, { dialect: 'postgres' });
 
+=======
+CopyEdit
+import { Sequelize, DataTypes } from 'sequelize';
+import dotenv from 'dotenv';
+# dotenv.config();
+# const sequelize = new Sequelize(process.env.DB_URL!, { dialect: 'postgres' });
+>>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)
 const Signal = sequelize.define('Signal', {
   signal_id: {
     type: DataTypes.STRING,
@@ -25,7 +33,11 @@ const Signal = sequelize.define('Signal', {
     allowNull: false,
   },
   coordinates: {
+<<<<<<< HEAD
     type: DataTypes.STRING, // Формат: "latitude,longitude"
+=======
+    type: DataTypes.STRING,
+>>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)
     allowNull: true,
   },
   status: {
@@ -40,8 +52,14 @@ const Signal = sequelize.define('Signal', {
     type: DataTypes.DATE,
     defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
   },
+<<<<<<< HEAD
 });
 
 sequelize.sync();
 
 export default Signal;
+=======
+# });
+# sequelize.sync();
+# export default Signal;
+>>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)

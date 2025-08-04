@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { Controller, Post, Body, Get, Param, Patch, Delete } from '@nestjs/common';
 import { UserService } from '../user/user.service';
 
@@ -33,5 +34,20 @@ export class UserController {
   async deleteUser(@Param('userId') userId: string) {
     await this.userService.deleteUser(userId);
     return { message: 'Пользователь удален' };
+=======
+CopyEdit
+import { Controller, Post, Body, Get, Query } from '@nestjs/common';
+import { UserService } from '../user/user.service';
+@Controller('users')
+export class UserController {
+  constructor(private readonly userService: UserService) {}
+  @Post()
+#   async create(@Body() data: any) {
+    return this.userService.createUser(data);
+  }
+  @Get()
+#   async findByEmail(@Query('email') email: string) {
+    return this.userService.findUserByEmail(email);
+>>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)
   }
 }

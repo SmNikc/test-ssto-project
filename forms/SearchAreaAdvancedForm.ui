@@ -1,0 +1,59 @@
+xml
+CopyEdit
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>SearchAreaAdvancedForm</class>
+ <widget class="QDialog" name="SearchAreaAdvancedForm">
+  <property name="windowTitle"><string>Расширенное построение района поиска</string></property>
+  <layout class="QVBoxLayout" name="mainLayout">
+   <item>
+    <widget class="QTabWidget" name="tabWidget">
+     <widget class="QWidget" name="tabPoint">
+      <attribute name="title"><string>От одной точки</string></attribute>
+      <layout class="QFormLayout">
+       <item row="0" column="0"><widget class="QLabel"><property name="text"><string>Координаты точки:</string></property></widget></item>
+       <item row="0" column="1"><widget class="QLineEdit" name="editLatLon1"/></item>
+       <item row="1" column="0"><widget class="QLabel"><property name="text"><string>Тип района:</string></property></widget></item>
+       <item row="1" column="1"><widget class="QComboBox" name="comboAreaType1"><item><property name="text"><string>Круг</string></property></item><item><property name="text"><string>Квадрат</string></property></item></widget></item>
+       <item row="2" column="0"><widget class="QLabel"><property name="text"><string>Размер/радиус (км):</string></property></widget></item>
+       <item row="2" column="1"><widget class="QDoubleSpinBox" name="spinRadius1"/></item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tabTwoPoints">
+      <attribute name="title"><string>От двух точек</string></attribute>
+      <layout class="QFormLayout">
+       <item row="0" column="0"><widget class="QLabel"><property name="text"><string>Координаты 1:</string></property></widget></item>
+       <item row="0" column="1"><widget class="QLineEdit" name="editLatLon2a"/></item>
+       <item row="1" column="0"><widget class="QLabel"><property name="text"><string>Координаты 2:</string></property></widget></item>
+       <item row="1" column="1"><widget class="QLineEdit" name="editLatLon2b"/></item>
+       <item row="2" column="0"><widget class="QLabel"><property name="text"><string>Тип района:</string></property></widget></item>
+       <item row="2" column="1"><widget class="QComboBox" name="comboAreaType2"><item><property name="text"><string>Прямоугольник</string></property></item><item><property name="text"><string>Полоса</string></property></item></widget></item>
+       <item row="3" column="0"><widget class="QLabel"><property name="text"><string>Ширина полосы (км):</string></property></widget></item>
+       <item row="3" column="1"><widget class="QDoubleSpinBox" name="spinWidth2"/></item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tabLine">
+      <attribute name="title"><string>Вдоль линии</string></attribute>
+      <layout class="QFormLayout">
+       <item row="0" column="0"><widget class="QLabel"><property name="text"><string>Координаты линии (массив):</string></property></widget></item>
+       <item row="0" column="1"><widget class="QLineEdit" name="editLineCoords"/></item>
+       <item row="1" column="0"><widget class="QLabel"><property name="text"><string>Ширина полосы (км):</string></property></widget></item>
+       <item row="1" column="1"><widget class="QDoubleSpinBox" name="spinWidth3"/></item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tabManual">
+      <attribute name="title"><string>Ручной</string></attribute>
+      <layout class="QVBoxLayout">
+       <item><widget class="QPushButton" name="buttonEditManual"><property name="text"><string>Открыть редактор</string></property></widget></item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="buttonBuildArea"><property name="text"><string>Построить район</string></property></widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

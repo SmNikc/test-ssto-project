@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { Sequelize, DataTypes } from 'sequelize';
 import dotenv from 'dotenv';
 
@@ -5,6 +6,13 @@ dotenv.config();
 
 const sequelize = new Sequelize(process.env.DB_URL!, { dialect: 'postgres' });
 
+=======
+CopyEdit
+import { Sequelize, DataTypes } from 'sequelize';
+import dotenv from 'dotenv';
+# dotenv.config();
+# const sequelize = new Sequelize(process.env.DB_URL!, { dialect: 'postgres' });
+>>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)
 const User = sequelize.define('User', {
   user_id: {
     type: DataTypes.STRING,
@@ -27,8 +35,14 @@ const User = sequelize.define('User', {
     type: DataTypes.DATE,
     defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
   },
+<<<<<<< HEAD
 });
 
 sequelize.sync();
 
 export default User;
+=======
+# });
+# sequelize.sync();
+# export default User;
+>>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)

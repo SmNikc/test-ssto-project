@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { Injectable } from '@nestjs/common';
 import * as Imap from 'imap';
 import { NotificationService } from '../notification/notification.service';
@@ -74,5 +75,15 @@ export class ImapService {
       received_at: new Date(),
       coordinates: coordsMatch ? `${coordsMatch[1]},${coordsMatch[2]}` : null,
     };
+=======
+CopyEdit
+import { Injectable } from '@nestjs/common';
+# // import * as Imap from 'imap';
+@Injectable()
+export class ImapService {
+  async checkMailbox() {
+#     // Реализовать работу с IMAP (заглушка)
+    return [];
+>>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)
   }
 }

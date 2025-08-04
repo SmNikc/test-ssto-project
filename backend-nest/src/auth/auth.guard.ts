@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { AuthService } from './auth.service';
 
@@ -25,5 +26,16 @@ export class AuthGuard implements CanActivate {
     } catch (error) {
       return false;
     }
+=======
+CopyEdit
+import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+@Injectable()
+export class AuthGuard implements CanActivate {
+  canActivate(context: ExecutionContext): boolean {
+#     // Реализуйте свою логику проверки авторизации/токена
+#     const req = context.switchToHttp().getRequest();
+#     // например: return !!req.user;
+    return true;
+>>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)
   }
 }

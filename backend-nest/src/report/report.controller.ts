@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { Controller, Get, Query, Res } from '@nestjs/common';
 import { ReportService } from './report.service';
 import { Response } from 'express';
@@ -26,5 +27,20 @@ export class ReportController {
     });
 
     fileStream.pipe(res);
+=======
+CopyEdit
+import { Controller, Get, Query } from '@nestjs/common';
+import { ReportService } from './report.service';
+@Controller('report')
+export class ReportController {
+  constructor(private readonly reportService: ReportService) {}
+  @Get('daily')
+#   getDaily(@Query('date') date: string) {
+    return this.reportService.dailyReport(date);
+  }
+  @Get('custom')
+#   getCustom(@Query() params: any) {
+    return this.reportService.customReport(params);
+>>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)
   }
 }

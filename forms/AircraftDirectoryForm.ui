@@ -1,0 +1,28 @@
+xml
+CopyEdit
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>AircraftDirectoryForm</class>
+ <widget class="QDialog" name="AircraftDirectoryForm">
+  <property name="windowTitle">
+   <string>Справочник воздушных судов</string>
+  </property>
+  <layout class="QVBoxLayout" name="mainLayout">
+   <item>
+    <widget class="QTableWidget" name="tableAircraft"/>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="buttonLayout">
+     <item><widget class="QPushButton" name="buttonAdd"><property name="text"><string>Добавить</string></property></widget></item>
+     <item><widget class="QPushButton" name="buttonEdit"><property name="text"><string>Редактировать</string></property></widget></item>
+     <item><widget class="QPushButton" name="buttonDelete"><property name="text"><string>Удалить</string></property></widget></item>
+     <item><widget class="QPushButton" name="buttonFilter"><property name="text"><string>Фильтр</string></property></widget></item>
+     <item><widget class="QPushButton" name="buttonAssign"><property name="text"><string>Назначить на поиск</string></property></widget></item>
+     <item><widget class="QPushButton" name="buttonClose"><property name="text"><string>Закрыть</string></property></widget></item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

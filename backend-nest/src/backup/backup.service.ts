@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { Injectable } from '@nestjs/common';
 import { exec } from 'child_process';
 import { promisify } from 'util';
@@ -51,5 +52,14 @@ export class BackupService {
   async listBackups(): Promise<string[]> {
     const backupDir = process.env.BACKUP_DIR || '/opt/test-ssto/backups';
     return fs.readdirSync(backupDir);
+=======
+CopyEdit
+import { Injectable } from '@nestjs/common';
+@Injectable()
+export class BackupService {
+  async createBackup() {
+#     // Реализация бэкапа (пример-заглушка)
+    return { status: 'backup created', timestamp: new Date().toISOString() };
+>>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)
   }
 }

@@ -12,7 +12,11 @@
 
 ## Установка и запуск
 1. Клонируйте репозиторий:
+<<<<<<< HEAD
     git clone https://github.com/SmNikc/test-ssto-project
+=======
+    git clone <repository-url>
+>>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)
 
 2. Установите зависимости:
     - Frontend:

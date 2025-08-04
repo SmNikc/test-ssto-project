@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
@@ -27,3 +28,16 @@ async function bootstrap() {
   console.log(`Application is running on: ${await app.getUrl()}`);
 }
 bootstrap();
+=======
+CopyEdit
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+import helmet from 'helmet';
+async function bootstrap() {
+#   const app = await NestFactory.create(AppModule);
+#   app.use(helmet());
+#   app.enableCors();
+#   await app.listen(3000);
+}
+# bootstrap();
+>>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)

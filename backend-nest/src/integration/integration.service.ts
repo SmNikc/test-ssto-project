@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 
@@ -40,5 +41,16 @@ export class IntegrationService {
       console.error('Ошибка интеграции с МСКЦ/МСПЦ:', error);
       throw new Error('Не удалось отправить данные в МСКЦ/МСПЦ');
     }
+=======
+CopyEdit
+import { Injectable } from '@nestjs/common';
+import axios from 'axios';
+@Injectable()
+export class IntegrationService {
+  async pushToExternal(data: any) {
+#     // Заглушка интеграции с внешними системами
+    // await axios.post(...)
+    return { status: 'ok' };
+>>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)
   }
 }

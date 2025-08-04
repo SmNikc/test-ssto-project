@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 {
   "collection": "@nestjs/schematics",
   "sourceRoot": "src",
@@ -6,4 +7,10 @@
     "assets": ["*.json", "*.env"],
     "watchAssets": true
   }
+=======
+CopyEdit
+{
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "src"
+>>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)
 }

@@ -1,0 +1,25 @@
+xml
+CopyEdit
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>PlanSearchForm</class>
+ <widget class="QDialog" name="PlanSearchForm">
+  <property name="windowTitle"><string>План поиска</string></property>
+  <layout class="QVBoxLayout" name="mainLayout">
+   <item>
+    <widget class="QTableWidget" name="tablePlan"/>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="buttonLayout">
+     <item><widget class="QPushButton" name="buttonExport"><property name="text"><string>Экспорт</string></property></widget></item>
+     <item><widget class="QPushButton" name="buttonClose"><property name="text"><string>Закрыть</string></property></widget></item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
+Далее — все alg/.py, затем utils/.py, далее — resources, docs, i18n и .github. Продолжаю!
+жду
+Публикую далее: блок основных алгоритмов (alg/*.py).

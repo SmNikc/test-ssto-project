@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { Injectable } from '@nestjs/common';
 import { SignalService } from '../signal/signal.service';
 import * as pdfkit from 'pdfkit';
@@ -46,5 +47,20 @@ export class ReportService {
     }
 
     return reportPath;
+=======
+CopyEdit
+import { Injectable } from '@nestjs/common';
+# // import * as pdfkit from 'pdfkit';
+# // import * as ExcelJS from 'exceljs';
+@Injectable()
+export class ReportService {
+  async dailyReport(date: string) {
+#     // Реализация отчёта за день (заглушка)
+    return { report: 'daily', date };
+  }
+  async customReport(params: any) {
+#     // Реализация произвольного отчёта (заглушка)
+    return { report: 'custom', params };
+>>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)
   }
 }

@@ -1,0 +1,47 @@
+xml
+CopyEdit
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>DutyOfficerTabletForm</class>
+ <widget class="QDialog" name="DutyOfficerTabletForm">
+  <property name="windowTitle"><string>Планшет дежурного</string></property>
+  <layout class="QVBoxLayout" name="mainLayout">
+   <item>
+    <widget class="QTabWidget" name="tabWidget">
+     <widget class="QWidget" name="tabGeneral">
+      <attribute name="title"><string>Основные параметры</string></attribute>
+      <layout class="QFormLayout">
+       <item row="0" column="0"><widget class="QLabel"><property name="text"><string>Поисковое дело:</string></property></widget></item>
+       <item row="0" column="1"><widget class="QLabel" name="labelCase"/></item>
+       <item row="1" column="0"><widget class="QLabel"><property name="text"><string>Операция:</string></property></widget></item>
+       <item row="1" column="1"><widget class="QLabel" name="labelOperation"/></item>
+       <item row="2" column="0"><widget class="QLabel"><property name="text"><string>Ответственный:</string></property></widget></item>
+       <item row="2" column="1"><widget class="QLabel" name="labelOfficer"/></item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tabSRU">
+      <attribute name="title"><string>Поисковые единицы</string></attribute>
+      <layout class="QVBoxLayout">
+       <item><widget class="QTableWidget" name="tableSRU"/></item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tabHistory">
+      <attribute name="title"><string>История</string></attribute>
+      <layout class="QVBoxLayout">
+       <item><widget class="QTextEdit" name="textHistory"/></item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="buttonLayout">
+     <item><widget class="QPushButton" name="buttonExport"><property name="text"><string>Экспорт</string></property></widget></item>
+     <item><widget class="QPushButton" name="buttonPrint"><property name="text"><string>Печать</string></property></widget></item>
+     <item><widget class="QPushButton" name="buttonClose"><property name="text"><string>Закрыть</string></property></widget></item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

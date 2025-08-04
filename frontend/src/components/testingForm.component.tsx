@@ -1,9 +1,16 @@
+<<<<<<< HEAD
+=======
+CopyEdit
+>>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)
 import config from '../config';
 import React from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { TextField, Button, Select, MenuItem, Grid, Typography, Box } from '@mui/material';
 import axios from 'axios';
+<<<<<<< HEAD
 
+=======
+>>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)
 interface TestingScenario {
   description: string;
   expected_result: string;
@@ -11,7 +18,10 @@ interface TestingScenario {
   status: 'planned' | 'completed' | 'failed';
   comments?: string;
 }
+<<<<<<< HEAD
 
+=======
+>>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)
 const TestingForm: React.FC = () => {
   const { control, handleSubmit, reset } = useForm<TestingScenario>({
     defaultValues: {
@@ -22,6 +32,7 @@ const TestingForm: React.FC = () => {
       comments: '',
     },
   });
+<<<<<<< HEAD
 
   const onSubmit = async (data: TestingScenario) => {
     try {
@@ -34,6 +45,17 @@ const TestingForm: React.FC = () => {
     }
   };
 
+=======
+  const onSubmit = async (data: TestingScenario) => {
+    try {
+      await axios.post(`${config.API_BASE_URL}/api/testing/scenarios`, data);
+      alert('Сценарий успешно создан!');
+      reset();
+    } catch (error) {
+      alert('Ошибка при создании сценария');
+    }
+  };
+>>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)
   return (
     <Box sx={{ maxWidth: 800, mx: 'auto', p: 3 }}>
       <Typography variant="h5" align="center" gutterBottom>
@@ -49,15 +71,24 @@ const TestingForm: React.FC = () => {
               name="description"
               control={control}
               rules={{ required: 'Описание обязательно' }}
+<<<<<<< HEAD
               render={({ field, fieldState: { error } }) => (
+=======
+              render={({ field, fieldState }) => (
+>>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)
                 <TextField
                   {...field}
                   label="Описание"
                   fullWidth
                   multiline
                   rows={2}
+<<<<<<< HEAD
                   error={!!error}
                   helperText={error?.message}
+=======
+                  error={!!fieldState.error}
+                  helperText={fieldState.error?.message}
+>>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)
                 />
               )}
             />
@@ -67,15 +98,24 @@ const TestingForm: React.FC = () => {
               name="expected_result"
               control={control}
               rules={{ required: 'Ожидаемый результат обязателен' }}
+<<<<<<< HEAD
               render={({ field, fieldState: { error } }) => (
+=======
+              render={({ field, fieldState }) => (
+>>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)
                 <TextField
                   {...field}
                   label="Ожидаемый результат"
                   fullWidth
                   multiline
                   rows={2}
+<<<<<<< HEAD
                   error={!!error}
                   helperText={error?.message}
+=======
+                  error={!!fieldState.error}
+                  helperText={fieldState.error?.message}
+>>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)
                 />
               )}
             />
@@ -136,5 +176,8 @@ const TestingForm: React.FC = () => {
     </Box>
   );
 };
+<<<<<<< HEAD
 
+=======
+>>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)
 export default TestingForm;

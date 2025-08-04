@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { Injectable } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import * as twilio from 'twilio';
@@ -64,5 +65,25 @@ export class NotificationService {
         }
       }
     }
+=======
+CopyEdit
+import { Injectable } from '@nestjs/common';
+# // import * as nodemailer from 'nodemailer';
+# // import * as twilio from 'twilio';
+# // import * as TelegramBot from 'node-telegram-bot-api';
+@Injectable()
+export class NotificationService {
+  async sendEmail(to: string, subject: string, body: string) {
+#     // Реализовать отправку email (nodemailer)
+    return true;
+  }
+  async sendSMS(phone: string, text: string) {
+#     // Реализовать отправку SMS (twilio)
+    return true;
+  }
+  async sendTelegram(chatId: string, text: string) {
+#     // Реализовать отправку Telegram (node-telegram-bot-api)
+    return true;
+>>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)
   }
 }

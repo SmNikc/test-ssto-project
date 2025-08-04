@@ -1,39 +1,95 @@
-ф# Node.js
+# Node.js, TypeScript, Angular, React, Vite
 node_modules/
-npm-debug.log
+npm-debug.log*
+yarn-error.log*
 dist/
 build/
+.angular/
+.vite/
+.cache/
+.sass-cache/
+*.tsbuildinfo
 
-# Environment files
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# Python, Pytest, Coverage
+__pycache__/
+*.pyc
+.pytest_cache/
+.nyc_output/
+.coverage
+.coverage.*
+.cache/
+*.pyo
 
-# Logs
-logs/
-*.log
-*.log.*
-
-# Dependency directories
-.pnp/
-.pnp.js
-
-# Build directories
-/dist/
-/build/
-
-# macOS
-.DS_Store
-
-# IDEs
-.vscode/
+# IDE и служебные файлы
 .idea/
+.vscode/
+*.swp
+*.swo
+*.bak
+*.tmp
 
-# Docker
-docker-compose.yml.bak
+# System, OS-specific
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+Icon?
 
-# Дополнительно рекомендовано
-.cache
-*.lock
+# Git, архивы
+.git/
+.gitignore
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# Базы данных, дампы, артефакты
+*.sqlite
+*.db
+*.sql
+*.dump
+
+# Сборочные/исполняемые файлы
+*.exe
+*.dll
+*.so
+*.obj
+*.out
+
+# Документы, медиа (если не исходники)
+*.png
+*.jpg
+*.jpeg
+*.ico
+*.gif
+*.pdf
+*.docx
+*.xlsx
+*.xls
+*.pptx
+*.csv
+*.mp4
+*.mov
+*.wav
+*.tif
+
+# Конфиги среды/локальные
+.env
+.env.*
+local.settings.json
+
+# Исключения для шаблонов env и других важных файлов
+!backend-nest/.env.example
+!frontend/.env.example
+!backend-nest/.env.sample
+!frontend/.env.sample
+!backend-nest/.env.dist
+!frontend/.env.dist
+
+# Исключения для шаблонов миграций и инструкций
+!docs/
+!README.md
+!migrations/
+!backend-nest/docs/
+!frontend/docs/

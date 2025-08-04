@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { Controller, Post, Get, Query } from '@nestjs/common';
 import { BackupService } from './backup.service';
 
@@ -24,5 +25,16 @@ export class BackupController {
   async listBackups() {
     const backups = await this.backupService.listBackups();
     return { backups };
+=======
+CopyEdit
+import { Controller, Post } from '@nestjs/common';
+import { BackupService } from './backup.service';
+@Controller('backup')
+export class BackupController {
+  constructor(private readonly backupService: BackupService) {}
+  @Post()
+  createBackup() {
+    return this.backupService.createBackup();
+>>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)
   }
 }

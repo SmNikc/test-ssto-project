@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 version: '3.8'
 services:
   frontend:
@@ -30,5 +31,35 @@ services:
       - POSTGRES_DB=test_ssto
     volumes:
       - pgdata:/var/lib/postgresql/data
+=======
+yaml
+CopyEdit
+version: '3.8'
+services:
+  postgres:
+    image: postgres:14-alpine
+    environment:
+      POSTGRES_USER: ssto
+      POSTGRES_PASSWORD: sstopass
+      POSTGRES_DB: sstodb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+  backend-nest:
+    build: ./backend-nest
+    environment:
+      DB_URL: postgres://ssto:sstopass@postgres:5432/sstodb
+    depends_on:
+      - postgres
+    ports:
+      - "3000:3000"
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend-nest
+>>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)
 volumes:
   pgdata:

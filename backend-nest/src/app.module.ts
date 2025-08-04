@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { ConfigModule } from '@nestjs/config';
@@ -44,3 +45,35 @@ import Log from './models/log.model';
   ],
 })
 export class AppModule {}
+=======
+CopyEdit
+import { Module } from '@nestjs/common';
+import { SequelizeModule } from '@nestjs/sequelize';
+import SSASRequest from './models/request';
+import Signal from './models/signal.model';
+import Log from './models/log.model';
+import TestingScenario from './models/testingScenario.model';
+import User from './models/user.model';
+# // ... остальные импорты сервисов и контроллеров
+@Module({
+  imports: [
+    SequelizeModule.forRoot({
+      dialect: 'postgres',
+      url: process.env.DB_URL,
+      models: [SSASRequest, Signal, Log, TestingScenario, User],
+      autoLoadModels: true,
+      synchronize: true,
+    }),
+#     // ... остальные модули
+  ],
+  controllers: [
+#     // ... контроллеры
+  ],
+  providers: [
+#     // ... сервисы
+  ],
+})
+export class AppModule {}
+# Далее публикую frontend (React, Vite, MUI) — все основные компоненты, config и типы — строго лентой, без остановок, весь объём. Продолжение следует…
+# вчем деало то - публикуйте
+>>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)

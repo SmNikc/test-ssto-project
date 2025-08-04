@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 
@@ -43,5 +44,16 @@ export class AuthService {
     } catch (error) {
       throw new Error('Failed to fetch user info');
     }
+=======
+CopyEdit
+import { Injectable } from '@nestjs/common';
+import axios from 'axios';
+@Injectable()
+export class AuthService {
+  async validateUser(token: string): Promise<boolean> {
+#     // Пример обращения к Keycloak/SSO для валидации токена
+#     // const res = await axios.get(...);
+    return true;
+>>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)
   }
 }
