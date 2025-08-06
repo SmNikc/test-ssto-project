@@ -1,4 +1,3 @@
-CopyEdit
 import { Controller, Get, Post, Body, Query } from '@nestjs/common';
 import { SignalService } from '../signal/signal.service';
 @Controller('signals')

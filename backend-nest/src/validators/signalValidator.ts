@@ -1,4 +1,3 @@
-CopyEdit
 export function validateSignal(data: any): string[] {
 #   const errors: string[] = [];
   if (!data.signal_id) errors.push('Не указан идентификатор сигнала');

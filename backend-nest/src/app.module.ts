@@ -1,4 +1,3 @@
-CopyEdit
 import { Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
 import SSASRequest from './models/request';

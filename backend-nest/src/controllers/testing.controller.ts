@@ -1,4 +1,3 @@
-CopyEdit
 import { Controller, Get, Post, Body, Query } from '@nestjs/common';
 import { TestingService } from '../testing/testing.service';
 @Controller('testing')

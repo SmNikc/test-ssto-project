@@ -1,4 +1,3 @@
-CopyEdit
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 @Injectable()
 export class AuthGuard implements CanActivate {

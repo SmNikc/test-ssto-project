@@ -1,4 +1,3 @@
-CopyEdit
 import os
 def update_urls(root, old, new):
     for dirpath, _, filenames in os.walk(root):

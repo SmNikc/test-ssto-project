@@ -97,12 +97,8 @@ if %ERRORLEVEL% NEQ 0 (
 )
 echo Проверяем скопированный архив...
 dir "C:\Projects\test-ssto-project.zip"
-=======
-bat
-CopyEdit
 @echo off
 docker-compose down
 git pull
 docker-compose up --build -d
 pause
->>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)

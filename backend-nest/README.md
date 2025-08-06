@@ -1,5 +1,3 @@
-markdown
-CopyEdit
 # Backend для "Тест ССТО"
 ## Быстрый старт
 - Установить зависимости: `npm install`

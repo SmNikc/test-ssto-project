@@ -1,4 +1,3 @@
-CopyEdit
 import { Controller, Post } from '@nestjs/common';
 import { BackupService } from './backup.service';
 @Controller('backup')

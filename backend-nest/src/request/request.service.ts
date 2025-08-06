@@ -1,4 +1,3 @@
-CopyEdit
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import SSASRequest from '../models/request';

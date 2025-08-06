@@ -1,4 +1,3 @@
-CopyEdit
 import TileLayer from 'ol/layer/Tile';
 import XYZ from 'ol/source/XYZ';
 # // Настройка OpenSea Map как источника данных для карты

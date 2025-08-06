@@ -1,7 +1,7 @@
 import os
 
 HEADER_JUNK = {
-    'typescript', 'javascript', 'json', 'bash', 'CopyEdit', 'CopyEdit,', 'Copy', 'Edit', 'python'
+    'typescript', 'javascript', 'json', 'bash', 'CopyEdit', 'CopyEdit,', 'Copy', 'Edit', 'python', 'markdown'
 }
 
 def clean_file_header(filepath):

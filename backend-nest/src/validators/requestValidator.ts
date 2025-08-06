@@ -1,4 +1,3 @@
-CopyEdit
 export function validateRequest(data: any): string[] {
 #   const errors: string[] = [];
   if (!data.mmsi || String(data.mmsi).length !== 9) errors.push('MMSI должен быть 9-значным');

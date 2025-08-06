@@ -1,4 +1,3 @@
-CopyEdit
 import { Module } from '@nestjs/common';
 import { ImapService } from './imap.service';
 @Module({
