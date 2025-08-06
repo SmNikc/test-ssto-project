@@ -1,4 +1,3 @@
-CopyEdit
 import math
 def vector_from_angle_speed(angle_deg, speed):
     angle_rad = math.radians(angle_deg)

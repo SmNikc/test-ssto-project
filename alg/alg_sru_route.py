@@ -1,4 +1,3 @@
-CopyEdit
 from qgis.core import (
     QgsGeometry, QgsPointXY, QgsFeature, QgsVectorLayer,
     QgsProject, QgsField, QgsFields

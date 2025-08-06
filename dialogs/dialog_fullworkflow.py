@@ -1,4 +1,3 @@
-CopyEdit
 from PyQt5.QtWidgets import QDialog, QMessageBox
 from ..utils.duty_tablet import DutyTabletManager
 class FullWorkflowDialog(QDialog):

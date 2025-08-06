@@ -1,4 +1,3 @@
-CopyEdit
 from PyQt5.QtWidgets import QDialog, QMessageBox
 from ..forms.RegistrationForm_ui import Ui_RegistrationForm
 class RegistrationDialog(QDialog):

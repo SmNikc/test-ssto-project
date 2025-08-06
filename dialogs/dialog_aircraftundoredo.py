@@ -1,4 +1,3 @@
-CopyEdit
 from PyQt5.QtWidgets import QDialog, QPushButton, QVBoxLayout, QMessageBox
 from ..utils.sru_aircraft import SRUAircraftManager
 class AircraftUndoRedoDialog(QDialog):

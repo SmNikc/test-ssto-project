@@ -1,4 +1,3 @@
-CopyEdit
 from qgis.core import QgsVectorLayer, QgsFeature, QgsGeometry, QgsPointXY
 def build_area_from_one_point(lat, lon, radius_km, kind):
     import math

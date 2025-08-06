@@ -78,7 +78,7 @@ def save_code_blocks(blocks, root_dir):
         print(f"✅ Сохранён: {abs_path}")
 
 if __name__ == "__main__":
-    docx_path = r"C:\Users\Admin\Downloads\GPT_TEST_SSTO_FULL_3.docx.docx"
+    docx_path = r"C:\Users\Admin\Downloads\ЧИСТКА ПРОЕКТА ССТО = ОТ 06.08.2025.docx"
     plugin_dir = r"C:\Projects\test-ssto-project"
     blocks = extract_code_blocks(docx_path)
     print(f"Найдено файлов: {len(blocks)}")

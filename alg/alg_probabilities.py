@@ -1,4 +1,3 @@
-CopyEdit
 import numpy as np
 def compute_probability_map(center_lat, center_lon, radius_km, resolution_km, wind_speed=0, wind_dir=0, drift_sigma_km=None, model="gaussian"):
 #     size = int((radius_km * 2) / resolution_km) + 1

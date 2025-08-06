@@ -1,4 +1,3 @@
-CopyEdit
 from PyQt5.QtWidgets import QDialog, QMessageBox, QInputDialog, QTableWidgetItem
 from ..forms.AircraftDirectoryForm_ui import Ui_AircraftDirectoryForm
 from ..utils.aircraft_directory import AircraftDirectory

@@ -1,14 +1,8 @@
-<<<<<<< HEAD
-import { DataTypes } from 'sequelize';
-import sequelize from '../database/sequelize';
-
-=======
 CopyEdit
 import { Sequelize, DataTypes } from 'sequelize';
 import dotenv from 'dotenv';
 # dotenv.config();
 # const sequelize = new Sequelize(process.env.DB_URL!, { dialect: 'postgres' });
->>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)
 const SSASRequest = sequelize.define('SSASRequest', {
   request_id: {
     type: DataTypes.STRING,
@@ -37,11 +31,7 @@ const SSASRequest = sequelize.define('SSASRequest', {
     allowNull: false,
   },
   contact_phone: {
-<<<<<<< HEAD
-    type: DataTypes.STRING(17), // Формат +X (XXX) XXX-XX-XX
-=======
     type: DataTypes.STRING(17),
->>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)
     allowNull: false,
   },
   email: {
@@ -53,19 +43,11 @@ const SSASRequest = sequelize.define('SSASRequest', {
     allowNull: false,
   },
   start_time: {
-<<<<<<< HEAD
-    type: DataTypes.STRING(5), // Формат HH:MM
-    allowNull: false,
-  },
-  end_time: {
-    type: DataTypes.STRING(5), // Формат HH:MM
-=======
     type: DataTypes.STRING(5),
     allowNull: false,
   },
   end_time: {
     type: DataTypes.STRING(5),
->>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)
     allowNull: false,
   },
   notes: {
@@ -76,11 +58,6 @@ const SSASRequest = sequelize.define('SSASRequest', {
     type: DataTypes.DATE,
     defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
   },
-<<<<<<< HEAD
-
-export default SSASRequest;
-=======
 # });
 # sequelize.sync();
 # export default SSASRequest;
->>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)

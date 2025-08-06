@@ -1,4 +1,3 @@
-CopyEdit
 from PyQt5.QtWidgets import QDialog, QMessageBox, QFileDialog, QTableWidgetItem
 from ..forms.DutyOfficerTabletForm_ui import Ui_DutyOfficerTabletForm
 from ..utils.duty_tablet import DutyTabletManager

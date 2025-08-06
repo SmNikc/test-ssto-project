@@ -1,21 +1,3 @@
-<<<<<<< HEAD
-import config from 'config';
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import RequestForm from './components/RequestForm';
-
-const App: React.FC = () => {
-  return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<RequestForm />} />
-      </Routes>
-    </Router>
-  );
-};
-
-=======
-CopyEdit
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Dashboard from './components/dashboard.component';
@@ -34,5 +16,4 @@ const App: React.FC = () => (
     </Routes>
   </Router>
 );
->>>>>>> ea6a6b8 (Выгрузка новых и изменённых файлов моделей из docx)
 export default App;

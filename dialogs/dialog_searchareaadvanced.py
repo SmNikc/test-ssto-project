@@ -1,4 +1,3 @@
-CopyEdit
 from PyQt5.QtWidgets import QDialog, QMessageBox
 from ..forms.SearchAreaAdvancedForm_ui import Ui_SearchAreaAdvancedForm
 from ..alg.advanced_search_area import (

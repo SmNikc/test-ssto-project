@@ -1,4 +1,3 @@
-CopyEdit
 from PyQt5.QtWidgets import QDialog, QTableWidgetItem, QMessageBox, QPushButton, QVBoxLayout
 from ..utils.sru_aircraft import SRUAircraftManager
 class AircraftAssignmentHistoryDialog(QDialog):

@@ -1,4 +1,3 @@
-CopyEdit
 from PyQt5.QtWidgets import QDialog, QTableWidgetItem, QMessageBox, QFileDialog, QVBoxLayout, QTableWidget, QPushButton, QHBoxLayout
 from ..utils.case_archive import CaseArchive
 import datetime

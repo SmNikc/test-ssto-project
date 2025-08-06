@@ -1,4 +1,3 @@
-CopyEdit
 from PyQt5.QtWidgets import QDialog, QMessageBox
 from ..utils.validator import Validator
 from ..utils.plan_search import PlanSearchManager

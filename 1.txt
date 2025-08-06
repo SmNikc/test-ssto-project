@@ -3,16 +3,28 @@
 C:\PROJECTS\TEST-SSTO-PROJECT
 ¦   .gitignore
 ¦   1.txt
+¦   create_project_zip.py
 ¦   deploy_and_sync.bat
 ¦   docker-compose.yml
 ¦   docx2files.py
-¦   FETCH_HEAD
-¦   git
 ¦   LICENSE
-¦   main
+¦   mainPlugin.py
+¦   make_zip.bat
 ¦   README.md
+¦   save_and_sync.bat
+¦   test-ssto-project.zip
 ¦   update_api_urls.py
 ¦   
++---.github
+¦   L---workflows
+¦           ci.yml
+¦           
++---alg
+¦       advanced_search_area.py
+¦       alg_drift.py
+¦       alg_probabilities.py
+¦       alg_sru_route.py
+¦       
 +---backend-nest
 ¦   ¦   .env
 ¦   ¦   .env.example
@@ -42986,6 +42998,31 @@ C:\PROJECTS\TEST-SSTO-PROJECT
 ¦               signalValidator.ts
 ¦               testingScenarioValidator.ts
 ¦               
++---dialogs
+¦       dialog_aircraftassignmenthistory.py
+¦       dialog_aircraftdirectory.py
+¦       dialog_aircraftundoredo.py
+¦       dialog_casearchive.py
+¦       dialog_dutyofficertablet.py
+¦       dialog_fullworkflow.py
+¦       dialog_plansearch.py
+¦       dialog_registration.py
+¦       dialog_searchareaadvanced.py
+¦       dialog_sitrep.py
+¦       dialog_validator.py
+¦       
++---docs
+¦       functional_blocks.md
+¦       README.md
+¦       
++---forms
+¦       AircraftDirectoryForm.ui
+¦       DutyOfficerTabletForm.ui
+¦       PlanSearchForm.ui
+¦       RegistrationForm.ui
+¦       SearchAreaAdvancedForm.ui
+¦       SitrepForm.ui
+¦       
 +---frontend
 ¦   ¦   Dockerfile
 ¦   ¦   index.html
@@ -43009,10 +43046,25 @@ C:\PROJECTS\TEST-SSTO-PROJECT
 ¦       L---config
 ¦               map.config.ts
 ¦               
-L---install
-    ¦   install_README.md
-    ¦   
-    L---.github
-        L---workflows
-                ci.yml
-                
++---i18n
+¦       poiskmore_ru.ts
+¦       
++---install
+¦   ¦   install_README.md
+¦   ¦   
+¦   L---.github
+¦       L---workflows
+¦               ci.yml
+¦               
++---resources
+¦       resources.qrc
+¦       
+L---utils
+        aircraft_directory.py
+        case_archive.py
+        duty_tablet.py
+        plan_search.py
+        report_generator.py
+        sru_aircraft.py
+        validator.py
+        

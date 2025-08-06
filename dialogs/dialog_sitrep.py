@@ -1,4 +1,3 @@
-CopyEdit
 from PyQt5.QtWidgets import QDialog, QMessageBox
 from ..forms.SitrepForm_ui import Ui_SitrepForm
 from ..utils.report_generator import generate_sitrep_docx

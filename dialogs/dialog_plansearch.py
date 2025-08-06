@@ -1,4 +1,3 @@
-CopyEdit
 from PyQt5.QtWidgets import QDialog, QMessageBox, QFileDialog, QTableWidgetItem
 from ..forms.PlanSearchForm_ui import Ui_PlanSearchForm
 from ..utils.plan_search import PlanSearchManager

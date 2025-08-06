@@ -1,4 +1,3 @@
-CopyEdit
 from PyQt5.QtWidgets import QAction, QMenu, QMenuBar
 from qgis.PyQt.QtCore import QObject
 from .dialogs.dialog_registration import RegistrationDialog
