@@ -9,7 +9,7 @@ import User from './models/user.model';
   imports: [
     SequelizeModule.forRoot({
       dialect: 'postgres',
-      url: process.env.DB_URL,
+      uri: process.env.DB_URL,
       models: [SSASRequest, Signal, Log, TestingScenario, User],
       autoLoadModels: true,
       synchronize: true,

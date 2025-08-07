@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import Log from '../models/log.model';
-import { Sequelize } from 'sequelize';
+import { Op } from 'sequelize';
 @Injectable()
 export class LogService {
   constructor(
@@ -19,7 +19,7 @@ export class LogService {
     return this.logModel.findAll({
       where: {
         created_at: {
-          [Sequelize.Op.between]: [startDate, endDate],
+          [Op.between]: [startDate, endDate],
         },
       },
     });
@@ -30,7 +30,7 @@ export class LogService {
     await this.logModel.destroy({
       where: {
         created_at: {
-          [Sequelize.Op.lt]: thresholdDate,
+          [Op.lt]: thresholdDate,
         },
       },
     });

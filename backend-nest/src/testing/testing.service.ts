@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import TestingScenario from '../models/testingScenario.model';
-import { Sequelize } from 'sequelize';
+import { Op } from 'sequelize';
 @Injectable()
 export class TestingService {
   constructor(
@@ -15,7 +15,7 @@ export class TestingService {
     return this.scenarioModel.findAll({
       where: {
         created_at: {
-          [Sequelize.Op.between]: [startDate, endDate],
+          [Op.between]: [startDate, endDate],
         },
       },
     });

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import SSASRequest from '../models/request';
-import { Sequelize } from 'sequelize';
+import { Op } from 'sequelize';
 @Injectable()
 export class RequestService {
   constructor(
@@ -18,7 +18,7 @@ export class RequestService {
     return this.requestModel.findAll({
       where: {
         test_date: {
-          [Sequelize.Op.between]: [startDate, endDate],
+          [Op.between]: [startDate, endDate],
         },
       },
     });
