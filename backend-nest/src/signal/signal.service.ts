@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import Signal from '../models/signal.model';
-import { Sequelize } from 'sequelize';
+import { Op } from 'sequelize';
 @Injectable()
 export class SignalService {
   constructor(
@@ -19,7 +19,7 @@ export class SignalService {
       where: {
         signal_type: signalType,
         received_at: {
-          [Sequelize.Op.between]: [startDate, endDate],
+          [Op.between]: [startDate, endDate],
         },
       },
     });

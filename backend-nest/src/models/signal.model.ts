@@ -1,42 +1,28 @@
-import { Sequelize, DataTypes } from 'sequelize';
-import dotenv from 'dotenv';
-dotenv.config();
-const sequelize = new Sequelize(process.env.DB_URL!, { dialect: 'postgres' });
-const Signal = sequelize.define('Signal', {
-  signal_id: {
-    type: DataTypes.STRING,
-    primaryKey: true,
-    allowNull: false,
-  },
-  mmsi: {
-    type: DataTypes.STRING(9),
-    allowNull: false,
-    validate: { len: [9, 9] },
-  },
-  signal_type: {
-    type: DataTypes.ENUM('test', 'alert', 'unscheduled'),
-    allowNull: false,
-  },
-  received_at: {
-    type: DataTypes.DATE,
-    allowNull: false,
-  },
-  coordinates: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  status: {
-    type: DataTypes.ENUM('unlinked', 'processing', 'completed', 'rejected'),
-    defaultValue: 'unlinked',
-  },
-  comments: {
-    type: DataTypes.STRING(300),
-    allowNull: true,
-  },
-  created_at: {
-    type: DataTypes.DATE,
-    defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
-  },
-});
-sequelize.sync();
-export default Signal;
+import { Table, Column, Model, DataType } from 'sequelize-typescript';
+
+@Table({ tableName: 'signals', timestamps: false })
+export default class Signal extends Model {
+  @Column({ type: DataType.STRING, allowNull: false, primaryKey: true })
+  signal_id!: string;
+
+  @Column({ type: DataType.STRING(9), allowNull: false })
+  mmsi!: string;
+
+  @Column({ type: DataType.ENUM('test', 'alert', 'unscheduled'), allowNull: false })
+  signal_type!: 'test' | 'alert' | 'unscheduled';
+
+  @Column({ type: DataType.DATE, allowNull: false })
+  received_at!: Date;
+
+  @Column({ type: DataType.STRING, allowNull: true })
+  coordinates?: string;
+
+  @Column({ type: DataType.ENUM('unlinked', 'processing', 'completed', 'rejected'), defaultValue: 'unlinked' })
+  status?: 'unlinked' | 'processing' | 'completed' | 'rejected';
+
+  @Column({ type: DataType.STRING(300), allowNull: true })
+  comments?: string;
+
+  @Column({ type: DataType.DATE, defaultValue: DataType.NOW })
+  created_at?: Date;
+}
