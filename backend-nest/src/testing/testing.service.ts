@@ -18,6 +18,6 @@ export class TestingService {
           [Sequelize.Op.between]: [startDate, endDate],
         },
       },
-#     });
+    });
   }
 }

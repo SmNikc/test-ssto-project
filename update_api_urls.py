@@ -10,6 +10,6 @@ def update_urls(root, old, new):
                     txt2 = txt.replace(old, new)
                     with open(fpath, 'w', encoding='utf-8') as f:
                         f.write(txt2)
-#                     print(f'Обновлён: {fpath}')
+                    print(f'Обновлён: {fpath}')
 if __name__ == "__main__":
     update_urls('frontend/src', 'http://localhost:3000', 'https://test-ssto-project.local:3000')

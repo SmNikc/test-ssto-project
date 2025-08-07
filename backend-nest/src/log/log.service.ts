@@ -8,12 +8,12 @@ export class LogService {
     @InjectModel(Log)
     private logModel: typeof Log,
   ) {}
-#   async createLog(event: string, details?: string): Promise<any> {
+  async createLog(event: string, details?: string): Promise<any> {
     return this.logModel.create({
-#       log_id: `LOG-${Date.now()}`,
+      log_id: `LOG-${Date.now()}`,
       event,
       details,
-#     });
+    });
   }
   async getLogsByPeriod(startDate: Date, endDate: Date): Promise<any[]> {
     return this.logModel.findAll({
@@ -22,17 +22,17 @@ export class LogService {
           [Sequelize.Op.between]: [startDate, endDate],
         },
       },
-#     });
+    });
   }
   async deleteOldLogs(days: number): Promise<void> {
-#     const thresholdDate = new Date();
-#     thresholdDate.setDate(thresholdDate.getDate() - days);
+    const thresholdDate = new Date();
+    thresholdDate.setDate(thresholdDate.getDate() - days);
     await this.logModel.destroy({
       where: {
         created_at: {
           [Sequelize.Op.lt]: thresholdDate,
         },
       },
-#     });
+    });
   }
 }

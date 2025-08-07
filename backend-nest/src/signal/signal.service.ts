@@ -11,7 +11,7 @@ export class SignalService {
   async createSignal(data: any): Promise<any> {
     return this.signalModel.create(data);
   }
-#   async findSignalByMMSI(mmsi: string): Promise<any | null> {
+  async findSignalByMMSI(mmsi: string): Promise<any | null> {
     return this.signalModel.findOne({ where: { mmsi } });
   }
   async getSignalsByType(signalType: string, startDate: Date, endDate: Date): Promise<any[]> {
@@ -22,6 +22,6 @@ export class SignalService {
           [Sequelize.Op.between]: [startDate, endDate],
         },
       },
-#     });
+    });
   }
 }

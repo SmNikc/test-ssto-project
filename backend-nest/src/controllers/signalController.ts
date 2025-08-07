@@ -4,7 +4,7 @@ import { SignalService } from '../signal/signal.service';
 export class SignalController {
   constructor(private readonly signalService: SignalService) {}
   @Post()
-#   async create(@Body() data: any) {
+  async create(@Body() data: any) {
     return this.signalService.createSignal(data);
   }
   @Get()

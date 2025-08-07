@@ -1,7 +1,7 @@
 import { Sequelize, DataTypes } from 'sequelize';
 import dotenv from 'dotenv';
-# dotenv.config();
-# const sequelize = new Sequelize(process.env.DB_URL!, { dialect: 'postgres' });
+dotenv.config();
+const sequelize = new Sequelize(process.env.DB_URL!, { dialect: 'postgres' });
 const Signal = sequelize.define('Signal', {
   signal_id: {
     type: DataTypes.STRING,
@@ -37,6 +37,6 @@ const Signal = sequelize.define('Signal', {
     type: DataTypes.DATE,
     defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
   },
-# });
-# sequelize.sync();
-# export default Signal;
+});
+sequelize.sync();
+export default Signal;

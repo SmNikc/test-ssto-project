@@ -2,6 +2,10 @@ import os
 import re
 from docx import Document
 
+HEADER_JUNK = {
+    'typescript', 'javascript', 'json', 'bash', 'CopyEdit', 'CopyEdit,', 'Copy', 'Edit', 'python'
+}
+
 def extract_code_blocks(docx_path):
     doc = Document(docx_path)
     lines = []
@@ -14,35 +18,18 @@ def extract_code_blocks(docx_path):
     )
     return file_blocks
 
-def is_code_line(line):
-    if not line.strip():
-        return True
-    if line.strip().startswith("#"):
-        return True
-    if re.match(r'^\s*(def |class |import |from |return |for |while |if |elif |else|try:|except |with |@)', line):
-        return True
-    if re.match(r'^[\s\w\[\]\(\)\{\},.:=\'\"#%<>/\*-]+$', line) and not re.search(r'[а-яА-Я]', line):
-        return True
-    return False
-
-def auto_comment_non_code(content, ext):
-    if ext not in ('.py', '.js', '.ts', '.java'):
-        return content
-    lines = []
-    for line in content.strip().split('\n'):
-        if is_code_line(line):
-            lines.append(line)
-        else:
-            lines.append('# ' + line)
-    return '\n'.join(lines)
-
 def clean_content(content):
+    lines = content.strip('\n').split('\n')
+    idx = 0
+    # Удаляем до двух первых мусорных строк после заголовка
+    while idx < min(2, len(lines)) and lines[idx].strip() in HEADER_JUNK:
+        idx += 1
     skip_lines = {
         'Copy', 'Edit', 'bash', 'typescript', 'javascript', 'python', 'json',
         'You said:', 'ChatGPT said:', '',
     }
     result = []
-    for line in content.strip().split('\n'):
+    for line in lines[idx:]:
         s = line.strip()
         if s in skip_lines:
             continue
@@ -58,6 +45,14 @@ def clean_content(content):
             continue
         result.append(line)
     return '\n'.join(result).strip('\n')
+
+def auto_comment_non_code(content, ext):
+    if ext not in ('.py', '.js', '.ts', '.java'):
+        return content
+    lines = []
+    for line in content.strip().split('\n'):
+        lines.append(line)
+    return '\n'.join(lines)
 
 def save_code_blocks(blocks, root_dir):
     for i, (file_path, content) in enumerate(blocks, 1):
@@ -78,9 +73,9 @@ def save_code_blocks(blocks, root_dir):
         print(f"✅ Сохранён: {abs_path}")
 
 if __name__ == "__main__":
-    docx_path = r"C:\Users\Admin\Downloads\ЧИСТКА ПРОЕКТА ССТО = ОТ 06.08.2025.docx"
-    plugin_dir = r"C:\Projects\test-ssto-project"
+    docx_path = r"C:\Projects\test-ssto-project_output\ЛЕНТА_ССТО_08.08.2025.docx"
+    project_dir = r"C:\Projects\test-ssto-project"
     blocks = extract_code_blocks(docx_path)
     print(f"Найдено файлов: {len(blocks)}")
-    save_code_blocks(blocks, plugin_dir)
-    print("✅ Все файлы успешно сохранены с авто-комментированием не-кода в .py/.js/.ts.")
+    save_code_blocks(blocks, project_dir)
+    print("[OK] Все файлы успешно сохранены и очищены от служебных строк (CopyEdit и т.п.).")

@@ -1,5 +1,5 @@
 export function validateRequest(data: any): string[] {
-#   const errors: string[] = [];
+  const errors: string[] = [];
   if (!data.mmsi || String(data.mmsi).length !== 9) errors.push('MMSI должен быть 9-значным');
   if (!data.vessel_name) errors.push('Не указано название судна');
   if (!data.ssas_number) errors.push('Не указан номер ССТО');

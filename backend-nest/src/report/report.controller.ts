@@ -4,11 +4,11 @@ import { ReportService } from './report.service';
 export class ReportController {
   constructor(private readonly reportService: ReportService) {}
   @Get('daily')
-#   getDaily(@Query('date') date: string) {
+  getDaily(@Query('date') date: string) {
     return this.reportService.dailyReport(date);
   }
   @Get('custom')
-#   getCustom(@Query() params: any) {
+  getCustom(@Query() params: any) {
     return this.reportService.customReport(params);
   }
 }

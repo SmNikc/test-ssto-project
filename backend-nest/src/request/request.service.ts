@@ -11,7 +11,7 @@ export class RequestService {
   async createRequest(data: any): Promise<any> {
     return this.requestModel.create(data);
   }
-#   async findRequestById(requestId: string): Promise<any | null> {
+  async findRequestById(requestId: string): Promise<any | null> {
     return this.requestModel.findOne({ where: { request_id: requestId } });
   }
   async getRequestsByPeriod(startDate: Date, endDate: Date): Promise<any[]> {
@@ -21,6 +21,6 @@ export class RequestService {
           [Sequelize.Op.between]: [startDate, endDate],
         },
       },
-#     });
+    });
   }
 }

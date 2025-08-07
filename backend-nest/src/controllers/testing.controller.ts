@@ -4,11 +4,11 @@ import { TestingService } from '../testing/testing.service';
 export class TestingController {
   constructor(private readonly testingService: TestingService) {}
   @Post('scenarios')
-#   async create(@Body() data: any) {
+  async create(@Body() data: any) {
     return this.testingService.createScenario(data);
   }
   @Get('scenarios')
-#   async getByPeriod(@Query('start') start: string, @Query('end') end: string) {
+  async getByPeriod(@Query('start') start: string, @Query('end') end: string) {
     return this.testingService.getScenariosByPeriod(new Date(start), new Date(end));
   }
 }

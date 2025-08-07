@@ -1,7 +1,7 @@
 import { Sequelize, DataTypes } from 'sequelize';
 import dotenv from 'dotenv';
-# dotenv.config();
-# const sequelize = new Sequelize(process.env.DB_URL!, { dialect: 'postgres' });
+dotenv.config();
+const sequelize = new Sequelize(process.env.DB_URL!, { dialect: 'postgres' });
 const User = sequelize.define('User', {
   user_id: {
     type: DataTypes.STRING,
@@ -24,6 +24,6 @@ const User = sequelize.define('User', {
     type: DataTypes.DATE,
     defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
   },
-# });
-# sequelize.sync();
-# export default User;
+});
+sequelize.sync();
+export default User;

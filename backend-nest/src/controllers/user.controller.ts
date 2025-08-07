@@ -4,13 +4,11 @@ import { UserService } from '../user/user.service';
 export class UserController {
   constructor(private readonly userService: UserService) {}
   @Post()
-#   async create(@Body() data: any) {
+  async create(@Body() data: any) {
     return this.userService.createUser(data);
   }
   @Get()
-#   async findByEmail(@Query('email') email: string) {
+  async findByEmail(@Query('email') email: string) {
     return this.userService.findUserByEmail(email);
   }
 }
-# Продолжаю ленту по всем нужным файлам, если ещё остались невалидные или мусорные — сообщайте!
-# ДАЛЕЕ

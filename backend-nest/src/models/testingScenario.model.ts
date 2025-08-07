@@ -1,7 +1,7 @@
 import { Sequelize, DataTypes } from 'sequelize';
 import dotenv from 'dotenv';
-# dotenv.config();
-# const sequelize = new Sequelize(process.env.DB_URL!, { dialect: 'postgres' });
+dotenv.config();
+const sequelize = new Sequelize(process.env.DB_URL!, { dialect: 'postgres' });
 const TestingScenario = sequelize.define('TestingScenario', {
   scenario_id: {
     type: DataTypes.STRING,
@@ -32,6 +32,6 @@ const TestingScenario = sequelize.define('TestingScenario', {
     type: DataTypes.DATE,
     defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
   },
-# });
-# sequelize.sync();
-# export default TestingScenario;
+});
+sequelize.sync();
+export default TestingScenario;

@@ -5,5 +5,3 @@ import { NotificationService } from './notification.service';
   exports: [NotificationService],
 })
 export class NotificationModule {}
-# Если найдутся ещё проблемные или мусорные файлы — выгружаю следующими!
-# ДАЛЕЕ
