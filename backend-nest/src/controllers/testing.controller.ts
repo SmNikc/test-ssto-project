@@ -1,14 +1,32 @@
-import { Controller, Get, Post, Body, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Delete } from '@nestjs/common';
 import { TestingService } from '../testing/testing.service';
-@Controller('testing')
+
+@Controller('testing-scenarios')
 export class TestingController {
   constructor(private readonly testingService: TestingService) {}
-  @Post('scenarios')
-  async create(@Body() data: any) {
-    return this.testingService.createScenario(data);
+
+  @Post()
+  create(@Body() dto: any) {
+    return this.testingService.create(dto);
   }
-  @Get('scenarios')
-  async getByPeriod(@Query('start') start: string, @Query('end') end: string) {
-    return this.testingService.getScenariosByPeriod(new Date(start), new Date(end));
+
+  @Get()
+  findAll() {
+    return this.testingService.findAll();
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.testingService.findOne(+id);
+  }
+
+  @Put(':id')
+  update(@Param('id') id: string, @Body() dto: any) {
+    return this.testingService.update(+id, dto);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.testingService.remove(+id);
   }
 }

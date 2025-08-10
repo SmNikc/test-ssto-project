@@ -1,28 +1,27 @@
-import { Table, Column, Model, DataType } from 'sequelize-typescript';
-
-@Table({ tableName: 'signals', timestamps: false })
-export default class Signal extends Model {
-  @Column({ type: DataType.STRING, allowNull: false, primaryKey: true })
+import { Table, Column, Model, DataType, ForeignKey } from 'sequelize-typescript';
+import SSASRequest from './request';
+@Table({ tableName: 'signals' })
+export class Signal extends Model<Signal> {
+  @Column({ type: DataType.STRING, primaryKey: true })
   signal_id!: string;
-
   @Column({ type: DataType.STRING(9), allowNull: false })
   mmsi!: string;
-
   @Column({ type: DataType.ENUM('test', 'alert', 'unscheduled'), allowNull: false })
-  signal_type!: 'test' | 'alert' | 'unscheduled';
-
+  signal_type!: string;
   @Column({ type: DataType.DATE, allowNull: false })
   received_at!: Date;
-
-  @Column({ type: DataType.STRING, allowNull: true })
+  @Column({ type: DataType.STRING })
   coordinates?: string;
-
   @Column({ type: DataType.ENUM('unlinked', 'processing', 'completed', 'rejected'), defaultValue: 'unlinked' })
-  status?: 'unlinked' | 'processing' | 'completed' | 'rejected';
-
-  @Column({ type: DataType.STRING(300), allowNull: true })
+  status!: string;
+  @Column({ type: DataType.STRING(300) })
   comments?: string;
-
+  @Column({ type: DataType.ENUM('manual', 'external'), defaultValue: 'external' })
+  source!: string;
+  @ForeignKey(() => SSASRequest)
+  @Column({ type: DataType.STRING })
+  request_id?: string;
   @Column({ type: DataType.DATE, defaultValue: DataType.NOW })
-  created_at?: Date;
+  created_at!: Date;
 }
+export default Signal;

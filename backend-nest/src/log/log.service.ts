@@ -1,38 +1,25 @@
+// backend-nest/src/log/log.service.ts
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import Log from '../models/log.model';
-import { Op } from 'sequelize';
+import { Log } from '../models/log.model';
+
 @Injectable()
 export class LogService {
-  constructor(
-    @InjectModel(Log)
-    private logModel: typeof Log,
-  ) {}
-  async createLog(event: string, details?: string): Promise<any> {
-    return this.logModel.create({
-      log_id: `LOG-${Date.now()}`,
-      event,
-      details,
-    });
+  constructor(@InjectModel(Log) private readonly logModel: typeof Log) {}
+
+  findAll(): Promise<Log[]> {
+    return this.logModel.findAll();
   }
-  async getLogsByPeriod(startDate: Date, endDate: Date): Promise<any[]> {
-    return this.logModel.findAll({
-      where: {
-        created_at: {
-          [Op.between]: [startDate, endDate],
-        },
-      },
-    });
+
+  findOne(id: number): Promise<Log | null> {
+    return this.logModel.findByPk(id);
   }
-  async deleteOldLogs(days: number): Promise<void> {
-    const thresholdDate = new Date();
-    thresholdDate.setDate(thresholdDate.getDate() - days);
-    await this.logModel.destroy({
-      where: {
-        created_at: {
-          [Op.lt]: thresholdDate,
-        },
-      },
-    });
+
+  create(data: Partial<Log>): Promise<Log> {
+    return this.logModel.create(data as any);
+  }
+
+  remove(id: number): Promise<number> {
+    return this.logModel.destroy({ where: { id } });
   }
 }

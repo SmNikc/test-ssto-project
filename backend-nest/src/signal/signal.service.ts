@@ -1,27 +1,41 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import Signal from '../models/signal.model';
+import { Signal } from '../models/signal.model';
 import { Op } from 'sequelize';
+
 @Injectable()
 export class SignalService {
-  constructor(
-    @InjectModel(Signal)
-    private signalModel: typeof Signal,
-  ) {}
-  async createSignal(data: any): Promise<any> {
-    return this.signalModel.create(data);
+  constructor(@InjectModel(Signal) private readonly signalModel: typeof Signal) {}
+
+  create(dto: any) {
+    return this.signalModel.create(dto);
   }
-  async findSignalByMMSI(mmsi: string): Promise<any | null> {
-    return this.signalModel.findOne({ where: { mmsi } });
+
+  findAll(params?: { startDate?: Date; endDate?: Date }) {
+    const where: any = {};
+    if (params?.startDate && params?.endDate) {
+      where.createdAt = { [Op.between]: [params.startDate, params.endDate] };
+    }
+    return this.signalModel.findAll({ where });
   }
-  async getSignalsByType(signalType: string, startDate: Date, endDate: Date): Promise<any[]> {
-    return this.signalModel.findAll({
-      where: {
-        signal_type: signalType,
-        received_at: {
-          [Op.between]: [startDate, endDate],
-        },
-      },
-    });
+
+  findOne(id: number) {
+    return this.signalModel.findByPk(id);
+  }
+
+  update(id: number, dto: any) {
+    return this.signalModel.update(dto, { where: { id } });
+  }
+
+  remove(id: number) {
+    return this.signalModel.destroy({ where: { id } });
+  }
+
+  updateStatus(id: number, status: string) {
+    return this.signalModel.update({ status }, { where: { id } });
+  }
+
+  linkToRequest(id: number, requestId: number) {
+    return this.signalModel.update({ requestId }, { where: { id } });
   }
 }

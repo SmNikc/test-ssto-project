@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import TestingScenario from '../models/testingScenario.model';
-import { Op } from 'sequelize';
+import { Sequelize, Op } from 'sequelize';
 @Injectable()
 export class TestingService {
   constructor(
@@ -19,5 +19,13 @@ export class TestingService {
         },
       },
     });
+  }
+  async updateScenario(id: string, data: any): Promise<any> {
+    await this.scenarioModel.update(data, { where: { scenario_id: id } });
+    return this.scenarioModel.findOne({ where: { scenario_id: id } });
+  }
+  async removeScenario(id: string): Promise<{ deleted: boolean }> {
+    const rows = await this.scenarioModel.destroy({ where: { scenario_id: id } });
+    return { deleted: rows > 0 };
   }
 }

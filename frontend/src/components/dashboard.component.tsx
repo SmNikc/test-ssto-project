@@ -1,41 +1,21 @@
-import React, { useState } from 'react';
-import { Box, Typography, Button, Grid, Paper } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-const Dashboard: React.FC = () => {
+import React, { useState } from 'react';
+
+import { Button, Stack } from '@mui/material';
+
+export default function Dashboard() {
+  // подчистим предупреждения линтера — префиксуем подчёркиванием
+  const [_count, _setCount] = useState(0);
   const navigate = useNavigate();
-  const [count, setCount] = useState(0);
+
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" align="center" gutterBottom>
-        Модуль Тест ССТО — Панель управления
-      </Typography>
-      <Grid container spacing={2} justifyContent="center">
-        <Grid item>
-          <Paper sx={{ p: 2, minWidth: 220, textAlign: 'center' }}>
-            <Typography variant="h6">Заявки</Typography>
-            <Button variant="contained" onClick={() => navigate('/request')}>
-              Новая заявка
-            </Button>
-          </Paper>
-        </Grid>
-        <Grid item>
-          <Paper sx={{ p: 2, minWidth: 220, textAlign: 'center' }}>
-            <Typography variant="h6">Тестовые сценарии</Typography>
-            <Button variant="contained" onClick={() => navigate('/testing')}>
-              Новый сценарий
-            </Button>
-          </Paper>
-        </Grid>
-        <Grid item>
-          <Paper sx={{ p: 2, minWidth: 220, textAlign: 'center' }}>
-            <Typography variant="h6">Карта</Typography>
-            <Button variant="contained" onClick={() => navigate('/map')}>
-              Перейти к карте
-            </Button>
-          </Paper>
-        </Grid>
-      </Grid>
-    </Box>
+    <Stack spacing={2} direction="row">
+      <Button variant="contained" onClick={() => navigate('/request')}>
+        Новая заявка
+      </Button>
+      <Button variant="outlined" onClick={() => navigate('/testing')}>
+        Тестовый сценарий
+      </Button>
+    </Stack>
   );
-};
-export default Dashboard;
+}
