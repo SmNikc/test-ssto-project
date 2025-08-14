@@ -1,42 +1,47 @@
-import { Body, Controller, Get, Param, Post, Put, Delete, Patch } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { SignalService } from '../signal/signal.service';
+import { AuthGuard } from '../security/auth.guard';
 
+@UseGuards(AuthGuard)
 @Controller('signals')
 export class SignalController {
-  constructor(private readonly signalService: SignalService) {}
+  constructor(private readonly service: SignalService) {}
 
   @Post()
   create(@Body() dto: any) {
-    return this.signalService.create(dto);
+    return this.service.create(dto);
   }
 
   @Get()
   findAll() {
-    return this.signalService.findAll();
+    return this.service.findAll();
   }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.signalService.findOne(+id);
+    return this.service.findOne(id);
   }
 
-  @Put(':id')
-  update(@Param('id') id: string, @Body() dto: any) {
-    return this.signalService.update(+id, dto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.signalService.remove(+id);
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() patch: any) {
+    return this.service.update(id, patch);
   }
 
   @Patch(':id/status')
-  updateStatus(@Param('id') id: string, @Body() body: { status: string }) {
-    return this.signalService.updateStatus(+id, body.status);
+  updateStatus(@Param('id') id: string, @Body('status') next: string) {
+    return this.service.updateStatus(id, next);
   }
 
   @Patch(':id/link-request/:requestId')
-  linkToRequest(@Param('id') id: string, @Param('requestId') requestId: string) {
-    return this.signalService.linkToRequest(+id, +requestId);
+  linkRequest(@Param('id') id: string, @Param('requestId') requestId: string) {
+    return this.service.linkToRequest(id, Number(requestId));
+  }
+
+  @Delete(':id')
+  async remove(@Param('id') id: string) {
+    await this.service.remove(id);
+    return { ok: true };
   }
 }
+
+7) TestingService — стандартный CRUD, строковый scenario_id

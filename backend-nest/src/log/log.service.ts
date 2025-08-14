@@ -1,25 +1,26 @@
-// backend-nest/src/log/log.service.ts
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { Log } from '../models/log.model';
+import Log from '../models/log.model';
 
 @Injectable()
 export class LogService {
   constructor(@InjectModel(Log) private readonly logModel: typeof Log) {}
 
-  findAll(): Promise<Log[]> {
+  findAll() {
     return this.logModel.findAll();
   }
 
-  findOne(id: number): Promise<Log | null> {
+  findOne(id: number) {
     return this.logModel.findByPk(id);
   }
 
-  create(data: Partial<Log>): Promise<Log> {
+  create(data: Partial<Log>) {
     return this.logModel.create(data as any);
   }
 
-  remove(id: number): Promise<number> {
+  remove(id: number) {
     return this.logModel.destroy({ where: { id } });
   }
 }
+
+10) LogController — без типового импорта модели

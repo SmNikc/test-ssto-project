@@ -1,29 +1,29 @@
-// backend-nest/src/controllers/log.controller.ts
-import { Body, Controller, Get, Param, Post, Delete, ParseIntPipe } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
 import { LogService } from '../log/log.service';
-import { Log } from '../models/log.model';
 
 @Controller('logs')
 export class LogController {
-  constructor(private readonly logService: LogService) {}
+  constructor(private readonly service: LogService) {}
 
   @Get()
-  findAll(): Promise<Log[]> {
-    return this.logService.findAll();
+  findAll() {
+    return this.service.findAll();
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number): Promise<Log | null> {
-    return this.logService.findOne(id);
+  findOne(@Param('id') id: string) {
+    return this.service.findOne(Number(id));
   }
 
   @Post()
-  create(@Body() dto: Partial<Log>): Promise<Log> {
-    return this.logService.create(dto);
+  create(@Body() dto: any) {
+    return this.service.create(dto);
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number): Promise<{ deleted: number }> {
-    return this.logService.remove(id).then((deleted) => ({ deleted }));
+  remove(@Param('id') id: string) {
+    return this.service.remove(Number(id));
   }
 }
+
+11) UserService / UserController — корректные импорты

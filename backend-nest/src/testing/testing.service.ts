@@ -1,31 +1,33 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import TestingScenario from '../models/testingScenario.model';
-import { Sequelize, Op } from 'sequelize';
+
 @Injectable()
 export class TestingService {
   constructor(
     @InjectModel(TestingScenario)
-    private scenarioModel: typeof TestingScenario,
+    private readonly scenarioModel: typeof TestingScenario,
   ) {}
-  async createScenario(data: any): Promise<any> {
-    return this.scenarioModel.create(data);
+
+  create(dto: Partial<TestingScenario>) {
+    return this.scenarioModel.create(dto as any);
   }
-  async getScenariosByPeriod(startDate: Date, endDate: Date): Promise<any[]> {
-    return this.scenarioModel.findAll({
-      where: {
-        created_at: {
-          [Op.between]: [startDate, endDate],
-        },
-      },
-    });
+
+  findAll() {
+    return this.scenarioModel.findAll();
   }
-  async updateScenario(id: string, data: any): Promise<any> {
-    await this.scenarioModel.update(data, { where: { scenario_id: id } });
-    return this.scenarioModel.findOne({ where: { scenario_id: id } });
+
+  findOne(id: string) {
+    return this.scenarioModel.findByPk(id);
   }
-  async removeScenario(id: string): Promise<{ deleted: boolean }> {
-    const rows = await this.scenarioModel.destroy({ where: { scenario_id: id } });
-    return { deleted: rows > 0 };
+
+  update(id: string, patch: Partial<TestingScenario>) {
+    return this.scenarioModel.update(patch as any, { where: { scenario_id: id } });
+  }
+
+  remove(id: string) {
+    return this.scenarioModel.destroy({ where: { scenario_id: id } });
   }
 }
+
+8) TestingController — корректные вызовы без +id

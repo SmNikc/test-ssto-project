@@ -1,26 +1,33 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import SSASRequest from '../models/request';
-import { Op } from 'sequelize';
+
 @Injectable()
 export class RequestService {
   constructor(
     @InjectModel(SSASRequest)
-    private requestModel: typeof SSASRequest,
+    private readonly requestModel: typeof SSASRequest,
   ) {}
-  async createRequest(data: any): Promise<any> {
-    return this.requestModel.create(data);
+
+  create(dto: Partial<SSASRequest>) {
+    return this.requestModel.create(dto as any);
   }
-  async findRequestById(requestId: string): Promise<any | null> {
-    return this.requestModel.findOne({ where: { request_id: requestId } });
+
+  findAll() {
+    return this.requestModel.findAll();
   }
-  async getRequestsByPeriod(startDate: Date, endDate: Date): Promise<any[]> {
-    return this.requestModel.findAll({
-      where: {
-        test_date: {
-          [Op.between]: [startDate, endDate],
-        },
-      },
-    });
+
+  findOne(id: number) {
+    return this.requestModel.findByPk(id);
+  }
+
+  update(id: number, patch: Partial<SSASRequest>) {
+    return this.requestModel.update(patch as any, { where: { id } });
+  }
+
+  remove(id: number) {
+    return this.requestModel.destroy({ where: { id } });
   }
 }
+
+4) RequestController (на всякий случай — выровнен под сервис)

@@ -1,41 +1,42 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { Signal } from '../models/signal.model';
-import { Op } from 'sequelize';
+import Signal from '../models/signal.model';
 
 @Injectable()
 export class SignalService {
-  constructor(@InjectModel(Signal) private readonly signalModel: typeof Signal) {}
+  constructor(
+    @InjectModel(Signal)
+    private readonly signalModel: typeof Signal,
+  ) {}
 
-  create(dto: any) {
-    return this.signalModel.create(dto);
+  create(dto: Partial<Signal>) {
+    return this.signalModel.create(dto as any);
   }
 
-  findAll(params?: { startDate?: Date; endDate?: Date }) {
-    const where: any = {};
-    if (params?.startDate && params?.endDate) {
-      where.createdAt = { [Op.between]: [params.startDate, params.endDate] };
-    }
-    return this.signalModel.findAll({ where });
+  findAll() {
+    return this.signalModel.findAll();
   }
 
-  findOne(id: number) {
-    return this.signalModel.findByPk(id);
+  // ВНИМАНИЕ: PK — строковый signal_id
+  findOne(id: string) {
+    return this.signalModel.findOne({ where: { signal_id: id } });
   }
 
-  update(id: number, dto: any) {
-    return this.signalModel.update(dto, { where: { id } });
+  update(id: string, patch: Partial<Signal>) {
+    return this.signalModel.update(patch as any, { where: { signal_id: id } });
   }
 
-  remove(id: number) {
-    return this.signalModel.destroy({ where: { id } });
+  updateStatus(id: string, status: string) {
+    return this.signalModel.update({ status } as any, { where: { signal_id: id } });
   }
 
-  updateStatus(id: number, status: string) {
-    return this.signalModel.update({ status }, { where: { id } });
+  linkToRequest(id: string, requestId: number) {
+    return this.signalModel.update({ request_id: requestId } as any, { where: { signal_id: id } });
   }
 
-  linkToRequest(id: number, requestId: number) {
-    return this.signalModel.update({ requestId }, { where: { id } });
+  remove(id: string) {
+    return this.signalModel.destroy({ where: { signal_id: id } });
   }
 }
+
+6) SignalController — исправлен тип id и путь к guard

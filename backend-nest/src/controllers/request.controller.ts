@@ -1,32 +1,34 @@
-import { Body, Controller, Get, Param, Post, Put, Delete } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
 import { RequestService } from '../request/request.service';
 
 @Controller('requests')
 export class RequestController {
-  constructor(private readonly requestService: RequestService) {}
+  constructor(private readonly service: RequestService) {}
 
   @Post()
   create(@Body() dto: any) {
-    return this.requestService.create(dto);
+    return this.service.create(dto);
   }
 
   @Get()
   findAll() {
-    return this.requestService.findAll();
+    return this.service.findAll();
   }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.requestService.findOne(+id);
+    return this.service.findOne(Number(id));
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() dto: any) {
-    return this.requestService.update(+id, dto);
+  update(@Param('id') id: string, @Body() patch: any) {
+    return this.service.update(Number(id), patch);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.requestService.remove(+id);
+    return this.service.remove(Number(id));
   }
 }
+
+5) SignalService — строковый PK signal_id, привязка request_id

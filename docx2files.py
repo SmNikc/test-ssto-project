@@ -73,7 +73,7 @@ def save_code_blocks(blocks, root_dir):
         print(f"✅ Сохранён: {abs_path}")
 
 if __name__ == "__main__":
-    docx_path = r"C:\Projects\test-ssto-project_output\ЛЕНТА2_ССТО_08.08.2025.docx"
+    docx_path = r"C:\Projects\test-ssto-project_output\ЛЕНТА_ССТО.docx"
     project_dir = r"C:\Projects\test-ssto-project"
     blocks = extract_code_blocks(docx_path)
     print(f"Найдено файлов: {len(blocks)}")

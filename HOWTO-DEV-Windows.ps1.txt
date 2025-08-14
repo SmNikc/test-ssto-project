@@ -1,0 +1,12 @@
+# Окно 1 — BACKEND
+cd C:\Projects\test-ssto-project\backend-nest
+npm i
+npm i helmet
+$env:NODE_ENV="development"
+# если используете .env — просто npm run start:dev
+npm run start:dev
+
+# Окно 2 — FRONTEND (vite dev server)
+cd C:\Projects\test-ssto-project\frontend
+npm i
+npm run dev

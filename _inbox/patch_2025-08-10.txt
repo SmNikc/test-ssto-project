@@ -1,0 +1,464 @@
+﻿1) Guard и сервис авторизации
+--- FILE: backend-nest/src/security/auth.service.ts ---
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import axios, { AxiosInstance } from 'axios';
+
+@Injectable()
+export class AuthService {
+  private readonly http: AxiosInstance;
+
+  constructor() {
+    this.http = axios.create({ timeout: 5000 });
+  }
+
+  async validate(token?: string): Promise<boolean> {
+    const enabled = (process.env.KEYCLOAK_ENABLED ?? 'false').toLowerCase() === 'true';
+    if (!enabled) return true;
+
+    if (!token) {
+      throw new UnauthorizedException('Missing Authorization header');
+    }
+
+    const url =
+      process.env.KEYCLOAK_INTROSPECT_URL ||
+      'http://localhost:8080/realms/master/protocol/openid-connect/token/introspect';
+    const clientId = process.env.KEYCLOAK_CLIENT_ID || 'ssto-local';
+    const clientSecret = process.env.KEYCLOAK_CLIENT_SECRET || 'ssto-secret';
+
+    try {
+      const params = new URLSearchParams();
+      params.append('client_id', clientId);
+      params.append('client_secret', clientSecret);
+      params.append('token', token.replace(/^Bearer\s+/i, ''));
+
+      const { data } = await this.http.post(url, params, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      });
+
+      if (!data?.active) throw new UnauthorizedException('Invalid token');
+      return true;
+    } catch {
+      throw new UnauthorizedException('Invalid token or Keycloak unavailable');
+    }
+  }
+}
+--- FILE: backend-nest/src/security/auth.guard.ts ---
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { AuthService } from './auth.service';
+
+@Injectable()
+export class AuthGuard implements CanActivate {
+  constructor(private readonly auth: AuthService) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const req = context.switchToHttp().getRequest();
+    const authHeader = req.headers['authorization'] as string | undefined;
+    return this.auth.validate(authHeader);
+  }
+}
+
+2) AppModule: корректные импорты моделей/контроллеров/провайдеров и глобальный guard
+--- FILE: backend-nest/src/app.module.ts ---
+import { Module } from '@nestjs/common';
+import { SequelizeModule } from '@nestjs/sequelize';
+import { APP_GUARD } from '@nestjs/core';
+
+import { RequestController } from './controllers/request.controller';
+import { SignalController } from './controllers/signal.controller';
+import { TestingController } from './controllers/testing.controller';
+import { LogController } from './controllers/log.controller';
+import { UserController } from './controllers/user.controller';
+import { HealthController } from './controllers/health.controller';
+
+import { RequestService } from './request/request.service';
+import { SignalService } from './signal/signal.service';
+import { TestingService } from './testing/testing.service';
+import { LogService } from './log/log.service';
+import { UserService } from './user/user.service';
+
+import SSASRequest from './models/request';
+import Signal from './models/signal.model';
+import Log from './models/log.model';
+import TestingScenario from './models/testingScenario.model';
+import User from './models/user.model';
+
+import { AuthService } from './security/auth.service';
+import { AuthGuard } from './security/auth.guard';
+
+@Module({
+  imports: [
+    SequelizeModule.forFeature([SSASRequest, Signal, Log, TestingScenario, User]),
+  ],
+  controllers: [
+    RequestController,
+    SignalController,
+    TestingController,
+    LogController,
+    UserController,
+    HealthController,
+  ],
+  providers: [
+    RequestService,
+    SignalService,
+    TestingService,
+    LogService,
+    UserService,
+    AuthService,
+    { provide: APP_GUARD, useClass: AuthGuard },
+  ],
+})
+export class AppModule {}
+
+3) RequestService — стандартный CRUD (совместим с контроллером)
+--- FILE: backend-nest/src/request/request.service.ts ---
+import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/sequelize';
+import SSASRequest from '../models/request';
+
+@Injectable()
+export class RequestService {
+  constructor(
+    @InjectModel(SSASRequest)
+    private readonly requestModel: typeof SSASRequest,
+  ) {}
+
+  create(dto: Partial<SSASRequest>) {
+    return this.requestModel.create(dto as any);
+  }
+
+  findAll() {
+    return this.requestModel.findAll();
+  }
+
+  findOne(id: number) {
+    return this.requestModel.findByPk(id);
+  }
+
+  update(id: number, patch: Partial<SSASRequest>) {
+    return this.requestModel.update(patch as any, { where: { id } });
+  }
+
+  remove(id: number) {
+    return this.requestModel.destroy({ where: { id } });
+  }
+}
+
+4) RequestController (на всякий случай — выровнен под сервис)
+--- FILE: backend-nest/src/controllers/request.controller.ts ---
+import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+import { RequestService } from '../request/request.service';
+
+@Controller('requests')
+export class RequestController {
+  constructor(private readonly service: RequestService) {}
+
+  @Post()
+  create(@Body() dto: any) {
+    return this.service.create(dto);
+  }
+
+  @Get()
+  findAll() {
+    return this.service.findAll();
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.service.findOne(Number(id));
+  }
+
+  @Put(':id')
+  update(@Param('id') id: string, @Body() patch: any) {
+    return this.service.update(Number(id), patch);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.service.remove(Number(id));
+  }
+}
+
+5) SignalService — строковый PK signal_id, привязка request_id
+--- FILE: backend-nest/src/signal/signal.service.ts ---
+import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/sequelize';
+import Signal from '../models/signal.model';
+
+@Injectable()
+export class SignalService {
+  constructor(
+    @InjectModel(Signal)
+    private readonly signalModel: typeof Signal,
+  ) {}
+
+  create(dto: Partial<Signal>) {
+    return this.signalModel.create(dto as any);
+  }
+
+  findAll() {
+    return this.signalModel.findAll();
+  }
+
+  // ВНИМАНИЕ: PK — строковый signal_id
+  findOne(id: string) {
+    return this.signalModel.findOne({ where: { signal_id: id } });
+  }
+
+  update(id: string, patch: Partial<Signal>) {
+    return this.signalModel.update(patch as any, { where: { signal_id: id } });
+  }
+
+  updateStatus(id: string, status: string) {
+    return this.signalModel.update({ status } as any, { where: { signal_id: id } });
+  }
+
+  linkToRequest(id: string, requestId: number) {
+    return this.signalModel.update({ request_id: requestId } as any, { where: { signal_id: id } });
+  }
+
+  remove(id: string) {
+    return this.signalModel.destroy({ where: { signal_id: id } });
+  }
+}
+
+6) SignalController — исправлен тип id и путь к guard
+--- FILE: backend-nest/src/controllers/signal.controller.ts ---
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { SignalService } from '../signal/signal.service';
+import { AuthGuard } from '../security/auth.guard';
+
+@UseGuards(AuthGuard)
+@Controller('signals')
+export class SignalController {
+  constructor(private readonly service: SignalService) {}
+
+  @Post()
+  create(@Body() dto: any) {
+    return this.service.create(dto);
+  }
+
+  @Get()
+  findAll() {
+    return this.service.findAll();
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.service.findOne(id);
+  }
+
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() patch: any) {
+    return this.service.update(id, patch);
+  }
+
+  @Patch(':id/status')
+  updateStatus(@Param('id') id: string, @Body('status') next: string) {
+    return this.service.updateStatus(id, next);
+  }
+
+  @Patch(':id/link-request/:requestId')
+  linkRequest(@Param('id') id: string, @Param('requestId') requestId: string) {
+    return this.service.linkToRequest(id, Number(requestId));
+  }
+
+  @Delete(':id')
+  async remove(@Param('id') id: string) {
+    await this.service.remove(id);
+    return { ok: true };
+  }
+}
+
+7) TestingService — стандартный CRUD, строковый scenario_id
+--- FILE: backend-nest/src/testing/testing.service.ts ---
+import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/sequelize';
+import TestingScenario from '../models/testingScenario.model';
+
+@Injectable()
+export class TestingService {
+  constructor(
+    @InjectModel(TestingScenario)
+    private readonly scenarioModel: typeof TestingScenario,
+  ) {}
+
+  create(dto: Partial<TestingScenario>) {
+    return this.scenarioModel.create(dto as any);
+  }
+
+  findAll() {
+    return this.scenarioModel.findAll();
+  }
+
+  findOne(id: string) {
+    return this.scenarioModel.findByPk(id);
+  }
+
+  update(id: string, patch: Partial<TestingScenario>) {
+    return this.scenarioModel.update(patch as any, { where: { scenario_id: id } });
+  }
+
+  remove(id: string) {
+    return this.scenarioModel.destroy({ where: { scenario_id: id } });
+  }
+}
+
+8) TestingController — корректные вызовы без +id
+--- FILE: backend-nest/src/controllers/testing.controller.ts ---
+import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+import { TestingService } from '../testing/testing.service';
+
+@Controller('testing-scenarios')
+export class TestingController {
+  constructor(private readonly testingService: TestingService) {}
+
+  @Post()
+  create(@Body() dto: any) {
+    return this.testingService.create(dto);
+  }
+
+  @Get()
+  findAll() {
+    return this.testingService.findAll();
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.testingService.findOne(id);
+  }
+
+  @Put(':id')
+  update(@Param('id') id: string, @Body() dto: any) {
+    return this.testingService.update(id, dto);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.testingService.remove(id);
+  }
+}
+
+9) LogService — корректный импорт default
+--- FILE: backend-nest/src/log/log.service.ts ---
+import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/sequelize';
+import Log from '../models/log.model';
+
+@Injectable()
+export class LogService {
+  constructor(@InjectModel(Log) private readonly logModel: typeof Log) {}
+
+  findAll() {
+    return this.logModel.findAll();
+  }
+
+  findOne(id: number) {
+    return this.logModel.findByPk(id);
+  }
+
+  create(data: Partial<Log>) {
+    return this.logModel.create(data as any);
+  }
+
+  remove(id: number) {
+    return this.logModel.destroy({ where: { id } });
+  }
+}
+
+10) LogController — без типового импорта модели
+--- FILE: backend-nest/src/controllers/log.controller.ts ---
+import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
+import { LogService } from '../log/log.service';
+
+@Controller('logs')
+export class LogController {
+  constructor(private readonly service: LogService) {}
+
+  @Get()
+  findAll() {
+    return this.service.findAll();
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.service.findOne(Number(id));
+  }
+
+  @Post()
+  create(@Body() dto: any) {
+    return this.service.create(dto);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.service.remove(Number(id));
+  }
+}
+
+11) UserService / UserController — корректные импорты
+--- FILE: backend-nest/src/user/user.service.ts ---
+import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/sequelize';
+import User from '../models/user.model';
+
+@Injectable()
+export class UserService {
+  constructor(@InjectModel(User) private readonly userModel: typeof User) {}
+
+  findAll() {
+    return this.userModel.findAll();
+  }
+
+  findOne(id: number) {
+    return this.userModel.findByPk(id);
+  }
+}
+--- FILE: backend-nest/src/controllers/user.controller.ts ---
+import { Controller, Get, Param } from '@nestjs/common';
+import { UserService } from '../user/user.service';
+
+@Controller('users')
+export class UserController {
+  constructor(private readonly service: UserService) {}
+
+  @Get()
+  findAll() {
+    return this.service.findAll();
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.service.findOne(Number(id));
+  }
+}
+
+12) Исправляем импорты контроллеров в модулях
+--- FILE: backend-nest/src/request/request.module.ts ---
+import { Module } from '@nestjs/common';
+import { SequelizeModule } from '@nestjs/sequelize';
+import { RequestController } from '../controllers/request.controller';
+import { RequestService } from './request.service';
+import SSASRequest from '../models/request';
+
+@Module({
+  imports: [SequelizeModule.forFeature([SSASRequest])],
+  controllers: [RequestController],
+  providers: [RequestService],
+  exports: [RequestService],
+})
+export class RequestModule {}
+--- FILE: backend-nest/src/signal/signal.module.ts ---
+import { Module } from '@nestjs/common';
+import { SequelizeModule } from '@nestjs/sequelize';
+import { SignalController } from '../controllers/signal.controller';
+import { SignalService } from './signal.service';
+import Signal from '../models/signal.model';
+
+@Module({
+  imports: [SequelizeModule.forFeature([Signal])],
+  controllers: [SignalController],
+  providers: [SignalService],
+  exports: [SignalService],
+})
+export class SignalModule {}
+
