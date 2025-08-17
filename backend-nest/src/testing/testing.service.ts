@@ -2,16 +2,35 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import TestingScenario from '../models/testingScenario.model';
 import { Sequelize, Op } from 'sequelize';
+
 @Injectable()
 export class TestingService {
   constructor(
     @InjectModel(TestingScenario)
     private scenarioModel: typeof TestingScenario,
   ) {}
-  async createScenario(data: any): Promise<any> {
+
+  create(data: any) {
     return this.scenarioModel.create(data);
   }
-  async getScenariosByPeriod(startDate: Date, endDate: Date): Promise<any[]> {
+
+  findAll() {
+    return this.scenarioModel.findAll();
+  }
+
+  findOne(id: string) {
+    return this.scenarioModel.findOne({ where: { scenario_id: id } });
+  }
+
+  update(id: string, data: any) {
+    return this.scenarioModel.update(data, { where: { scenario_id: id } });
+  }
+
+  remove(id: string) {
+    return this.scenarioModel.destroy({ where: { scenario_id: id } });
+  }
+
+  getScenariosByPeriod(startDate: Date, endDate: Date) {
     return this.scenarioModel.findAll({
       where: {
         created_at: {
@@ -19,13 +38,5 @@ export class TestingService {
         },
       },
     });
-  }
-  async updateScenario(id: string, data: any): Promise<any> {
-    await this.scenarioModel.update(data, { where: { scenario_id: id } });
-    return this.scenarioModel.findOne({ where: { scenario_id: id } });
-  }
-  async removeScenario(id: string): Promise<{ deleted: boolean }> {
-    const rows = await this.scenarioModel.destroy({ where: { scenario_id: id } });
-    return { deleted: rows > 0 };
   }
 }

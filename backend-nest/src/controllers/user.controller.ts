@@ -1,7 +1,7 @@
 // backend-nest/src/controllers/user.controller.ts
 import { Body, Controller, Get, Param, Post, Patch, Delete, ParseIntPipe } from '@nestjs/common';
 import { UserService } from '../user/user.service';
-import { User } from '../models/user.model';
+import User from '../models/user.model';
 
 @Controller('users')
 export class UserController {

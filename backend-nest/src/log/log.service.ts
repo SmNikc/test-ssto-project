@@ -1,7 +1,7 @@
 // backend-nest/src/log/log.service.ts
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { Log } from '../models/log.model';
+import Log from '../models/log.model';
 
 @Injectable()
 export class LogService {

@@ -1,7 +1,7 @@
 // backend-nest/src/controllers/log.controller.ts
 import { Body, Controller, Get, Param, Post, Delete, ParseIntPipe } from '@nestjs/common';
 import { LogService } from '../log/log.service';
-import { Log } from '../models/log.model';
+import Log from '../models/log.model';
 
 @Controller('logs')
 export class LogController {

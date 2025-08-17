@@ -37,6 +37,6 @@ export class SignalController {
 
   @Patch(':id/link-request/:requestId')
   linkToRequest(@Param('id') id: string, @Param('requestId') requestId: string) {
-    return this.signalService.linkToRequest(+id, +requestId);
+    return this.signalService.linkToRequest(+id, requestId);
   }
 }

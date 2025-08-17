@@ -17,16 +17,16 @@ export class TestingController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.testingService.findOne(+id);
+    return this.testingService.findOne(id);
   }
 
   @Put(':id')
   update(@Param('id') id: string, @Body() dto: any) {
-    return this.testingService.update(+id, dto);
+    return this.testingService.update(id, dto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.testingService.remove(+id);
+    return this.testingService.remove(id);
   }
 }

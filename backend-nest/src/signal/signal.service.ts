@@ -35,7 +35,7 @@ export class SignalService {
     return this.signalModel.update({ status }, { where: { id } });
   }
 
-  linkToRequest(id: number, requestId: number) {
-    return this.signalModel.update({ requestId }, { where: { id } });
+  linkToRequest(id: number, requestId: string) {
+    return this.signalModel.update({ request_id: requestId }, { where: { id } });
   }
 }

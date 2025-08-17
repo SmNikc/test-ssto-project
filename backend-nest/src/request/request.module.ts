@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
 import SSASRequest from '../models/request';
-import { RequestController } from '../controllers/requestController';
+import { RequestController } from '../controllers/request.controller';
 import { RequestService } from './request.service';
 
 @Module({

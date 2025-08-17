@@ -18,11 +18,11 @@ import { UserService } from './user/user.service';
 import { LogService } from './log/log.service';
 
 // Модели
-import { SSASRequest } from './models/request.model';
+import SSASRequest from './models/request';
 import { Signal } from './models/signal.model';
-import { Log } from './models/log.model';
-import { TestingScenario } from './models/testingScenario.model';
-import { User } from './models/user.model';
+import Log from './models/log.model';
+import TestingScenario from './models/testingScenario.model';
+import User from './models/user.model';
 
 @Module({
   imports: [

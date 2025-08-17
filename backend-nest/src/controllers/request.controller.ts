@@ -17,16 +17,16 @@ export class RequestController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.requestService.findOne(+id);
+    return this.requestService.findOne(id);
   }
 
   @Put(':id')
   update(@Param('id') id: string, @Body() dto: any) {
-    return this.requestService.update(+id, dto);
+    return this.requestService.update(id, dto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.requestService.remove(+id);
+    return this.requestService.remove(id);
   }
 }
