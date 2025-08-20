@@ -1,14 +1,10 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+
+import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
 import { RequestService } from '../request/request.service';
 
 @Controller('requests')
 export class RequestController {
   constructor(private readonly service: RequestService) {}
-
-  @Post()
-  create(@Body() dto: any) {
-    return this.service.create(dto);
-  }
 
   @Get()
   findAll() {
@@ -20,9 +16,9 @@ export class RequestController {
     return this.service.findOne(Number(id));
   }
 
-  @Put(':id')
-  update(@Param('id') id: string, @Body() patch: any) {
-    return this.service.update(Number(id), patch);
+  @Post()
+  create(@Body() dto: Record<string, unknown>) {
+    return this.service.create(dto as any);
   }
 
   @Delete(':id')
@@ -30,5 +26,3 @@ export class RequestController {
     return this.service.remove(Number(id));
   }
 }
-
-5) SignalService — строковый PK signal_id, привязка request_id

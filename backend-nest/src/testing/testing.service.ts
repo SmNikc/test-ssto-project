@@ -1,33 +1,48 @@
+
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import TestingScenario from '../models/testingScenario.model';
+import {
+  ScenarioPayload,
+  validateScenario,
+} from '../validators/testingScenario.validator';
 
 @Injectable()
 export class TestingService {
   constructor(
     @InjectModel(TestingScenario)
-    private readonly scenarioModel: typeof TestingScenario,
+    private readonly model: typeof TestingScenario,
   ) {}
 
-  create(dto: Partial<TestingScenario>) {
-    return this.scenarioModel.create(dto as any);
-  }
-
   findAll() {
-    return this.scenarioModel.findAll();
+    return this.model.findAll();
   }
 
-  findOne(id: string) {
-    return this.scenarioModel.findByPk(id);
+  findOne(scenarioId: string) {
+    return this.model.findOne({ where: { scenario_id: scenarioId } as any });
   }
 
-  update(id: string, patch: Partial<TestingScenario>) {
-    return this.scenarioModel.update(patch as any, { where: { scenario_id: id } });
+  async create(dto: ScenarioPayload) {
+    const errors = validateScenario(dto);
+    if (errors.length) {
+      const err = new Error('Validation failed');
+      (err as any).details = errors;
+      throw err;
+    }
+    return this.model.create(dto as any);
   }
 
-  remove(id: string) {
-    return this.scenarioModel.destroy({ where: { scenario_id: id } });
+  async update(scenarioId: string, dto: Partial<ScenarioPayload>) {
+    const [count] = await this.model.update(dto as any, {
+      where: { scenario_id: scenarioId } as any,
+    });
+    return { updated: count > 0 };
+  }
+
+  async remove(scenarioId: string) {
+    const count = await this.model.destroy({
+      where: { scenario_id: scenarioId } as any,
+    });
+    return { deleted: count > 0 };
   }
 }
-
-8) TestingController — корректные вызовы без +id

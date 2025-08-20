@@ -1,3 +1,4 @@
+
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import SSASRequest from '../models/request';
@@ -9,10 +10,6 @@ export class RequestService {
     private readonly requestModel: typeof SSASRequest,
   ) {}
 
-  create(dto: Partial<SSASRequest>) {
-    return this.requestModel.create(dto as any);
-  }
-
   findAll() {
     return this.requestModel.findAll();
   }
@@ -21,13 +18,11 @@ export class RequestService {
     return this.requestModel.findByPk(id);
   }
 
-  update(id: number, patch: Partial<SSASRequest>) {
-    return this.requestModel.update(patch as any, { where: { id } });
+  create(data: Partial<SSASRequest>) {
+    return this.requestModel.create(data as any);
   }
 
   remove(id: number) {
     return this.requestModel.destroy({ where: { id } });
   }
 }
-
-4) RequestController (на всякий случай — выровнен под сервис)

@@ -1,16 +1,21 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { SignalService } from '../signal/signal.service';
 import { AuthGuard } from '../security/auth.guard';
 
-@UseGuards(AuthGuard)
 @Controller('signals')
+@UseGuards(AuthGuard)
 export class SignalController {
   constructor(private readonly service: SignalService) {}
-
-  @Post()
-  create(@Body() dto: any) {
-    return this.service.create(dto);
-  }
 
   @Get()
   findAll() {
@@ -22,9 +27,14 @@ export class SignalController {
     return this.service.findOne(id);
   }
 
+  @Post()
+  create(@Body() dto: Record<string, unknown>) {
+    return this.service.create(dto as any);
+  }
+
   @Patch(':id')
-  update(@Param('id') id: string, @Body() patch: any) {
-    return this.service.update(id, patch);
+  update(@Param('id') id: string, @Body() patch: Record<string, unknown>) {
+    return this.service.update(id, patch as any);
   }
 
   @Patch(':id/status')
@@ -33,7 +43,7 @@ export class SignalController {
   }
 
   @Patch(':id/link-request/:requestId')
-  linkRequest(@Param('id') id: string, @Param('requestId') requestId: string) {
+  linkToRequest(@Param('id') id: string, @Param('requestId') requestId: string) {
     return this.service.linkToRequest(id, Number(requestId));
   }
 
@@ -43,5 +53,3 @@ export class SignalController {
     return { ok: true };
   }
 }
-
-7) TestingService — стандартный CRUD, строковый scenario_id

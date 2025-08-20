@@ -1,3 +1,4 @@
+
 import { Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { SignalController } from '../controllers/signal.controller';

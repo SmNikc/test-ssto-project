@@ -1,26 +1,26 @@
-export type ScenarioPayload = {
-  name: string;
+
+export interface ScenarioPayload {
+  scenario_id: string;
   description?: string;
-  steps?: Array<{ code: string; params?: Record<string, unknown> }>;
-  active?: boolean;
-};
-type Options = { partial?: boolean };
-export function validateScenarioPayload(
-  payload: ScenarioPayload,
-  options: Options = {},
-): { valid: boolean; errors?: string[] } {
+  expected_result?: string;
+  [key: string]: unknown;
+}
+
+export function validateScenario(
+  payload: Partial<ScenarioPayload>,
+): string[] {
   const errors: string[] = [];
-  const partial = !!options.partial;
-  if (!partial) {
-    if (!payload || typeof payload !== 'object') errors.push('payload must be object');
-    if (!payload.name || typeof payload.name !== 'string') errors.push('name is required');
-  } else {
-    if (payload && 'name' in payload && typeof payload.name !== 'string') {
-      errors.push('name must be string');
-    }
+  if (!payload.scenario_id || String(payload.scenario_id).trim().length === 0) {
+    errors.push('scenario_id обязателен.');
   }
-  if (payload?.steps && !Array.isArray(payload.steps)) {
-    errors.push('steps must be array');
+  if (payload.description && String(payload.description).length > 1000) {
+    errors.push('description слишком длинное (макс. 1000).');
   }
-  return { valid: errors.length === 0, errors };
+  if (
+    payload.expected_result &&
+    String(payload.expected_result).length > 1000
+  ) {
+    errors.push('expected_result слишком длинное (макс. 1000).');
+  }
+  return errors;
 }

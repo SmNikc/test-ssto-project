@@ -1,14 +1,10 @@
+
 import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
 import { TestingService } from '../testing/testing.service';
 
 @Controller('testing-scenarios')
 export class TestingController {
   constructor(private readonly testingService: TestingService) {}
-
-  @Post()
-  create(@Body() dto: any) {
-    return this.testingService.create(dto);
-  }
 
   @Get()
   findAll() {
@@ -20,9 +16,14 @@ export class TestingController {
     return this.testingService.findOne(id);
   }
 
+  @Post()
+  create(@Body() dto: Record<string, unknown>) {
+    return this.testingService.create(dto as any);
+  }
+
   @Put(':id')
-  update(@Param('id') id: string, @Body() dto: any) {
-    return this.testingService.update(id, dto);
+  update(@Param('id') id: string, @Body() dto: Record<string, unknown>) {
+    return this.testingService.update(id, dto as any);
   }
 
   @Delete(':id')
@@ -30,5 +31,3 @@ export class TestingController {
     return this.testingService.remove(id);
   }
 }
-
-9) LogService — корректный импорт default

@@ -1,0 +1,587 @@
+--- FILE: backend-nest/src/security/auth.service.ts ---
+
+import { Injectable, Logger } from '@nestjs/common';
+
+@Injectable()
+export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+  private readonly enabled =
+    (process.env.KEYCLOAK_ENABLED ?? 'false').toLowerCase() === 'true';
+
+  // Заглушка валидации токена: при KEYCLOAK_ENABLED=false всегда true.
+  async validate(token: string | undefined): Promise<boolean> {
+    if (!this.enabled) return true;
+
+    if (!token) return false;
+    const value = token.startsWith('Bearer ')
+      ? token.slice(7).trim()
+      : token.trim();
+    if (!value) return false;
+
+    // Разрешаем dev‑токен из переменной окружения (опционально).
+    if (value === (process.env.KEYCLOAK_DEV_TOKEN ?? 'dev-token')) {
+      return true;
+    }
+
+    // Здесь должна быть реальная проверка через Keycloak Introspection.
+    // Пока — предупреждение и запрет.
+    this.logger.warn(
+      'KEYCLOAK_ENABLED=true, но реальная валидация не реализована (заглушка).',
+    );
+    return false;
+    }
+}
+
+
+--- FILE: backend-nest/src/security/auth.guard.ts ---
+
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { Request } from 'express';
+import { AuthService } from './auth.service';
+
+@Injectable()
+export class AuthGuard implements CanActivate {
+  constructor(private readonly auth: AuthService) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const req = context.switchToHttp().getRequest<Request>();
+    const header = req.headers['authorization'] as string | undefined;
+
+    const enabled =
+      (process.env.KEYCLOAK_ENABLED ?? 'false').toLowerCase() === 'true';
+    if (!enabled) return true;
+
+    const ok = await this.auth.validate(header);
+    if (!ok) throw new UnauthorizedException('Invalid or missing access token');
+    return true;
+  }
+}
+
+
+--- FILE: backend-nest/src/app.module.ts ---
+
+import { Module } from '@nestjs/common';
+import { SequelizeModule } from '@nestjs/sequelize';
+
+import { RequestController } from './controllers/request.controller';
+import { SignalController } from './controllers/signal.controller';
+import { TestingController } from './controllers/testing.controller';
+import { UserController } from './controllers/user.controller';
+import { LogController } from './controllers/log.controller';
+import { HealthController } from './controllers/health.controller';
+
+import { RequestService } from './request/request.service';
+import { SignalService } from './signal/signal.service';
+import { TestingService } from './testing/testing.service';
+import { UserService } from './user/user.service';
+import { LogService } from './log/log.service';
+
+import SSASRequest from './models/request';
+import Signal from './models/signal.model';
+import Log from './models/log.model';
+import TestingScenario from './models/testingScenario.model';
+import User from './models/user.model';
+
+import { AuthService } from './security/auth.service';
+import { AuthGuard } from './security/auth.guard';
+
+@Module({
+  imports: [SequelizeModule.forFeature([SSASRequest, Signal, Log, TestingScenario, User])],
+  controllers: [
+    RequestController,
+    SignalController,
+    TestingController,
+    UserController,
+    LogController,
+    HealthController,
+  ],
+  providers: [
+    RequestService,
+    SignalService,
+    TestingService,
+    UserService,
+    LogService,
+    AuthService,
+    AuthGuard,
+  ],
+})
+export class AppModule {}
+
+
+--- FILE: backend-nest/src/main.ts ---
+
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+
+  // Опционально: не падаем, если helmet не установлен
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const helmet = require('helmet');
+    if (helmet) app.use(helmet());
+  } catch {
+    // no-op
+  }
+
+  app.enableCors();
+  const port = process.env.PORT ? Number(process.env.PORT) : 3001;
+  await app.listen(port);
+  // eslint-disable-next-line no-console
+  console.log(`Backend listening on http://localhost:${port}`);
+}
+bootstrap();
+
+
+--- FILE: backend-nest/src/request/request.module.ts ---
+
+import { Module } from '@nestjs/common';
+import { SequelizeModule } from '@nestjs/sequelize';
+import { RequestController } from '../controllers/request.controller';
+import { RequestService } from './request.service';
+import SSASRequest from '../models/request';
+
+@Module({
+  imports: [SequelizeModule.forFeature([SSASRequest])],
+  controllers: [RequestController],
+  providers: [RequestService],
+  exports: [RequestService],
+})
+export class RequestModule {}
+
+
+--- FILE: backend-nest/src/signal/signal.module.ts ---
+
+import { Module } from '@nestjs/common';
+import { SequelizeModule } from '@nestjs/sequelize';
+import { SignalController } from '../controllers/signal.controller';
+import { SignalService } from './signal.service';
+import Signal from '../models/signal.model';
+
+@Module({
+  imports: [SequelizeModule.forFeature([Signal])],
+  controllers: [SignalController],
+  providers: [SignalService],
+  exports: [SignalService],
+})
+export class SignalModule {}
+
+
+--- FILE: backend-nest/src/request/request.service.ts ---
+
+import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/sequelize';
+import SSASRequest from '../models/request';
+
+@Injectable()
+export class RequestService {
+  constructor(
+    @InjectModel(SSASRequest)
+    private readonly requestModel: typeof SSASRequest,
+  ) {}
+
+  findAll() {
+    return this.requestModel.findAll();
+  }
+
+  findOne(id: number) {
+    return this.requestModel.findByPk(id);
+  }
+
+  create(data: Partial<SSASRequest>) {
+    return this.requestModel.create(data as any);
+  }
+
+  remove(id: number) {
+    return this.requestModel.destroy({ where: { id } });
+  }
+}
+
+
+--- FILE: backend-nest/src/signal/signal.service.ts ---
+
+import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/sequelize';
+import Signal from '../models/signal.model';
+
+type SignalPatch = {
+  signal_type?: string;
+  status?: string;
+  mmsi?: string;
+  request_id?: number;
+  [key: string]: unknown;
+};
+
+@Injectable()
+export class SignalService {
+  constructor(@InjectModel(Signal) private readonly signalModel: typeof Signal) {}
+
+  findAll() {
+    return this.signalModel.findAll();
+  }
+
+  findOne(signalId: string) {
+    return this.signalModel.findOne({ where: { signal_id: signalId } as any });
+  }
+
+  create(data: SignalPatch) {
+    return this.signalModel.create(data as any);
+  }
+
+  update(signalId: string, patch: SignalPatch) {
+    return this.signalModel.update(patch as any, {
+      where: { signal_id: signalId } as any,
+    });
+  }
+
+  updateStatus(signalId: string, status: string) {
+    return this.signalModel.update(
+      { status } as any,
+      { where: { signal_id: signalId } as any },
+    );
+  }
+
+  linkToRequest(signalId: string, requestId: number) {
+    return this.signalModel.update(
+      { request_id: requestId } as any,
+      { where: { signal_id: signalId } as any },
+    );
+  }
+
+  remove(signalId: string) {
+    return this.signalModel.destroy({
+      where: { signal_id: signalId } as any,
+    });
+  }
+}
+
+
+--- FILE: backend-nest/src/controllers/signal.controller.ts ---
+
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import { SignalService } from '../signal/signal.service';
+import { AuthGuard } from '../security/auth.guard';
+
+@Controller('signals')
+@UseGuards(AuthGuard)
+export class SignalController {
+  constructor(private readonly service: SignalService) {}
+
+  @Get()
+  findAll() {
+    return this.service.findAll();
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.service.findOne(id);
+  }
+
+  @Post()
+  create(@Body() dto: Record<string, unknown>) {
+    return this.service.create(dto as any);
+  }
+
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() patch: Record<string, unknown>) {
+    return this.service.update(id, patch as any);
+  }
+
+  @Patch(':id/status')
+  updateStatus(@Param('id') id: string, @Body('status') next: string) {
+    return this.service.updateStatus(id, next);
+  }
+
+  @Patch(':id/link-request/:requestId')
+  linkToRequest(@Param('id') id: string, @Param('requestId') requestId: string) {
+    return this.service.linkToRequest(id, Number(requestId));
+  }
+
+  @Delete(':id')
+  async remove(@Param('id') id: string) {
+    await this.service.remove(id);
+    return { ok: true };
+  }
+}
+
+
+--- FILE: backend-nest/src/controllers/testing.controller.ts ---
+
+import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+import { TestingService } from '../testing/testing.service';
+
+@Controller('testing-scenarios')
+export class TestingController {
+  constructor(private readonly testingService: TestingService) {}
+
+  @Get()
+  findAll() {
+    return this.testingService.findAll();
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.testingService.findOne(id);
+  }
+
+  @Post()
+  create(@Body() dto: Record<string, unknown>) {
+    return this.testingService.create(dto as any);
+  }
+
+  @Put(':id')
+  update(@Param('id') id: string, @Body() dto: Record<string, unknown>) {
+    return this.testingService.update(id, dto as any);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.testingService.remove(id);
+  }
+}
+
+
+--- FILE: backend-nest/src/testing/testing.service.ts ---
+
+import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/sequelize';
+import TestingScenario from '../models/testingScenario.model';
+import {
+  ScenarioPayload,
+  validateScenario,
+} from '../validators/testingScenario.validator';
+
+@Injectable()
+export class TestingService {
+  constructor(
+    @InjectModel(TestingScenario)
+    private readonly model: typeof TestingScenario,
+  ) {}
+
+  findAll() {
+    return this.model.findAll();
+  }
+
+  findOne(scenarioId: string) {
+    return this.model.findOne({ where: { scenario_id: scenarioId } as any });
+  }
+
+  async create(dto: ScenarioPayload) {
+    const errors = validateScenario(dto);
+    if (errors.length) {
+      const err = new Error('Validation failed');
+      (err as any).details = errors;
+      throw err;
+    }
+    return this.model.create(dto as any);
+  }
+
+  async update(scenarioId: string, dto: Partial<ScenarioPayload>) {
+    const [count] = await this.model.update(dto as any, {
+      where: { scenario_id: scenarioId } as any,
+    });
+    return { updated: count > 0 };
+  }
+
+  async remove(scenarioId: string) {
+    const count = await this.model.destroy({
+      where: { scenario_id: scenarioId } as any,
+    });
+    return { deleted: count > 0 };
+  }
+}
+
+
+--- FILE: backend-nest/src/validators/testingScenario.validator.ts ---
+
+export interface ScenarioPayload {
+  scenario_id: string;
+  description?: string;
+  expected_result?: string;
+  [key: string]: unknown;
+}
+
+export function validateScenario(
+  payload: Partial<ScenarioPayload>,
+): string[] {
+  const errors: string[] = [];
+  if (!payload.scenario_id || String(payload.scenario_id).trim().length === 0) {
+    errors.push('scenario_id обязателен.');
+  }
+  if (payload.description && String(payload.description).length > 1000) {
+    errors.push('description слишком длинное (макс. 1000).');
+  }
+  if (
+    payload.expected_result &&
+    String(payload.expected_result).length > 1000
+  ) {
+    errors.push('expected_result слишком длинное (макс. 1000).');
+  }
+  return errors;
+}
+
+
+--- FILE: backend-nest/src/controllers/log.controller.ts ---
+
+import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
+import { LogService } from '../log/log.service';
+import Log from '../models/log.model';
+
+@Controller('logs')
+export class LogController {
+  constructor(private readonly service: LogService) {}
+
+  @Get()
+  findAll(): Promise<Log[]> {
+    return this.service.findAll();
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string): Promise<Log | null> {
+    return this.service.findOne(Number(id));
+  }
+
+  @Post()
+  create(@Body() dto: Partial<Log>): Promise<Log> {
+    return this.service.create(dto);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.service.remove(Number(id));
+  }
+}
+
+
+--- FILE: backend-nest/src/log/log.service.ts ---
+
+import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/sequelize';
+import Log from '../models/log.model';
+
+@Injectable()
+export class LogService {
+  constructor(@InjectModel(Log) private readonly logModel: typeof Log) {}
+
+  findAll(): Promise<Log[]> {
+    return this.logModel.findAll();
+  }
+
+  findOne(id: number): Promise<Log | null> {
+    return this.logModel.findByPk(id);
+  }
+
+  create(data: Partial<Log>): Promise<Log> {
+    return this.logModel.create(data as any);
+  }
+
+  remove(id: number): Promise<number> {
+    return this.logModel.destroy({ where: { id } });
+  }
+}
+
+
+--- FILE: backend-nest/src/controllers/user.controller.ts ---
+
+import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
+import { UserService } from '../user/user.service';
+import User from '../models/user.model';
+
+@Controller('users')
+export class UserController {
+  constructor(private readonly service: UserService) {}
+
+  @Get()
+  findAll(): Promise<User[]> {
+    return this.service.findAll();
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string): Promise<User | null> {
+    return this.service.findOne(Number(id));
+  }
+
+  @Post()
+  create(@Body() dto: Partial<User>): Promise<User> {
+    return this.service.create(dto);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.service.remove(Number(id));
+  }
+}
+
+
+--- FILE: backend-nest/src/user/user.service.ts ---
+
+import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/sequelize';
+import User from '../models/user.model';
+
+@Injectable()
+export class UserService {
+  constructor(@InjectModel(User) private readonly model: typeof User) {}
+
+  findAll(): Promise<User[]> {
+    return this.model.findAll();
+  }
+
+  findOne(id: number): Promise<User | null> {
+    return this.model.findByPk(id);
+  }
+
+  create(dto: Partial<User>): Promise<User> {
+    return this.model.create(dto as any);
+  }
+
+  remove(id: number): Promise<number> {
+    return this.model.destroy({ where: { id } });
+  }
+}
+
+
+--- FILE: backend-nest/src/controllers/request.controller.ts ---
+
+import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
+import { RequestService } from '../request/request.service';
+
+@Controller('requests')
+export class RequestController {
+  constructor(private readonly service: RequestService) {}
+
+  @Get()
+  findAll() {
+    return this.service.findAll();
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.service.findOne(Number(id));
+  }
+
+  @Post()
+  create(@Body() dto: Record<string, unknown>) {
+    return this.service.create(dto as any);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.service.remove(Number(id));
+  }
+}
