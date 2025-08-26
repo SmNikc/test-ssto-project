@@ -1,32 +1,22 @@
+import { Injectable } from '@nestjs/common';
 
-import { Injectable, Logger } from '@nestjs/common';
-
+/**
+ * Упрощённый AuthService.
+ * Для локальной разработки KEYCLOAK_ENABLED=false => всегда пропускаем.
+ * При включении Keycloak здесь можно реализовать реальную проверку токена (интроспекция).
+ */
 @Injectable()
 export class AuthService {
-  private readonly logger = new Logger(AuthService.name);
-  private readonly enabled =
-    (process.env.KEYCLOAK_ENABLED ?? 'false').toLowerCase() === 'true';
+  async validate(authHeader?: string): Promise<boolean> {
+    const enabled = (process.env.KEYCLOAK_ENABLED || 'false').toLowerCase() === 'true';
+    if (!enabled) return true; // локально всё разрешаем
 
-  // Заглушка валидации токена: при KEYCLOAK_ENABLED=false всегда true.
-  async validate(token: string | undefined): Promise<boolean> {
-    if (!this.enabled) return true;
+    if (!authHeader) return false;
+    const [scheme, token] = authHeader.split(' ');
+    if ((scheme || '').toLowerCase() !== 'bearer' || !token) return false;
 
-    if (!token) return false;
-    const value = token.startsWith('Bearer ')
-      ? token.slice(7).trim()
-      : token.trim();
-    if (!value) return false;
-
-    // Разрешаем dev‑токен из переменной окружения (опционально).
-    if (value === (process.env.KEYCLOAK_DEV_TOKEN ?? 'dev-token')) {
-      return true;
-    }
-
-    // Здесь должна быть реальная проверка через Keycloak Introspection.
-    // Пока — предупреждение и запрет.
-    this.logger.warn(
-      'KEYCLOAK_ENABLED=true, но реальная валидация не реализована (заглушка).',
-    );
+    // TODO: Реальная проверка токена, например через introspection endpoint.
+    // Пока возвращаем false, чтобы явно напоминать включить реализацию при KEYCLOAK_ENABLED=true.
     return false;
-    }
+  }
 }

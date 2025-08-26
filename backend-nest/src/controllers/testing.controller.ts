@@ -1,6 +1,6 @@
-
-import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+import { Controller, Get, Param, Post, Body, Patch, Delete } from '@nestjs/common';
 import { TestingService } from '../testing/testing.service';
+import { ScenarioPayload } from '../validators/testingScenario.validator';
 
 @Controller('testing-scenarios')
 export class TestingController {
@@ -17,13 +17,13 @@ export class TestingController {
   }
 
   @Post()
-  create(@Body() dto: Record<string, unknown>) {
-    return this.testingService.create(dto as any);
+  create(@Body() dto: ScenarioPayload) {
+    return this.testingService.create(dto);
   }
 
-  @Put(':id')
-  update(@Param('id') id: string, @Body() dto: Record<string, unknown>) {
-    return this.testingService.update(id, dto as any);
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() dto: Partial<ScenarioPayload>) {
+    return this.testingService.update(id, dto);
   }
 
   @Delete(':id')

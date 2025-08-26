@@ -14,3 +14,5 @@ export default class User extends Model {
   @Column({ type: DataType.DATE, defaultValue: DataType.NOW })
   created_at?: Date;
 }
+
+export { default as User } from "./user.model";

@@ -1,0 +1,98 @@
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+
+export enum RequestStatus {
+  DRAFT = 'draft',
+  PENDING = 'pending',
+  IN_PROGRESS = 'in_progress',
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled'
+}
+
+export enum RequestType {
+  TEST_406 = 'test_406',
+  TEST_121 = 'test_121',
+  COMBINED = 'combined'
+}
+
+@Entity('requests')
+export class Request {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column({ name: 'vessel_name' })
+  vesselName: string;
+
+  @Column({ name: 'vessel_imo', nullable: true })
+  vesselIMO: string;
+
+  @Column({ name: 'vessel_type', nullable: true })
+  vesselType: string;
+
+  @Column({ name: 'vessel_flag', nullable: true })
+  vesselFlag: string;
+
+  @Column({ name: 'requester_name' })
+  requesterName: string;
+
+  @Column({ name: 'requester_email' })
+  requesterEmail: string;
+
+  @Column({ name: 'requester_phone', nullable: true })
+  requesterPhone: string;
+
+  @Column({ name: 'requester_company', nullable: true })
+  requesterCompany: string;
+
+  @Column({
+    type: 'enum',
+    enum: RequestType,
+    default: RequestType.COMBINED
+  })
+  testType: RequestType;
+
+  @Column({ type: 'date', name: 'test_date' })
+  testDate: Date;
+
+  @Column({ type: 'time', name: 'test_time', nullable: true })
+  testTime: string;
+
+  @Column({ name: 'test_location', nullable: true })
+  testLocation: string;
+
+  @Column({ name: 'test_coordinator', nullable: true })
+  testCoordinator: string;
+
+  @Column({
+    type: 'enum',
+    enum: RequestStatus,
+    default: RequestStatus.DRAFT
+  })
+  status: RequestStatus;
+
+  @Column({ type: 'text', nullable: true })
+  notes: string;
+
+  @Column({ name: 'report_url', nullable: true })
+  reportUrl: string;
+
+  @Column({ name: 'beacon_id', nullable: true })
+  beaconId: string;
+
+  @Column({ name: 'beacon_manufacturer', nullable: true })
+  beaconManufacturer: string;
+
+  @Column({ name: 'beacon_model', nullable: true })
+  beaconModel: string;
+
+  @Column({ name: 'last_email_check', type: 'timestamp', nullable: true })
+  lastEmailCheck: Date;
+
+  @Column({ name: 'email_count', default: 0 })
+  emailCount: number;
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
+}

@@ -14,3 +14,5 @@ export default class Log extends Model {
   @Column({ type: DataType.DATE, defaultValue: DataType.NOW })
   created_at?: Date;
 }
+
+export { default as Log } from "./log.model";

@@ -1,11 +1,7 @@
-
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import TestingScenario from '../models/testingScenario.model';
-import {
-  ScenarioPayload,
-  validateScenario,
-} from '../validators/testingScenario.validator';
+import { ScenarioPayload, validateScenario } from '../validators/testingScenario.validator';
 
 @Injectable()
 export class TestingService {
@@ -18,31 +14,27 @@ export class TestingService {
     return this.model.findAll();
   }
 
-  findOne(scenarioId: string) {
-    return this.model.findOne({ where: { scenario_id: scenarioId } as any });
+  async findOne(scenario_id: string) {
+    const row = await this.model.findByPk(scenario_id);
+    if (!row) throw new NotFoundException(`Scenario "${scenario_id}" not found`);
+    return row;
   }
 
   async create(dto: ScenarioPayload) {
     const errors = validateScenario(dto);
-    if (errors.length) {
-      const err = new Error('Validation failed');
-      (err as any).details = errors;
-      throw err;
-    }
+    if (errors.length) throw new BadRequestException({ errors });
     return this.model.create(dto as any);
   }
 
-  async update(scenarioId: string, dto: Partial<ScenarioPayload>) {
-    const [count] = await this.model.update(dto as any, {
-      where: { scenario_id: scenarioId } as any,
-    });
-    return { updated: count > 0 };
+  async update(scenario_id: string, patch: Partial<ScenarioPayload>) {
+    const errors = validateScenario({ ...patch, scenario_id });
+    if (errors.length) throw new BadRequestException({ errors });
+    await this.model.update(patch as any, { where: { scenario_id } });
+    return this.findOne(scenario_id);
   }
 
-  async remove(scenarioId: string) {
-    const count = await this.model.destroy({
-      where: { scenario_id: scenarioId } as any,
-    });
-    return { deleted: count > 0 };
+  async remove(scenario_id: string) {
+    await this.model.destroy({ where: { scenario_id } });
+    return { deleted: true };
   }
 }

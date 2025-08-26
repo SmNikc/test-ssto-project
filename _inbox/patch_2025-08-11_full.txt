@@ -1,0 +1,613 @@
+--- FILE: backend-nest/src/app.module.ts ---
+import { Module } from '@nestjs/common';
+import { SequelizeModule } from '@nestjs/sequelize';
+
+import { RequestController } from './controllers/request.controller';
+import { SignalController } from './controllers/signal.controller';
+import { TestingController } from './controllers/testing.controller';
+import { UserController } from './controllers/user.controller';
+import { LogController } from './controllers/log.controller';
+import { HealthController } from './controllers/health.controller';
+
+import { RequestService } from './request/request.service';
+import { SignalService } from './signal/signal.service';
+import { TestingService } from './testing/testing.service';
+import { UserService } from './user/user.service';
+import { LogService } from './log/log.service';
+
+import SSASRequest from './models/request';
+import Signal from './models/signal.model';
+import Log from './models/log.model';
+import TestingScenario from './models/testingScenario.model';
+import User from './models/user.model';
+
+import { AuthService } from './security/auth.service';
+import { AuthGuard } from './security/auth.guard';
+
+@Module({
+  imports: [
+    SequelizeModule.forFeature([SSASRequest, Signal, Log, TestingScenario, User]),
+  ],
+  controllers: [
+    RequestController,
+    SignalController,
+    TestingController,
+    UserController,
+    LogController,
+    HealthController,
+  ],
+  providers: [
+    RequestService,
+    SignalService,
+    TestingService,
+    UserService,
+    LogService,
+    AuthService,
+    AuthGuard,
+  ],
+})
+export class AppModule {}
+
+--- FILE: backend-nest/src/security/auth.service.ts ---
+import { Injectable } from '@nestjs/common';
+
+/**
+ * Упрощённый AuthService.
+ * Для локальной разработки KEYCLOAK_ENABLED=false => всегда пропускаем.
+ * При включении Keycloak здесь можно реализовать реальную проверку токена (интроспекция).
+ */
+@Injectable()
+export class AuthService {
+  async validate(authHeader?: string): Promise<boolean> {
+    const enabled = (process.env.KEYCLOAK_ENABLED || 'false').toLowerCase() === 'true';
+    if (!enabled) return true; // локально всё разрешаем
+
+    if (!authHeader) return false;
+    const [scheme, token] = authHeader.split(' ');
+    if ((scheme || '').toLowerCase() !== 'bearer' || !token) return false;
+
+    // TODO: Реальная проверка токена, например через introspection endpoint.
+    // Пока возвращаем false, чтобы явно напоминать включить реализацию при KEYCLOAK_ENABLED=true.
+    return false;
+  }
+}
+
+--- FILE: backend-nest/src/security/auth.guard.ts ---
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { AuthService } from './auth.service';
+
+@Injectable()
+export class AuthGuard implements CanActivate {
+  constructor(private readonly auth: AuthService) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const req = context.switchToHttp().getRequest();
+    const ok = await this.auth.validate(req.headers?.authorization);
+    if (!ok) throw new UnauthorizedException('Unauthorized');
+    return true;
+  }
+}
+
+--- FILE: backend-nest/src/validators/testingScenario.validator.ts ---
+export type ScenarioPayload = {
+  scenario_id: string;
+  description?: string;
+  expected_result?: string;
+  status?: 'draft' | 'running' | 'completed' | 'failed';
+};
+
+export function validateScenario(payload: Partial<ScenarioPayload>): string[] {
+  const errors: string[] = [];
+  if (!payload.scenario_id || String(payload.scenario_id).trim().length === 0) {
+    errors.push('scenario_id обязателен.');
+  }
+  if (payload.status && !['draft', 'running', 'completed', 'failed'].includes(payload.status)) {
+    errors.push('status может быть только draft|running|completed|failed.');
+  }
+  return errors;
+}
+
+--- FILE: backend-nest/src/signal/signal.service.ts ---
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/sequelize';
+import Signal from '../models/signal.model';
+
+@Injectable()
+export class SignalService {
+  constructor(
+    @InjectModel(Signal)
+    private readonly signalModel: typeof Signal,
+  ) {}
+
+  findAll() {
+    return this.signalModel.findAll();
+  }
+
+  async findOne(id: number) {
+    const row = await this.signalModel.findByPk(id);
+    if (!row) throw new NotFoundException(`Signal #${id} not found`);
+    return row;
+  }
+
+  create(data: Partial<Signal>) {
+    return this.signalModel.create(data as any);
+  }
+
+  async update(id: number, patch: Partial<Signal>) {
+    await this.signalModel.update(patch as any, { where: { id } });
+    return this.findOne(id);
+  }
+
+  async updateStatus(id: number, status: string) {
+    await this.signalModel.update({ status } as any, { where: { id } });
+    return this.findOne(id);
+  }
+
+  async linkToRequest(id: number, requestId: number) {
+    // Важно: поле в модели называется request_id (а не requestId)
+    await this.signalModel.update({ request_id: requestId } as any, { where: { id } });
+    return this.findOne(id);
+  }
+
+  async remove(id: number) {
+    await this.signalModel.destroy({ where: { id } });
+    return { deleted: true };
+  }
+}
+
+--- FILE: backend-nest/src/controllers/signal.controller.ts ---
+import {
+  Controller,
+  Get,
+  Param,
+  Post,
+  Body,
+  Patch,
+  Delete,
+  UseGuards,
+  ParseIntPipe,
+} from '@nestjs/common';
+import { SignalService } from '../signal/signal.service';
+import { AuthGuard } from '../security/auth.guard';
+
+@Controller('signals')
+@UseGuards(AuthGuard)
+export class SignalController {
+  constructor(private readonly service: SignalService) {}
+
+  @Get()
+  findAll() {
+    return this.service.findAll();
+  }
+
+  @Get(':id')
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.service.findOne(id);
+  }
+
+  @Post()
+  create(@Body() dto: any) {
+    return this.service.create(dto);
+  }
+
+  @Patch(':id')
+  update(@Param('id', ParseIntPipe) id: number, @Body() patch: any) {
+    return this.service.update(id, patch);
+  }
+
+  @Patch(':id/status')
+  updateStatus(@Param('id', ParseIntPipe) id: number, @Body('status') next: string) {
+    return this.service.updateStatus(id, next);
+  }
+
+  @Patch(':id/link-request/:requestId')
+  linkToRequest(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('requestId', ParseIntPipe) requestId: number,
+  ) {
+    return this.service.linkToRequest(id, requestId);
+  }
+
+  @Delete(':id')
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    return this.service.remove(id);
+  }
+}
+
+--- FILE: backend-nest/src/testing/testing.service.ts ---
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/sequelize';
+import TestingScenario from '../models/testingScenario.model';
+import { ScenarioPayload, validateScenario } from '../validators/testingScenario.validator';
+
+@Injectable()
+export class TestingService {
+  constructor(
+    @InjectModel(TestingScenario)
+    private readonly model: typeof TestingScenario,
+  ) {}
+
+  findAll() {
+    return this.model.findAll();
+  }
+
+  async findOne(scenario_id: string) {
+    const row = await this.model.findByPk(scenario_id);
+    if (!row) throw new NotFoundException(`Scenario "${scenario_id}" not found`);
+    return row;
+  }
+
+  async create(dto: ScenarioPayload) {
+    const errors = validateScenario(dto);
+    if (errors.length) throw new BadRequestException({ errors });
+    return this.model.create(dto as any);
+  }
+
+  async update(scenario_id: string, patch: Partial<ScenarioPayload>) {
+    const errors = validateScenario({ ...patch, scenario_id });
+    if (errors.length) throw new BadRequestException({ errors });
+    await this.model.update(patch as any, { where: { scenario_id } });
+    return this.findOne(scenario_id);
+  }
+
+  async remove(scenario_id: string) {
+    await this.model.destroy({ where: { scenario_id } });
+    return { deleted: true };
+  }
+}
+
+--- FILE: backend-nest/src/controllers/testing.controller.ts ---
+import { Controller, Get, Param, Post, Body, Patch, Delete } from '@nestjs/common';
+import { TestingService } from '../testing/testing.service';
+import { ScenarioPayload } from '../validators/testingScenario.validator';
+
+@Controller('testing-scenarios')
+export class TestingController {
+  constructor(private readonly testingService: TestingService) {}
+
+  @Get()
+  findAll() {
+    return this.testingService.findAll();
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.testingService.findOne(id);
+  }
+
+  @Post()
+  create(@Body() dto: ScenarioPayload) {
+    return this.testingService.create(dto);
+  }
+
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() dto: Partial<ScenarioPayload>) {
+    return this.testingService.update(id, dto);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.testingService.remove(id);
+  }
+}
+
+--- FILE: backend-nest/src/log/log.service.ts ---
+import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/sequelize';
+import Log from '../models/log.model';
+
+@Injectable()
+export class LogService {
+  constructor(
+    @InjectModel(Log)
+    private readonly logModel: typeof Log,
+  ) {}
+
+  findAll() {
+    return this.logModel.findAll();
+  }
+
+  findOne(id: number) {
+    return this.logModel.findByPk(id);
+  }
+
+  create(data: Partial<Log>) {
+    return this.logModel.create(data as any);
+  }
+
+  remove(id: number) {
+    return this.logModel.destroy({ where: { id } });
+  }
+}
+
+--- FILE: backend-nest/src/controllers/log.controller.ts ---
+import { Controller, Get, Param, Post, Body, Delete, ParseIntPipe } from '@nestjs/common';
+import { LogService } from '../log/log.service';
+
+@Controller('logs')
+export class LogController {
+  constructor(private readonly service: LogService) {}
+
+  @Get()
+  findAll() {
+    return this.service.findAll();
+  }
+
+  @Get(':id')
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.service.findOne(id);
+  }
+
+  @Post()
+  create(@Body() dto: any) {
+    return this.service.create(dto);
+  }
+
+  @Delete(':id')
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.service.remove(id);
+  }
+}
+
+--- FILE: backend-nest/src/user/user.service.ts ---
+import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/sequelize';
+import User from '../models/user.model';
+
+@Injectable()
+export class UserService {
+  constructor(
+    @InjectModel(User)
+    private readonly userModel: typeof User,
+  ) {}
+
+  findAll() {
+    return this.userModel.findAll();
+  }
+
+  findOne(id: number) {
+    return this.userModel.findByPk(id);
+  }
+}
+
+--- FILE: backend-nest/src/controllers/user.controller.ts ---
+import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
+import { UserService } from '../user/user.service';
+
+@Controller('users')
+export class UserController {
+  constructor(private readonly service: UserService) {}
+
+  @Get()
+  findAll() {
+    return this.service.findAll();
+  }
+
+  @Get(':id')
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.service.findOne(id);
+  }
+}
+
+--- FILE: backend-nest/src/request/request.service.ts ---
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/sequelize';
+import SSASRequest from '../models/request';
+
+@Injectable()
+export class RequestService {
+  constructor(
+    @InjectModel(SSASRequest)
+    private readonly reqModel: typeof SSASRequest,
+  ) {}
+
+  findAll() {
+    return this.reqModel.findAll();
+  }
+
+  async findOne(id: number) {
+    const row = await this.reqModel.findByPk(id);
+    if (!row) throw new NotFoundException(`Request #${id} not found`);
+    return row;
+  }
+
+  create(data: Partial<SSASRequest>) {
+    return this.reqModel.create(data as any);
+  }
+}
+
+--- FILE: backend-nest/src/controllers/request.controller.ts ---
+import { Controller, Get, Param, Post, Body, ParseIntPipe } from '@nestjs/common';
+import { RequestService } from '../request/request.service';
+
+@Controller('requests')
+export class RequestController {
+  constructor(private readonly service: RequestService) {}
+
+  @Get()
+  findAll() {
+    return this.service.findAll();
+  }
+
+  @Get(':id')
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.service.findOne(id);
+  }
+
+  @Post()
+  create(@Body() dto: any) {
+    return this.service.create(dto);
+  }
+}
+
+--- FILE: backend-nest/src/request/request.module.ts ---
+import { Module } from '@nestjs/common';
+import { SequelizeModule } from '@nestjs/sequelize';
+import { RequestController } from '../controllers/request.controller';
+import { RequestService } from './request.service';
+import SSASRequest from '../models/request';
+
+@Module({
+  imports: [SequelizeModule.forFeature([SSASRequest])],
+  controllers: [RequestController],
+  providers: [RequestService],
+})
+export class RequestModule {}
+
+--- FILE: backend-nest/src/signal/signal.module.ts ---
+import { Module } from '@nestjs/common';
+import { SequelizeModule } from '@nestjs/sequelize';
+import { SignalController } from '../controllers/signal.controller';
+import { SignalService } from './signal.service';
+import Signal from '../models/signal.model';
+
+@Module({
+  imports: [SequelizeModule.forFeature([Signal])],
+  controllers: [SignalController],
+  providers: [SignalService],
+})
+export class SignalModule {}
+
+--- FILE: backend-nest/src/main.ts ---
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule, { cors: true });
+  const port = process.env.PORT ? Number(process.env.PORT) : 3001;
+  await app.listen(port);
+  // eslint-disable-next-line no-console
+  console.log(`Backend is running on http://localhost:${port}`);
+}
+bootstrap();
+
+--- FILE: backend-nest/.env.example ---
+# DB
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=ssto
+DB_PASSWORD=ssto_pw
+DB_NAME=ssto
+DB_DIALECT=postgres
+
+# Auth (локальная разработка)
+KEYCLOAK_ENABLED=false
+KEYCLOAK_INTROSPECT_URL=http://localhost:8080/realms/demo/protocol/openid-connect/token/introspect
+KEYCLOAK_CLIENT_ID=demo-client
+KEYCLOAK_CLIENT_SECRET=demo-secret
+
+# Server
+PORT=3001
+
+--- FILE: docker-compose.yml ---
+version: "3.9"
+services:
+  db:
+    image: postgres:15
+    container_name: ssto-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ssto
+      POSTGRES_USER: ssto
+      POSTGRES_PASSWORD: ssto_pw
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: ssto-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@local
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+volumes:
+  pgdata:
+
+--- FILE: dev.ps1 ---
+# Быстрый старт для Windows PowerShell
+$env:KEYCLOAK_ENABLED="false"
+Set-Location -Path "C:\Projects\test-ssto-project"
+docker compose up -d
+Start-Process powershell -ArgumentList "-NoExit","-Command","cd .\backend-nest; npm run start:dev"
+Start-Process powershell -ArgumentList "-NoExit","-Command","cd .\frontend; npm run dev"
+
+--- FILE: dev.sh ---
+#!/usr/bin/env bash
+set -euo pipefail
+export KEYCLOAK_ENABLED=false
+cd "$(dirname "$0")"
+docker compose up -d
+( cd backend-nest && npm run start:dev ) &
+( cd frontend && npm run dev ) &
+wait
+
+--- FILE: tools/cleanup_junk.py ---
+import argparse
+import os
+import fnmatch
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+PATTERNS = [
+    "*.tmp", "*.bak", "*.old", "*.orig", "*.rej", "*~",
+    "npm-debug.log*", "yarn-error.log*",
+    "Thumbs.db", ".DS_Store",
+]
+
+EXACT_FILES = [
+    # Старые названия контроллеров (если ещё остались)
+    "backend-nest/src/controllers/requestController.ts",
+    "backend-nest/src/controllers/signalController.ts",
+]
+
+def iter_candidates(root: Path):
+    for rel in EXACT_FILES:
+        yield (root / rel)
+    for pattern in PATTERNS:
+        for p in root.rglob("*"):
+            if p.is_file() and fnmatch.fnmatch(p.name, pattern):
+                yield p
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--apply", action="store_true", help="удалить найденные файлы (иначе только показать)")
+    args = ap.parse_args()
+
+    root = PROJECT_ROOT
+    to_delete = []
+    for p in iter_candidates(root):
+        if p.exists():
+            to_delete.append(p)
+
+    if not to_delete:
+        print("Нечего удалять — мусор не найден.")
+        return
+
+    print("Файлы-кандидаты на удаление:")
+    for p in to_delete:
+        print(" -", p)
+
+    if not args.apply:
+        print("\nDRY-RUN: ничего не удалено. Запустите с --apply чтобы удалить.")
+        return
+
+    for p in to_delete:
+        try:
+            p.unlink()
+            print("[DELETED]", p)
+        except Exception as e:
+            print("[SKIP]", p, "->", e)
+
+if __name__ == "__main__":
+    main()

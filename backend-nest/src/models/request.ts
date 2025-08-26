@@ -41,3 +41,5 @@ export default class SSASRequest extends Model {
   @Column({ type: DataType.DATE, defaultValue: DataType.NOW })
   created_at?: Date;
 }
+
+export { default as SSASRequest } from "./request";

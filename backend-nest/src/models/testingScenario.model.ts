@@ -23,3 +23,5 @@ export default class TestingScenario extends Model {
   @Column({ type: DataType.DATE, defaultValue: DataType.NOW })
   created_at?: Date;
 }
+
+export { default as TestingScenario } from "./testingScenario.model";

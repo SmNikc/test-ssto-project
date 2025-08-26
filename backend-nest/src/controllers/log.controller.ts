@@ -1,29 +1,27 @@
-
-import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
+import { Controller, Get, Param, Post, Body, Delete, ParseIntPipe } from '@nestjs/common';
 import { LogService } from '../log/log.service';
-import Log from '../models/log.model';
 
 @Controller('logs')
 export class LogController {
   constructor(private readonly service: LogService) {}
 
   @Get()
-  findAll(): Promise<Log[]> {
+  findAll() {
     return this.service.findAll();
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string): Promise<Log | null> {
-    return this.service.findOne(Number(id));
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.service.findOne(id);
   }
 
   @Post()
-  create(@Body() dto: Partial<Log>): Promise<Log> {
+  create(@Body() dto: any) {
     return this.service.create(dto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.service.remove(Number(id));
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.service.remove(id);
   }
 }

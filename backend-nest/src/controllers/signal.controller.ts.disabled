@@ -1,13 +1,13 @@
-
 import {
-  Body,
   Controller,
-  Delete,
   Get,
   Param,
-  Patch,
   Post,
+  Body,
+  Patch,
+  Delete,
   UseGuards,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { SignalService } from '../signal/signal.service';
 import { AuthGuard } from '../security/auth.guard';
@@ -23,33 +23,35 @@ export class SignalController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id', ParseIntPipe) id: number) {
     return this.service.findOne(id);
   }
 
   @Post()
-  create(@Body() dto: Record<string, unknown>) {
-    return this.service.create(dto as any);
+  create(@Body() dto: any) {
+    return this.service.create(dto);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() patch: Record<string, unknown>) {
-    return this.service.update(id, patch as any);
+  update(@Param('id', ParseIntPipe) id: number, @Body() patch: any) {
+    return this.service.update(id, patch);
   }
 
   @Patch(':id/status')
-  updateStatus(@Param('id') id: string, @Body('status') next: string) {
+  updateStatus(@Param('id', ParseIntPipe) id: number, @Body('status') next: string) {
     return this.service.updateStatus(id, next);
   }
 
   @Patch(':id/link-request/:requestId')
-  linkToRequest(@Param('id') id: string, @Param('requestId') requestId: string) {
-    return this.service.linkToRequest(id, Number(requestId));
+  linkToRequest(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('requestId', ParseIntPipe) requestId: number,
+  ) {
+    return this.service.linkToRequest(id, requestId);
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: string) {
-    await this.service.remove(id);
-    return { ok: true };
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    return this.service.remove(id);
   }
 }

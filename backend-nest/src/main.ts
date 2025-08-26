@@ -1,23 +1,29 @@
-
+import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  
+  // Global validation pipe
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
 
-  // Опционально: не падаем, если helmet не установлен
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const helmet = require('helmet');
-    if (helmet) app.use(helmet());
-  } catch {
-    // no-op
-  }
+  // CORS
+  app.enableCors({
+    origin: ['http://localhost:3000', 'http://localhost:5173'],
+    credentials: true,
+  });
 
-  app.enableCors();
-  const port = process.env.PORT ? Number(process.env.PORT) : 3001;
+  const port = process.env.PORT || 3000;
   await app.listen(port);
-  // eslint-disable-next-line no-console
-  console.log(`Backend listening on http://localhost:${port}`);
+  console.log(`Application is running on: http://localhost:${port}`);
 }
+
 bootstrap();

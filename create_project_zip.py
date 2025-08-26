@@ -21,7 +21,7 @@ def create_zip(source_dir, zip_filename, exclude_names):
 # Используйте r"..." для путей или двойные обратные слэши!
 source_dir = r"C:\Projects\test-ssto-project"
 zip_filename = r"C:\Projects\test-ssto-project_output\SSTO_project_full.zip"
-exclude_names = ['node_modules', '.git', '.angular', 'dist', '__pycache__']
+exclude_names = ['node_modules', '.git', '.angular', 'dist','scripts', '__pycache__']
 
 create_zip(source_dir, zip_filename, exclude_names)
 

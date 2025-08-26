@@ -1,5 +1,4 @@
-
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import SSASRequest from '../models/request';
 
@@ -7,22 +6,20 @@ import SSASRequest from '../models/request';
 export class RequestService {
   constructor(
     @InjectModel(SSASRequest)
-    private readonly requestModel: typeof SSASRequest,
+    private readonly reqModel: typeof SSASRequest,
   ) {}
 
   findAll() {
-    return this.requestModel.findAll();
+    return this.reqModel.findAll();
   }
 
-  findOne(id: number) {
-    return this.requestModel.findByPk(id);
+  async findOne(id: number) {
+    const row = await this.reqModel.findByPk(id);
+    if (!row) throw new NotFoundException(`Request #${id} not found`);
+    return row;
   }
 
   create(data: Partial<SSASRequest>) {
-    return this.requestModel.create(data as any);
-  }
-
-  remove(id: number) {
-    return this.requestModel.destroy({ where: { id } });
+    return this.reqModel.create(data as any);
   }
 }
