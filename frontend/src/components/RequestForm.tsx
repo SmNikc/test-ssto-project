@@ -82,14 +82,47 @@ export default function RequestForm() {
     mode: 'onBlur',
   });
 
-  const onSubmit = (data: RequestFormValues) => {
-    // TODO: заменить на реальный вызов API вашего бэкенда
-    // fetch('/api/requests', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) })
-    //   .then(r => r.json())
-    //   .then(console.log)
-    //   .catch(console.error);
-    console.log('request:', data);
+const onSubmit = async (data: RequestFormValues) => {
+  // Маппинг полей из camelCase в snake_case для backend
+  const request = {
+    vessel_name: data.vesselName,  // маппинг camelCase -> snake_case
+    mmsi: data.mmsi,
+    request_id: `REQ${Date.now()}`,
+    ssas_number: `SSAS${data.imo}`,
+    owner_organization: 'Test Company',  // или добавьте поле в форму
+    contact_person: data.contactName,    // ✅ правильное имя поля
+    contact_phone: data.contactPhone,    // ✅ правильное имя поля
+    email: data.email,
+    test_date: data.testDate?.split('T')[0] || '2025-08-31',
+    start_time: '10:00',
+    end_time: '14:00',
+    notes: data.notes || '',
+    status: 'DRAFT'
   };
+  
+  console.log('Sending request:', request);
+  
+  try {
+    const response = await fetch('http://localhost:3000/requests', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request)
+    });
+    
+    const result = await response.json();
+    console.log('Response:', result);
+    
+    if (result.success) {
+      alert('Заявка успешно отправлена!');
+      // Очистка формы или редирект
+    } else {
+      alert('Ошибка: ' + result.error);
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Ошибка отправки заявки');
+  }
+};
 
   const renderText = <
     K extends keyof RequestFormValues
