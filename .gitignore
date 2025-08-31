@@ -93,3 +93,13 @@ local.settings.json
 !migrations/
 !backend-nest/docs/
 !frontend/docs/
+
+# Временные файлы
+/scripts/*
+!/scripts/README.md
+/temp/
+*.bak
+*.tmp
+test-*.js
+clean-*.js
+fix-*.js

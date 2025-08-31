@@ -12,9 +12,7 @@ import Log from './models/log.model';
 import TestingScenario from './models/testingScenario.model';
 
 // Import modules
-import { SecurityModule } from './security/security.module';
 import { RequestModule } from './request/request.module';
-import { SignalModule } from './signal/signal.module'; // ← ДОБАВЛЕН ИМПОРТ SignalModule
 import { UserModule } from './user/user.module';
 import { LogModule } from './log/log.module';
 import { TestingModule } from './testing/testing.module';
@@ -40,15 +38,13 @@ import { TestingModule } from './testing/testing.module';
         database: configService.get('DB_NAME', 'ssto_test'),
         models: [SSASRequest, Signal, User, Log, TestingScenario],
         autoLoadModels: true,
-        synchronize: true,
+        synchronize: configService.get('NODE_ENV', 'development') === 'development',
         logging: configService.get('NODE_ENV', 'development') === 'development' ? console.log : false,
       }),
     }),
     
     // Feature modules
-    SecurityModule,
     RequestModule,
-    SignalModule,    // ✓ Теперь правильно импортирован
     UserModule,
     LogModule,
     TestingModule,

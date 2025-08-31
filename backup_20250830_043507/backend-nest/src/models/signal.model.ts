@@ -3,12 +3,8 @@ import SSASRequest from './request';
 
 @Table({ tableName: 'signals' })
 export default class Signal extends Model {
-  @Column({
-    type: DataType.INTEGER,
-    primaryKey: true,
-    autoIncrement: true,
-  })
-  id: number;
+  @Column({ type: DataType.STRING, allowNull: false, primaryKey: true })
+  id: string;
 
   @ForeignKey(() => SSASRequest)
   @Column({ type: DataType.STRING, allowNull: true })
@@ -25,11 +21,6 @@ export default class Signal extends Model {
 
   @Column({ type: DataType.DATE, allowNull: false })
   detection_time: Date;
-
-  @Column({
-    type: DataType.DATE,
-  })
-  received_at: Date;
 
   @Column({ type: DataType.STRING(255), allowNull: false })
   email_subject: string;
@@ -74,7 +65,8 @@ export default class Signal extends Model {
   serial_number: string;
 
   @Column({
-    type: DataType.STRING,
+    type: DataType.ENUM('received', 'processed', 'confirmed', 'false_alarm'),
+    defaultValue: 'received'
   })
   status: string;
 
@@ -86,11 +78,6 @@ export default class Signal extends Model {
 
   @Column({ type: DataType.TEXT, allowNull: true })
   notes: string;
-
-  @Column({
-    type: DataType.TEXT,
-  })
-  error_message: string;
 
   @Column({ type: DataType.JSON, allowNull: true })
   metadata: any;

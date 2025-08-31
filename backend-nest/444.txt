@@ -1,0 +1,109 @@
+Структура папок тома Windows
+Серийный номер тома: 7018-58EE
+C:\PROJECTS\TEST-SSTO-PROJECT\BACKEND-NEST\SRC
+¦   app.controller.ts
+¦   app.module.ts
+¦   app.module.ts.backup
+¦   app.module.ts.old
+¦   app.service.ts
+¦   fix_status_update.py
+¦   main.ts
+¦   main.ts.old
+¦   ssto.module.ts
+¦   
++---auth
+¦       auth.guard.ts
+¦       auth.module.ts
+¦       auth.service.ts
+¦       
++---backup
+¦       backup.controller.ts
+¦       backup.module.ts
+¦       backup.service.ts
+¦       
++---controllers
+¦       health.controller.ts
+¦       log.controller.ts
+¦       request-ssto.controller.ts
+¦       signal.controller.ts
+¦       testing.controller.ts
+¦       user.controller.ts
+¦       
++---database
+¦       sequelize.ts
+¦       
++---dto
+¦       request.dto.ts
+¦       
++---filters
+¦       all-exceptions.filter.ts
+¦       
++---health
+¦       health.module.ts
+¦       health.service.ts
+¦       
++---imap
+¦       imap.module.ts
+¦       imap.service.ts
+¦       
++---integration
+¦       integration.module.ts
+¦       integration.service.ts
+¦       
++---log
+¦       log.module.ts
+¦       log.service.ts
+¦       
++---models
+¦       log.model.ts
+¦       request.model.ts
+¦       request.model.ts.old
+¦       request.model.ts.typeorm
+¦       request.ts
+¦       signal.model.ts
+¦       signal.model.ts.old
+¦       signal.model.ts.typeorm
+¦       test-ssto-project — ярлык.lnk
+¦       testingScenario.model.ts
+¦       user.model.ts
+¦       
++---notification
+¦       notification.module.ts
+¦       notification.service.ts
+¦       
++---request
+¦       request.module.ts
+¦       request.service.ts
+¦       
++---routes
++---security
+¦       auth.guard.ts
+¦       auth.service.ts
+¦       
++---services
+¦       email.service.ts
+¦       
++---signal
+¦       signal.module.ts
+¦       signal.service.ts
+¦       
++---testing
+¦       testing.module.ts
+¦       testing.service.ts
+¦       
++---types
+¦       axios.d.ts
+¦       
++---user
+¦       user.module.ts
+¦       user.service.ts
+¦       
+L---validators
+        index.ts
+        request.validator.ts
+        requestValidator.ts
+        signal.validator.ts
+        signalValidator.ts
+        testingScenario.validator.ts
+        testingScenarioValidator.ts
+        

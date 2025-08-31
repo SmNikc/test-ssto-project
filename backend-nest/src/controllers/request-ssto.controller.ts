@@ -13,7 +13,7 @@ import {
   Res,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { RequestService } from '../services/request.service';
+import { RequestService } from '../request/request.service';  // ✅ Исправлено
 
 @Controller('requests')
 export class RequestController {

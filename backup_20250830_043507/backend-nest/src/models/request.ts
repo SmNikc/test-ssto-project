@@ -38,23 +38,6 @@ export default class SSASRequest extends Model {
   @Column({ type: DataType.STRING(300), allowNull: true })
   notes?: string;
 
-  @Column({
-    type: DataType.ENUM(
-      'DRAFT', 'SUBMITTED', 'IN_REVIEW', 'APPROVED',
-      'IN_TESTING', 'COMPLETED', 'REJECTED', 'CANCELLED'
-    ),
-    defaultValue: 'DRAFT',
-    allowNull: false,
-  })
-  status!: string;  // ✅ Добавлено поле статуса
-
-  @Column({
-    type: DataType.DATE,
-    field: 'status_updated_at',
-    defaultValue: DataType.NOW,
-  })
-  status_updated_at!: Date;  // ✅ Добавлено поле времени обновления статуса
-
   @Column({ type: DataType.DATE, defaultValue: DataType.NOW })
   created_at?: Date;
 }

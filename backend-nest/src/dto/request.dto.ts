@@ -1,160 +1,62 @@
-import { IsEmail, IsNotEmpty, IsOptional, IsEnum, IsDateString, IsString } from 'class-validator';
-import { RequestStatus, RequestType } from '../models/request.model';
+import { IsString, IsEmail, IsDateString, Matches, IsOptional, IsEnum, Length } from 'class-validator';
 
 export class CreateRequestDto {
-  @IsNotEmpty()
   @IsString()
-  vesselName: string;
+  @Matches(/^\d{9}$/, { message: 'MMSI должен содержать 9 цифр' })
+  mmsi: string;
+
+  @IsString()
+  @Length(1, 100)
+  vessel_name: string;
+
+  @IsString()
+  @Length(1, 200)
+  owner_organization: string;
+
+  @IsString()
+  @Length(1, 100)
+  contact_person: string;
+
+  @IsEmail({}, { message: 'Некорректный email' })
+  email: string;
 
   @IsOptional()
   @IsString()
-  vesselIMO?: string;
+  @Matches(/^[+]?[0-9\s-()]+$/, { message: 'Некорректный номер телефона' })
+  phone?: string;
 
-  @IsOptional()
-  @IsString()
-  vesselType?: string;
-
-  @IsOptional()
-  @IsString()
-  vesselFlag?: string;
-
-  @IsNotEmpty()
-  @IsString()
-  requesterName: string;
-
-  @IsNotEmpty()
-  @IsEmail()
-  requesterEmail: string;
-
-  @IsOptional()
-  @IsString()
-  requesterPhone?: string;
-
-  @IsOptional()
-  @IsString()
-  requesterCompany?: string;
-
-  @IsOptional()
-  @IsEnum(RequestType)
-  testType?: RequestType;
-
-  @IsNotEmpty()
   @IsDateString()
-  testDate: string;
+  test_date: string;
 
-  @IsOptional()
-  @IsString()
-  testTime?: string;
+  @Matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, { message: 'Время в формате HH:MM' })
+  start_time: string;
 
-  @IsOptional()
-  @IsString()
-  testLocation?: string;
-
-  @IsOptional()
-  @IsString()
-  testCoordinator?: string;
-
-  @IsOptional()
-  @IsString()
-  beaconId?: string;
-
-  @IsOptional()
-  @IsString()
-  beaconManufacturer?: string;
-
-  @IsOptional()
-  @IsString()
-  beaconModel?: string;
-
-  @IsOptional()
-  @IsString()
-  notes?: string;
+  @Matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, { message: 'Время в формате HH:MM' })
+  end_time: string;
 }
 
 export class UpdateRequestDto {
   @IsOptional()
   @IsString()
-  vesselName?: string;
-
-  @IsOptional()
-  @IsString()
-  vesselIMO?: string;
-
-  @IsOptional()
-  @IsString()
-  vesselType?: string;
-
-  @IsOptional()
-  @IsString()
-  vesselFlag?: string;
-
-  @IsOptional()
-  @IsString()
-  requesterName?: string;
+  vessel_name?: string;
 
   @IsOptional()
   @IsEmail()
-  requesterEmail?: string;
+  email?: string;
 
   @IsOptional()
   @IsString()
-  requesterPhone?: string;
-
-  @IsOptional()
-  @IsString()
-  requesterCompany?: string;
-
-  @IsOptional()
-  @IsEnum(RequestType)
-  testType?: RequestType;
+  phone?: string;
 
   @IsOptional()
   @IsDateString()
-  testDate?: string;
+  test_date?: string;
 
   @IsOptional()
-  @IsString()
-  testTime?: string;
+  @Matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
+  start_time?: string;
 
   @IsOptional()
-  @IsString()
-  testLocation?: string;
-
-  @IsOptional()
-  @IsString()
-  testCoordinator?: string;
-
-  @IsOptional()
-  @IsEnum(RequestStatus)
-  status?: RequestStatus;
-
-  @IsOptional()
-  @IsString()
-  beaconId?: string;
-
-  @IsOptional()
-  @IsString()
-  beaconManufacturer?: string;
-
-  @IsOptional()
-  @IsString()
-  beaconModel?: string;
-
-  @IsOptional()
-  @IsString()
-  notes?: string;
-
-  @IsOptional()
-  @IsString()
-  reportUrl?: string;
-}
-
-export class UpdateRequestStatusDto {
-  @IsNotEmpty()
-  @IsEnum(RequestStatus)
-  status: RequestStatus;
-
-  @IsOptional()
-  @IsString()
-  notes?: string;
+  @Matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
+  end_time?: string;
 }

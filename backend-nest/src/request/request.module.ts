@@ -1,13 +1,16 @@
 import { Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
 import SSASRequest from '../models/request';
-import { RequestService } from '../services/request.service'; // ПРАВИЛЬНЫЙ сервис из services
-import { RequestController } from '../controllers/request-ssto.controller'; // контроллер из controllers
+import { RequestService } from './request.service';  // ✅ Правильный путь
+import { RequestController } from '../controllers/request-ssto.controller'; // ✅ ПРАВИЛЬНЫЙ импорт
 
 @Module({
-  imports: [SequelizeModule.forFeature([SSASRequest])],
-  controllers: [RequestController],
-  providers: [RequestService],
-  exports: [RequestService],
+  imports: [
+    // Регистрация модели SSASRequest для использования в модуле
+    SequelizeModule.forFeature([SSASRequest])
+  ],
+  controllers: [RequestController],  // ✅ Класс называется RequestController
+  providers: [RequestService],       // Сервис с бизнес-логикой для запросов
+  exports: [RequestService],         // Экспорт для использования в других модулях
 })
 export class RequestModule {}
