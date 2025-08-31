@@ -16,19 +16,20 @@ import {
   Grid
 } from '@mui/material';
 import { Link } from 'react-router-dom';
-// import EditIcon from '@mui/icons-material/Edit';
-// import VisibilityIcon from '@mui/icons-material/Visibility';
-// import RefreshIcon from '@mui/icons-material/Refresh';
 
 interface Request {
-  id: number;
+  id?: number;
+  request_id?: string;
   vessel_name: string;
   mmsi: string;
-  test_type: string;
-  start_date: string;
-  end_date: string;
+  test_type?: string;
+  test_date?: string;
+  start_date?: string;
+  start_time?: string;
+  end_date?: string;
+  end_time?: string;
   status: string;
-  created_at: string;
+  created_at?: string;
   signals_count?: number;
 }
 
@@ -46,18 +47,27 @@ export default function RequestList() {
     try {
       const response = await fetch('http://localhost:3000/requests');
       if (response.ok) {
-        const data = await response.json();
-        setRequests(data);
+        const result = await response.json();
+        // Обработка разных форматов ответа
+        if (result.data && Array.isArray(result.data)) {
+          setRequests(result.data);
+        } else if (Array.isArray(result)) {
+          setRequests(result);
+        } else {
+          console.error('Unexpected response format:', result);
+          setRequests([]);
+        }
       }
     } catch (error) {
       console.error('Error fetching requests:', error);
+      setRequests([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
+  const getStatusColor = (status: string): any => {
+    switch (status?.toUpperCase()) {
       case 'ACTIVE': return 'success';
       case 'COMPLETED': return 'primary';
       case 'PENDING': return 'warning';
@@ -66,24 +76,13 @@ export default function RequestList() {
     }
   };
 
-  const getTestTypeLabel = (type: string) => {
-    const labels: Record<string, string> = {
-      'EPIRB_406': 'АРБ 406 МГц',
-      'SART': 'Радиолокационный ответчик',
-      'AIS_SART': 'АИС-SART',
-      'VHF_DSC': 'УКВ ЦИВ',
-      'MF_DSC': 'ПВ ЦИВ',
-      'HF_DSC': 'КВ ЦИВ',
-      'INMARSAT': 'Inmarsat-C'
-    };
-    return labels[type] || type;
-  };
-
-  const filteredRequests = requests.filter(req => 
-    req.vessel_name.toLowerCase().includes(filter.toLowerCase()) ||
-    req.mmsi.includes(filter) ||
-    req.status.toLowerCase().includes(filter.toLowerCase())
-  );
+  const filteredRequests = Array.isArray(requests) 
+    ? requests.filter(req => 
+        req.vessel_name?.toLowerCase().includes(filter.toLowerCase()) ||
+        req.mmsi?.includes(filter) ||
+        req.status?.toLowerCase().includes(filter.toLowerCase())
+      )
+    : [];
 
   return (
     <Box>
@@ -105,11 +104,9 @@ export default function RequestList() {
         <Grid item xs={12} md={6} sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
           <Button
             variant="outlined"
-            startIcon={<span>🔄</span>}
-            // startIcon={<RefreshIcon />} → startIcon={<span>🔄</span>}
             onClick={fetchRequests}
           >
-            Обновить
+            🔄 Обновить
           </Button>
           <Button
             variant="contained"
@@ -128,24 +125,27 @@ export default function RequestList() {
               <TableCell>№</TableCell>
               <TableCell>Судно</TableCell>
               <TableCell>MMSI</TableCell>
-              <TableCell>Тип теста</TableCell>
-              <TableCell>Период</TableCell>
+              <TableCell>Дата теста</TableCell>
+              <TableCell>Время</TableCell>
               <TableCell>Статус</TableCell>
-              <TableCell>Сигналы</TableCell>
-              <TableCell>Создана</TableCell>
               <TableCell>Действия</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredRequests.map((request) => (
-              <TableRow key={request.id}>
-                <TableCell>{request.id}</TableCell>
+            {filteredRequests.map((request, index) => (
+              <TableRow key={request.request_id || request.id || index}>
+                <TableCell>{request.request_id || request.id || index + 1}</TableCell>
                 <TableCell>{request.vessel_name}</TableCell>
                 <TableCell>{request.mmsi}</TableCell>
-                <TableCell>{getTestTypeLabel(request.test_type)}</TableCell>
                 <TableCell>
-                  {new Date(request.start_date).toLocaleDateString()} - 
-                  {new Date(request.end_date).toLocaleDateString()}
+                  {request.test_date 
+                    ? new Date(request.test_date).toLocaleDateString() 
+                    : request.start_date 
+                    ? new Date(request.start_date).toLocaleDateString()
+                    : '-'}
+                </TableCell>
+                <TableCell>
+                  {request.start_time || '-'} - {request.end_time || '-'}
                 </TableCell>
                 <TableCell>
                   <Chip 
@@ -154,15 +154,11 @@ export default function RequestList() {
                     size="small"
                   />
                 </TableCell>
-                <TableCell>{request.signals_count || 0}</TableCell>
-                <TableCell>{new Date(request.created_at).toLocaleDateString()}</TableCell>
                 <TableCell>
                   <IconButton size="small" title="Просмотр">
                     <span>👁️</span>
-                   // <VisibilityIcon /> → <span>👁️</span>
                   </IconButton>
                   <IconButton size="small" title="Редактировать">
-                    // <EditIcon /> → <span>✏️</span>
                     <span>✏️</span>
                   </IconButton>
                 </TableCell>
