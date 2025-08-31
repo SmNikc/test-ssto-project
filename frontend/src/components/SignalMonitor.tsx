@@ -1,4 +1,3 @@
-// frontend/src/components/SignalMonitor.tsx
 import React, { useState, useEffect } from 'react';
 import {
   Table,
@@ -12,7 +11,9 @@ import {
   Typography,
   Chip,
   TextField,
-  Grid
+  Grid,
+  Card,
+  CardContent
 } from '@mui/material';
 
 interface Signal {
@@ -21,8 +22,8 @@ interface Signal {
   vessel_name?: string;
   received_at: string;
   status: string;
-  latitude?: string;
-  longitude?: string;
+  latitude?: number;
+  longitude?: number;
   request_id?: string;
   metadata?: any;
 }
@@ -36,9 +37,16 @@ export default function SignalMonitor() {
     try {
       const response = await fetch('http://localhost:3000/signals');
       const data = await response.json();
-      setSignals(data);
+      if (Array.isArray(data)) {
+        setSignals(data);
+      } else if (data.data && Array.isArray(data.data)) {
+        setSignals(data.data);
+      } else {
+        setSignals([]);
+      }
     } catch (error) {
       console.error('Error fetching signals:', error);
+      setSignals([]);
     }
   };
 
@@ -61,13 +69,17 @@ export default function SignalMonitor() {
     const interval = setInterval(() => {
       fetchSignals();
       fetchStats();
-    }, 10000); // обновление каждые 10 сек
+    }, 30000); // обновление каждые 30 сек
     return () => clearInterval(interval);
   }, []);
 
-  const filteredSignals = signals.filter(s => 
-    !filter || s.mmsi.includes(filter) || s.status.includes(filter)
-  );
+  const filteredSignals = Array.isArray(signals) 
+    ? signals.filter(s => 
+        !filter || 
+        s.mmsi?.includes(filter) || 
+        s.status?.toLowerCase().includes(filter.toLowerCase())
+      )
+    : [];
 
   return (
     <Box sx={{ p: 3 }}>
@@ -78,28 +90,36 @@ export default function SignalMonitor() {
       {stats && (
         <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid item xs={3}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6">{stats.total}</Typography>
-              <Typography variant="body2">Всего сигналов</Typography>
-            </Paper>
+            <Card>
+              <CardContent>
+                <Typography variant="h6">{stats.total || 0}</Typography>
+                <Typography variant="body2">Всего сигналов</Typography>
+              </CardContent>
+            </Card>
           </Grid>
           <Grid item xs={3}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6">{stats.byStatus?.MATCHED || 0}</Typography>
-              <Typography variant="body2">Сопоставлено</Typography>
-            </Paper>
+            <Card>
+              <CardContent>
+                <Typography variant="h6">{stats.byStatus?.MATCHED || 0}</Typography>
+                <Typography variant="body2">Сопоставлено</Typography>
+              </CardContent>
+            </Card>
           </Grid>
           <Grid item xs={3}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6">{stats.byStatus?.ERROR || 0}</Typography>
-              <Typography variant="body2">Ошибки</Typography>
-            </Paper>
+            <Card>
+              <CardContent>
+                <Typography variant="h6">{stats.byStatus?.ERROR || 0}</Typography>
+                <Typography variant="body2">Ошибки</Typography>
+              </CardContent>
+            </Card>
           </Grid>
           <Grid item xs={3}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6">{stats.byType?.SSAS_TEST || 0}</Typography>
-              <Typography variant="body2">SSAS тестов</Typography>
-            </Paper>
+            <Card>
+              <CardContent>
+                <Typography variant="h6">{stats.byType?.SSAS_TEST || 0}</Typography>
+                <Typography variant="body2">SSAS тестов</Typography>
+              </CardContent>
+            </Card>
           </Grid>
         </Grid>
       )}
@@ -126,27 +146,35 @@ export default function SignalMonitor() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredSignals.map((signal) => (
-              <TableRow key={signal.id}>
-                <TableCell>{signal.id}</TableCell>
-                <TableCell>{signal.mmsi}</TableCell>
-                <TableCell>{signal.metadata?.signal_type || 'UNKNOWN'}</TableCell>
-                <TableCell>{new Date(signal.received_at).toLocaleString()}</TableCell>
-                <TableCell>
-                  <Chip 
-                    label={signal.status} 
-                    color={signal.status === 'MATCHED' ? 'success' : 'default'}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>{signal.request_id || '-'}</TableCell>
-                <TableCell>
-                  {signal.latitude && signal.longitude 
-                    ? `${signal.latitude}, ${signal.longitude}` 
-                    : '-'}
+            {filteredSignals.length > 0 ? (
+              filteredSignals.map((signal) => (
+                <TableRow key={signal.id}>
+                  <TableCell>{signal.id}</TableCell>
+                  <TableCell>{signal.mmsi}</TableCell>
+                  <TableCell>{signal.metadata?.signal_type || 'UNKNOWN'}</TableCell>
+                  <TableCell>{new Date(signal.received_at).toLocaleString()}</TableCell>
+                  <TableCell>
+                    <Chip 
+                      label={signal.status} 
+                      color={signal.status === 'MATCHED' ? 'success' : 'default'}
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell>{signal.request_id || '-'}</TableCell>
+                  <TableCell>
+                    {signal.latitude && signal.longitude 
+                      ? `${signal.latitude}, ${signal.longitude}` 
+                      : '-'}
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={7} align="center">
+                  Сигналы не найдены
                 </TableCell>
               </TableRow>
-            ))}
+            )}
           </TableBody>
         </Table>
       </TableContainer>
