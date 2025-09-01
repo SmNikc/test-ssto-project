@@ -1,250 +1,426 @@
 // backend-nest/src/signal/signal.service.ts
-
-import { Injectable, NotFoundException } from '@nestjs/common';
+// ИСПРАВЛЕННАЯ ВЕРСИЯ 3.0 - с учетом реальных моделей
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Op } from 'sequelize';
 import Signal from '../models/signal.model';
 import SSASRequest from '../models/request';
-import { RequestStatus } from '../request/request.service';
+import { EmailSenderService } from '../services/email-sender.service';
+import { ReportService } from '../services/report.service';
 
-// Enums для типов и статусов сигналов
-export enum SignalType {
-  AIS_TEST = 'AIS_TEST',
-  EPIRB_TEST = 'EPIRB_TEST',
-  SART_TEST = 'SART_TEST',
-  SSAS_TEST = 'SSAS_TEST',
-  UNKNOWN = 'UNKNOWN'
-}
-
-export enum SignalStatus {
-  RECEIVED = 'RECEIVED',
-  PARSED = 'PARSED',
-  MATCHED = 'MATCHED',
-  NO_MATCH = 'NO_MATCH',
-  PROCESSED = 'PROCESSED',
-  ERROR = 'ERROR'
+// Определяем enum локально, если его нет в модели
+enum SignalStatus {
+  PENDING = 'pending',
+  MATCHED = 'matched',
+  UNMATCHED = 'unmatched',
+  ERROR = 'error'
 }
 
 @Injectable()
 export class SignalService {
+  private readonly logger = new Logger(SignalService.name);
+
   constructor(
     @InjectModel(Signal)
-    private readonly signalModel: typeof Signal,
+    private signalModel: typeof Signal,
     @InjectModel(SSASRequest)
-    private readonly requestModel: typeof SSASRequest,
+    private requestModel: typeof SSASRequest,
+    private emailSenderService: EmailSenderService,
+    private reportService: ReportService,
   ) {}
 
-  // Существующие методы
-  findAll(): Promise<Signal[]> {
-    return this.signalModel.findAll();
-  }
+  // ===================================
+  // ОСНОВНЫЕ CRUD МЕТОДЫ
+  // ===================================
 
-  async findOne(id: number): Promise<Signal> {
-    const row = await this.signalModel.findByPk(id);
-    if (!row) throw new NotFoundException(`Signal #${id} not found`);
-    return row;
-  }
-
-  create(data: Partial<Signal>): Promise<Signal> {
-    return this.signalModel.create(data as any);
-  }
-
-  async update(id: number, patch: Partial<Signal>): Promise<Signal> {
-    await this.signalModel.update(patch as any, { where: { id } });
-    return this.findOne(id);
-  }
-
-  async updateStatus(id: number, status: string): Promise<Signal> {
-    await this.signalModel.update({ status } as any, { where: { id } });
-    return this.findOne(id);
-  }
-
-  async linkToRequest(id: number, requestId: number): Promise<Signal> {
-    await this.signalModel.update({ request_id: requestId } as any, { where: { id } });
-    return this.findOne(id);
-  }
-
-  async remove(id: number): Promise<{ deleted: boolean }> {
-    await this.signalModel.destroy({ where: { id } });
-    return { deleted: true };
-  }
-
-  // НОВЫЕ МЕТОДЫ для обработки email сигналов
-  async processEmailSignal(
-    subject: string,
-    body: string,
-    receivedDate: Date,
-    emailId: string
-  ): Promise<Signal> {
-    // 🔍 ДОБАВЛЕНО ЛОГИРОВАНИЕ (после строки 78)
-    console.log('Received params:', { subject, body, receivedDate, emailId });
-    
+  // Получить все сигналы
+  async findAll(): Promise<Signal[]> {
     try {
-      const fullText = `${subject}\n${body}`;
-      
-      // Извлекаем MMSI
-      const mmsiMatch = fullText.match(/MMSI[:\s]+(\d{9})/i);
-      if (!mmsiMatch) {
-        throw new Error('MMSI not found in signal');
-      }
-
-      // Определяем тип сигнала
-      let type = SignalType.UNKNOWN;
-      if (/AIS.*TEST/i.test(fullText)) type = SignalType.AIS_TEST;
-      else if (/EPIRB.*TEST/i.test(fullText)) type = SignalType.EPIRB_TEST;
-      else if (/SART.*TEST/i.test(fullText)) type = SignalType.SART_TEST;
-      else if (/SSAS/i.test(fullText)) type = SignalType.SSAS_TEST;
-
-      // Извлекаем название судна
-      const vesselMatch = fullText.match(/(?:Vessel|Ship)[:\s]+([^\n\r,]+)/i);
-      const vessel_name = vesselMatch ? vesselMatch[1].trim() : null;
-
-      // Извлекаем координаты (если есть) ← ИСПРАВЛЕНО (строка 103)
-      const coordsMatch = fullText.match(/Lat[:\s]+([\d.-]+)[\s,°]+Lon[:\s]+([\d.-]+)/i);
-      let latitude = null;
-      let longitude = null;
-      if (coordsMatch) {
-        latitude = parseFloat(coordsMatch[1]);
-        longitude = parseFloat(coordsMatch[2]);
-      }
-
-      // Создаем сигнал ← ИСПРАВЛЕНО (строки 109-119)
-      const signal = await this.signalModel.create({
-        beacon_hex_id: mmsiMatch[1] || 'UNKNOWN',
-        detection_time: receivedDate,
-        email_subject: subject,
-        email_body: body,
-        email_from: 'test@example.com', // временно hardcoded
-        email_received_at: receivedDate,
-        email_message_id: emailId,
-        mmsi: mmsiMatch[1],
-        received_at: receivedDate, // ← ДОБАВЛЕНО недостающее поле
-        status: SignalStatus.RECEIVED,
-        latitude: latitude?.toString(),
-        longitude: longitude?.toString(),
-        metadata: { signal_type: type.toString(), vessel_name },
-      } as any);
-
-      // Пытаемся сопоставить с заявкой
-      await this.matchSignalToRequest(signal);
-
-      return signal;
+      return await this.signalModel.findAll({
+        include: [{ model: SSASRequest, as: 'request' }],
+        order: [['received_at', 'DESC']],
+      });
     } catch (error) {
-      // Сохраняем ошибочный сигнал для анализа ← ИСПРАВЛЕНО (строки 127-130)
-      const errorSignal = await this.signalModel.create({
-        beacon_hex_id: 'ERROR',
-        detection_time: new Date(),
-        email_subject: subject || 'Error',
-        email_body: body || error.message,
-        email_from: 'error@system',
-        email_received_at: receivedDate || new Date(),
-        email_message_id: emailId,
-        mmsi: 'UNKNOWN',
-        received_at: receivedDate || new Date(), // ← ИСПРАВЛЕНО
-        status: SignalStatus.ERROR,
-        error_message: error.message,
-        metadata: { subject, body, error: error.message },
-      } as any);
-      
-      return errorSignal;
+      this.logger.error(`Error finding all signals: ${error.message}`);
+      return [];
     }
   }
 
-  // Сопоставление сигнала с заявкой
-  private async matchSignalToRequest(signal: Signal): Promise<void> {
+  // Получить сигнал по ID
+  async findOne(id: number): Promise<Signal | null> {
     try {
-      // Ищем активную заявку по MMSI и дате ← ИСПРАВЛЕНО
+      return await this.signalModel.findByPk(id, {
+        include: [{ model: SSASRequest, as: 'request' }],
+      });
+    } catch (error) {
+      this.logger.error(`Error finding signal ${id}: ${error.message}`);
+      return null;
+    }
+  }
+
+  // Создать новый сигнал
+  async create(data: any): Promise<Signal> {
+    this.logger.log(`Creating new signal for MMSI: ${data.mmsi}`);
+    
+    try {
+      const signal = await this.signalModel.create({
+        mmsi: data.mmsi || 'UNKNOWN',
+        type: data.signal_type || data.type || 'TEST',  // Используем поле type
+        latitude: data.latitude,
+        longitude: data.longitude,
+        received_at: data.received_at || new Date(),
+        raw_data: data.raw_message || data.raw_data || '',  // Используем raw_data
+        email_id: data.message_id || data.email_id,  // Используем email_id
+        status: data.status || SignalStatus.PENDING,
+        request_id: data.request_id
+      });
+
+      // Пытаемся автоматически сопоставить с заявкой
+      if (data.mmsi && data.mmsi !== 'UNKNOWN') {
+        await this.matchSignalToRequest(signal);
+      }
+
+      return signal;
+    } catch (error) {
+      this.logger.error(`Error creating signal: ${error.message}`);
+      throw error;
+    }
+  }
+
+  // Обновить сигнал
+  async update(id: number, data: Partial<Signal>): Promise<Signal | null> {
+    try {
+      const signal = await this.findOne(id);
+      if (!signal) {
+        this.logger.warn(`Signal with ID ${id} not found`);
+        return null;
+      }
+      
+      await signal.update(data);
+      return signal;
+    } catch (error) {
+      this.logger.error(`Error updating signal ${id}: ${error.message}`);
+      return null;
+    }
+  }
+
+  // Удалить сигнал
+  async remove(id: number): Promise<boolean> {
+    try {
+      const signal = await this.findOne(id);
+      if (!signal) {
+        this.logger.warn(`Signal with ID ${id} not found`);
+        return false;
+      }
+      
+      await signal.destroy();
+      return true;
+    } catch (error) {
+      this.logger.error(`Error removing signal ${id}: ${error.message}`);
+      return false;
+    }
+  }
+
+  // ===================================
+  // МЕТОДЫ СОПОСТАВЛЕНИЯ
+  // ===================================
+
+  // Сопоставить сигнал с заявкой
+  async matchSignalToRequest(signal: Signal): Promise<void> {
+    try {
+      this.logger.log(`🔍 Matching signal to request for MMSI: ${signal.mmsi}`);
+      
+      // Ищем заявку с таким же MMSI в временном окне
       const request = await this.requestModel.findOne({
-		where: {
-		  mmsi: signal.mmsi,
-		  status: {
-			[Op.in]: [RequestStatus.APPROVED, RequestStatus.IN_TESTING]
-		  },
-		  test_date: {
-			[Op.eq]: new Date(signal.received_at).toISOString().split('T')[0]
-		  }
-		}
+        where: {
+          mmsi: signal.mmsi,
+          status: ['approved', 'testing'],
+          test_date: {
+            [Op.between]: [
+              new Date(signal.received_at.getTime() - 24 * 60 * 60 * 1000), // -24 часа
+              new Date(signal.received_at.getTime() + 24 * 60 * 60 * 1000), // +24 часа
+            ],
+          },
+        },
       });
 
       if (request) {
-        // Привязываем сигнал к заявке
-		signal.request_id = request.request_id;        signal.status = SignalStatus.MATCHED;
+        // ИСПРАВЛЕНО: Правильное связывание сигнала с заявкой
+        signal.request_id = request.id.toString();  // Преобразуем number в string
+        signal.status = SignalStatus.MATCHED;       // Устанавливаем статус
         await signal.save();
+
+        // Обновляем статус заявки
+        request.signal_id = signal.id;
+        request.status = 'completed';
+        await request.save();
+
+        this.logger.log(`✅ Signal ${signal.id} matched to request ${request.id}`);
         
-        // Обновляем статус заявки если нужно
-        if (request.status === RequestStatus.APPROVED) {
-          request.status = RequestStatus.IN_TESTING;
-          request.status_updated_at = new Date();
-          await request.save();
-        }
-        
-			console.log(`✅ Signal ${signal.id} matched to request ${request.request_id}`);
+        // Отправляем подтверждение
+        await this.sendConfirmation(request, signal);
       } else {
-        // Не нашли подходящую заявку
-        signal.status = SignalStatus.NO_MATCH;
+        this.logger.log(`❌ No matching request found for MMSI: ${signal.mmsi}`);
+        signal.status = SignalStatus.UNMATCHED;
         await signal.save();
-        
-        console.warn(`⚠️ No matching request for signal ${signal.id}`);
       }
     } catch (error) {
-      console.error('Error matching signal to request:', error);
+      this.logger.error(`Error matching signal to request: ${error.message}`);
       signal.status = SignalStatus.ERROR;
-      signal.error_message = error.message;
       await signal.save();
     }
   }
 
-  // Получить сигналы для заявки
-	async getSignalsByRequestId(requestId: number | string): Promise<Signal[]> {
-	  return this.signalModel.findAll({
-		where: { request_id: requestId },
-		order: [['received_at', 'ASC']],
-	  });
-	}
+  // Ручное связывание сигнала с заявкой
+  async linkToRequest(signalId: number, requestId: number): Promise<Signal | null> {
+    try {
+      const signal = await this.findOne(signalId);
+      if (!signal) {
+        this.logger.error(`Signal with ID ${signalId} not found`);
+        return null;
+      }
 
-  // Статистика по сигналам
-async getSignalStatistics(startDate?: Date, endDate?: Date): Promise<any> {
-  const where: any = {};
-  
-  if (startDate && endDate) {
-    // Если даты одинаковые, добавляем время до конца дня
-    let adjustedEndDate = new Date(endDate);
-    if (startDate.toDateString() === endDate.toDateString()) {
-      adjustedEndDate = new Date(endDate);
-      adjustedEndDate.setHours(23, 59, 59, 999);
+      const request = await this.requestModel.findByPk(requestId);
+      if (!request) {
+        this.logger.error(`Request with ID ${requestId} not found`);
+        return null;
+      }
+
+      // Связываем
+      signal.request_id = requestId.toString();  // Преобразуем number в string
+      signal.status = SignalStatus.MATCHED;
+      await signal.save();
+
+      // Обновляем заявку
+      request.signal_id = signalId;
+      request.status = 'completed';
+      await request.save();
+
+      this.logger.log(`✅ Manually linked signal ${signalId} to request ${requestId}`);
+      
+      // Отправляем подтверждение
+      await this.sendConfirmation(request, signal);
+
+      return signal;
+    } catch (error) {
+      this.logger.error(`Error linking signal to request: ${error.message}`);
+      return null;
     }
-    
-    where.received_at = {
-      [Op.between]: [startDate, adjustedEndDate]
-    };
   }
 
-  const signals = await this.signalModel.findAll({
-    where,
-    attributes: ['status', 'metadata', 'received_at', 'mmsi']
-  });
+  // ===================================
+  // МЕТОДЫ ОТПРАВКИ ПОДТВЕРЖДЕНИЙ
+  // ===================================
 
-  // Обрабатываем статистику вручную
-  const stats = {
-    total: signals.length,
-    byStatus: {},
-    byType: {},
-    dateRange: {
-      start: startDate?.toISOString(),
-      end: endDate?.toISOString(),
-      actualEnd: where.received_at ? where.received_at[Op.between][1].toISOString() : null
+  // Отправить подтверждение
+  private async sendConfirmation(request: SSASRequest, signal: Signal): Promise<void> {
+    try {
+      this.logger.log(`📧 Sending confirmation for request ${request.id}`);
+      
+      // ИСПРАВЛЕНО: Используем правильное имя метода
+      // Генерируем PDF - используем generateTestConfirmation вместо generateConfirmationPdf
+      const pdfPath = await this.reportService.generateTestConfirmation(request, signal);
+      this.logger.log(`📄 PDF generated: ${pdfPath}`);
+      
+      // Отправляем email с PDF
+      await this.emailSenderService.sendConfirmation(
+        request.contact_email,
+        pdfPath,
+        request
+      );
+      
+      this.logger.log(`✅ Confirmation sent to ${request.contact_email}`);
+    } catch (error) {
+      this.logger.error(`Failed to send confirmation: ${error.message}`);
+      // Не прерываем процесс, но логируем ошибку
     }
-  };
+  }
 
-  signals.forEach(signal => {
-    // Подсчет по статусам
-    stats.byStatus[signal.status] = (stats.byStatus[signal.status] || 0) + 1;
+  // ===================================
+  // МЕТОДЫ ОБРАБОТКИ EMAIL
+  // ===================================
+
+  // Обработать сигнал из email
+  async processEmailSignal(
+    subject: string,
+    body: string,
+    receivedAt: Date,
+    messageId: string
+  ): Promise<Signal> {
+    this.logger.log(`Processing email signal: ${subject}`);
+
+    try {
+      // Извлекаем данные из письма
+      const mmsi = this.extractMMSI(body);
+      const coordinates = this.extractCoordinates(body);
+      const signalType = this.determineSignalType(subject, body);
+
+      // Создаем сигнал с правильными полями
+      const signal = await this.signalModel.create({
+        mmsi: mmsi || 'UNKNOWN',
+        type: signalType,  // Используем type вместо signal_type
+        latitude: coordinates?.lat,
+        longitude: coordinates?.lon,
+        received_at: receivedAt,
+        raw_data: body,  // Используем raw_data вместо raw_message
+        email_id: messageId,  // Используем email_id вместо message_id
+        status: SignalStatus.PENDING,
+      });
+
+      // Пытаемся сопоставить с заявкой
+      if (mmsi && mmsi !== 'UNKNOWN') {
+        await this.matchSignalToRequest(signal);
+      }
+
+      return signal;
+    } catch (error) {
+      this.logger.error(`Error processing email signal: ${error.message}`);
+      throw error;
+    }
+  }
+
+  // Извлечь MMSI из текста
+  private extractMMSI(text: string): string | null {
+    if (!text) return null;
+    const match = text.match(/MMSI[:\s]+(\d{9})/i);
+    return match ? match[1] : null;
+  }
+
+  // Извлечь координаты из текста
+  private extractCoordinates(text: string): { lat: number; lon: number } | null {
+    if (!text) return null;
     
-    // Подсчет по типам из metadata
-    const type = signal.metadata?.signal_type || 'UNKNOWN';
-    stats.byType[type] = (stats.byType[type] || 0) + 1;
-  });
+    const latMatch = text.match(/(\d+)°(\d+\.?\d*)['']([NS])/);
+    const lonMatch = text.match(/(\d+)°(\d+\.?\d*)['']([EW])/);
+    
+    if (latMatch && lonMatch) {
+      const latDeg = parseFloat(latMatch[1]);
+      const latMin = parseFloat(latMatch[2]);
+      const lat = latDeg + latMin / 60;
+      const latitude = latMatch[3] === 'S' ? -lat : lat;
 
-  return stats;
-}
+      const lonDeg = parseFloat(lonMatch[1]);
+      const lonMin = parseFloat(lonMatch[2]);
+      const lon = lonDeg + lonMin / 60;
+      const longitude = lonMatch[3] === 'W' ? -lon : lon;
+
+      return { lat: latitude, lon: longitude };
+    }
+    
+    return null;
+  }
+
+  // Определить тип сигнала
+  private determineSignalType(subject: string, body: string): string {
+    const text = (subject + ' ' + body).toLowerCase();
+    
+    if (text.includes('test')) return 'TEST';
+    if (text.includes('distress')) return 'DISTRESS';
+    if (text.includes('alert')) return 'ALERT';
+    
+    return 'UNKNOWN';
+  }
+
+  // ===================================
+  // МЕТОДЫ ПОИСКА И ФИЛЬТРАЦИИ
+  // ===================================
+
+  // Получить сигналы по MMSI
+  async findByMMSI(mmsi: string): Promise<Signal[]> {
+    try {
+      return await this.signalModel.findAll({
+        where: { mmsi },
+        include: [{ model: SSASRequest, as: 'request' }],
+        order: [['received_at', 'DESC']],
+      });
+    } catch (error) {
+      this.logger.error(`Error finding signals by MMSI ${mmsi}: ${error.message}`);
+      return [];
+    }
+  }
+
+  // Получить непривязанные сигналы
+  async findUnmatched(): Promise<Signal[]> {
+    try {
+      return await this.signalModel.findAll({
+        where: {
+          status: SignalStatus.UNMATCHED,
+          request_id: null,
+        },
+        order: [['received_at', 'DESC']],
+      });
+    } catch (error) {
+      this.logger.error(`Error finding unmatched signals: ${error.message}`);
+      return [];
+    }
+  }
+
+  // ===================================
+  // МЕТОДЫ СТАТИСТИКИ
+  // ===================================
+
+  // Получить статистику сигналов
+  async getStatistics(): Promise<any> {
+    try {
+      const total = await this.signalModel.count();
+      const matched = await this.signalModel.count({
+        where: { status: SignalStatus.MATCHED },
+      });
+      const unmatched = await this.signalModel.count({
+        where: { status: SignalStatus.UNMATCHED },
+      });
+      const pending = await this.signalModel.count({
+        where: { status: SignalStatus.PENDING },
+      });
+      const errors = await this.signalModel.count({
+        where: { status: SignalStatus.ERROR },
+      });
+
+      return {
+        total,
+        matched,
+        unmatched,
+        pending,
+        errors,
+        matchRate: total > 0 ? ((matched / total) * 100).toFixed(2) + '%' : '0%',
+      };
+    } catch (error) {
+      this.logger.error(`Error getting statistics: ${error.message}`);
+      return {
+        total: 0,
+        matched: 0,
+        unmatched: 0,
+        pending: 0,
+        errors: 0,
+        matchRate: '0%',
+      };
+    }
+  }
+
+  // ===================================
+  // СЛУЖЕБНЫЕ МЕТОДЫ
+  // ===================================
+
+  // Очистить старые сигналы
+  async cleanupOldSignals(daysToKeep: number = 90): Promise<number> {
+    try {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
+
+      const result = await this.signalModel.destroy({
+        where: {
+          received_at: {
+            [Op.lt]: cutoffDate,
+          },
+          status: [SignalStatus.MATCHED, SignalStatus.UNMATCHED],
+        },
+      });
+
+      this.logger.log(`🧹 Cleaned up ${result} old signals`);
+      return result;
+    } catch (error) {
+      this.logger.error(`Error cleaning up old signals: ${error.message}`);
+      return 0;
+    }
+  }
 }

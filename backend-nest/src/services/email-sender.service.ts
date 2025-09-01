@@ -18,7 +18,7 @@ export class EmailSenderService {
     const config = {
       host: this.configService.get<string>('SMTP_HOST', 'smtp.gmail.com'),
       port: this.configService.get<number>('SMTP_PORT', 587),
-      secure: this.configService.get<boolean>('SMTP_SECURE', false),
+      secure: this.configService.get<string>('SMTP_SECURE') === 'true', // Сравниваем со строкой 'true'
       auth: {
         user: this.configService.get<string>('SMTP_USER'),
         pass: this.configService.get<string>('SMTP_PASSWORD'),

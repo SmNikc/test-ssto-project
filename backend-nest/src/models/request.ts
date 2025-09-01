@@ -1,62 +1,111 @@
-import { Table, Column, Model, DataType } from 'sequelize-typescript';
+// backend-nest/src/models/request.ts
+// Исправленная модель с полем imo
+import {
+  Table,
+  Column,
+  Model,
+  DataType,
+  CreatedAt,
+  UpdatedAt,
+  BelongsTo,
+  ForeignKey,
+  HasOne,
+  Default,
+} from 'sequelize-typescript';
+import Signal from './signal.model';
 
-@Table({ tableName: 'ssas_requests', timestamps: false })
+@Table({
+  tableName: 'requests',
+  timestamps: true,
+})
 export default class SSASRequest extends Model {
-  @Column({ type: DataType.STRING, allowNull: false, primaryKey: true })
-  request_id!: string;
-
-  @Column({ type: DataType.STRING(9), allowNull: false })
-  mmsi!: string;
-
-  @Column({ type: DataType.STRING(50), allowNull: false })
-  vessel_name!: string;
-
-  @Column({ type: DataType.STRING(15), allowNull: false })
-  ssas_number!: string;
-
-  @Column({ type: DataType.STRING(50), allowNull: false })
-  owner_organization!: string;
-
-  @Column({ type: DataType.STRING(40), allowNull: false })
-  contact_person!: string;
-
-  @Column({ type: DataType.STRING(17), allowNull: false })
-  contact_phone!: string;
-
-  @Column({ type: DataType.STRING(50), allowNull: false })
-  email!: string;
-
-  @Column({ type: DataType.DATEONLY, allowNull: false })
-  test_date!: Date;
-
-  @Column({ type: DataType.STRING(5), allowNull: false })
-  start_time!: string;
-
-  @Column({ type: DataType.STRING(5), allowNull: false })
-  end_time!: string;
-
-  @Column({ type: DataType.STRING(300), allowNull: true })
-  notes?: string;
+  @Column({
+    type: DataType.INTEGER,
+    primaryKey: true,
+    autoIncrement: true,
+  })
+  id: number;
 
   @Column({
-    type: DataType.ENUM(
-      'DRAFT', 'SUBMITTED', 'IN_REVIEW', 'APPROVED',
-      'IN_TESTING', 'COMPLETED', 'REJECTED', 'CANCELLED'
-    ),
-    defaultValue: 'DRAFT',
+    type: DataType.STRING,
     allowNull: false,
   })
-  status!: string;  // ✅ Добавлено поле статуса
+  vessel_name: string;
+
+  @Column({
+    type: DataType.STRING(9),
+    allowNull: false,
+  })
+  mmsi: string;
+
+  @Column({
+    type: DataType.STRING(20),
+    allowNull: true,  // IMO может быть необязательным
+  })
+  imo: string;  // ✅ ДОБАВЛЕНО ПОЛЕ IMO
+
+  @Column({
+    type: DataType.STRING,
+    allowNull: false,
+  })
+  ship_owner: string;
+
+  @Column({
+    type: DataType.STRING,
+    allowNull: false,
+  })
+  contact_email: string;
+
+  @Column({
+    type: DataType.STRING,
+    allowNull: true,
+  })
+  contact_phone: string;
 
   @Column({
     type: DataType.DATE,
-    field: 'status_updated_at',
-    defaultValue: DataType.NOW,
+    allowNull: false,
   })
-  status_updated_at!: Date;  // ✅ Добавлено поле времени обновления статуса
+  test_date: Date;
 
-  @Column({ type: DataType.DATE, defaultValue: DataType.NOW })
-  created_at?: Date;
+  @Column({
+    type: DataType.INTEGER,
+    defaultValue: 2,
+  })
+  test_window_hours: number;
+
+  @Column({
+    type: DataType.STRING,
+    allowNull: true,
+  })
+  inmarsat_number: string;
+
+  @Default('pending')
+  @Column({
+    type: DataType.ENUM('pending', 'approved', 'testing', 'completed', 'cancelled'),
+    allowNull: false,
+  })
+  status: string;
+
+  @ForeignKey(() => Signal)
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: true,
+  })
+  signal_id: number;
+
+  @BelongsTo(() => Signal)
+  signal: Signal;
+
+  @Column({
+    type: DataType.TEXT,
+    allowNull: true,
+  })
+  notes: string;
+
+  @CreatedAt
+  created_at: Date;
+
+  @UpdatedAt
+  updated_at: Date;
 }
-
-export { default as SSASRequest } from "./request";

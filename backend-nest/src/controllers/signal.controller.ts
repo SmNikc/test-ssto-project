@@ -16,7 +16,7 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { SignalService } from '../signal/signal.service';
-import { EmailService } from '../signal/email.service';
+import { EmailService } from '../services/email.service';
 import { AuthGuard } from '../security/auth.guard';
 // Добавьте эти импорты когда создадите сервисы
 // import { ReportService } from '../services/report.service';

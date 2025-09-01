@@ -1,6 +1,11 @@
+// backend-nest/src/models/request.model.ts
+// Правильная версия с enum'ами и исправленным импортом
+
+import SSASRequest from './request';
+
 // Алиас для совместимости
-export { SSASRequest as Request } from './request';
-export { SSASRequest } from './request';
+export { SSASRequest as Request, SSASRequest };
+export default SSASRequest;
 
 // Enum для совместимости с DTO
 export enum RequestStatus {
