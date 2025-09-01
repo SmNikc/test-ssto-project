@@ -3,7 +3,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { SequelizeModule } from '@nestjs/sequelize';
 
-// Контроллеры (основываясь на найденных файлах)
+// Существующие контроллеры
 import { RequestController } from './controllers/request-ssto.controller';
 import { SignalController } from './controllers/signal.controller';
 import { TestingController } from './controllers/testing.controller';
@@ -11,22 +11,14 @@ import { LogController } from './controllers/log.controller';
 import { UserController } from './controllers/user.controller';
 import { HealthController } from './controllers/health.controller';
 import { VesselController } from './controllers/vessel.controller';
-import { TestRequestController } from './controllers/test-request.controller';
+import { TestRequestController, MassConfirmationController } from './controllers/test-request.controller';
 import { EmailController } from './controllers/email.controller';
 import { ConfirmationController } from './controllers/confirmation.controller';
 
-// Сервисы из папки services
-import { EmailSenderService } from './services/email-sender.service';
-import { EmailService } from './services/email.service';
-import { VesselService } from './services/vessel.service';
-import { TestRequestService } from './services/test-request.service';
-import { ConfirmationService } from './services/confirmation.service';
-import { ReportService } from './services/report.service';
+// Новый контроллер для API подтверждений
+import { ConfirmationApiController } from './controllers/confirmation-api.controller';
 
-// Сервисы из папки security
-import { AuthService } from './security/auth.service';
-
-// Сервисы из корневых папок
+// Существующие сервисы из корневых папок
 import { RequestService } from './request/request.service';
 import { SignalService } from './signal/signal.service';
 import { TestingService } from './testing/testing.service';
@@ -36,7 +28,18 @@ import { HealthService } from './health/health.service';
 import { ImapService } from './imap/imap.service';
 import { IntegrationService } from './integration/integration.service';
 
-// Модели (Sequelize)
+// Существующие сервисы из папки services
+import { EmailSenderService } from './services/email-sender.service';
+import { EmailService } from './services/email.service';
+import { VesselService } from './services/vessel.service';
+import { TestRequestService } from './services/test-request.service';
+import { ConfirmationService } from './services/confirmation.service';
+import { ReportService } from './services/report.service';
+
+// Новый сервис для расширенных подтверждений
+import { EnhancedConfirmationService } from './services/enhanced-confirmation.service';
+
+// Существующие модели (Sequelize)
 import SSASRequest from './models/request.model';
 import Signal from './models/signal.model';
 import Log from './models/log.model';
@@ -44,6 +47,9 @@ import TestingScenario from './models/testingScenario.model';
 import User from './models/user.model';
 import Vessel from './models/vessel.model';
 import TestRequest from './models/test-request.model';
+
+// Новая модель для документов подтверждений
+import ConfirmationDocument from './models/confirmation-document.model';
 
 @Module({
   imports: [
@@ -61,16 +67,19 @@ import TestRequest from './models/test-request.model';
         password: cfg.get<string>('DB_PASSWORD', 'sstopass'),
         database: cfg.get<string>('DB_NAME', 'sstodb'),
         models: [
+          // Существующие модели
           SSASRequest, 
           Signal, 
           Log, 
           TestingScenario, 
           User,
           Vessel,
-          TestRequest
+          TestRequest,
+          // Новая модель
+          ConfirmationDocument
         ],
         autoLoadModels: true,
-        synchronize: false,       // dev режим; на проде выключить
+        synchronize: false,       // выключено на проде
         logging: false,
         retry: { max: 5 },
       }),
@@ -78,16 +87,20 @@ import TestRequest from './models/test-request.model';
 
     // Регистрация моделей для DI
     SequelizeModule.forFeature([
+      // Существующие модели
       SSASRequest, 
       Signal, 
       Log, 
       TestingScenario, 
       User,
       Vessel,
-      TestRequest
+      TestRequest,
+      // Новая модель
+      ConfirmationDocument
     ]),
   ],
   controllers: [
+    // Существующие контроллеры
     RequestController,
     SignalController,
     TestingController,
@@ -96,8 +109,11 @@ import TestRequest from './models/test-request.model';
     HealthController,
     VesselController,
     TestRequestController,
+    MassConfirmationController,
     EmailController,
     ConfirmationController,
+    // Новый контроллер
+    ConfirmationApiController
   ],
   providers: [
     // Сервисы из корневых папок
@@ -116,7 +132,8 @@ import TestRequest from './models/test-request.model';
     TestRequestService,
     ConfirmationService,
     ReportService,
-    AuthService,
+    // Новый сервис для расширенных подтверждений
+    EnhancedConfirmationService
   ],
 })
 export class AppModule {}

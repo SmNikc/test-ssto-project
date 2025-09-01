@@ -1,5 +1,4 @@
 // backend-nest/src/signal/email.service.ts
-// ИСПРАВЛЕННАЯ версия - убираем ошибки компиляции
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SignalService } from './signal.service';
@@ -120,14 +119,15 @@ export class EmailService implements OnModuleInit, OnModuleDestroy {
                 this.logger.log(`📨 Processing signal: ${subject}`);
                 
                 try {
-                  // ИСПРАВЛЕНО: Используем правильную сигнатуру метода
-                  // processEmailSignal ожидает 4 параметра, не 5
-                  const signal = await this.signalService.processEmailSignal(
-                    subject,
-                    text,
-                    date,
-                    parsed.messageId || `email-${Date.now()}`
-                  );
+                  // ИСПРАВЛЕНО: передаем объект с правильными полями
+                  const signal = await this.signalService.processEmailSignal({
+                    from: from,
+                    text: text,
+                    date: date,
+                    messageId: parsed.messageId || `email-${Date.now()}`,
+                    subject: subject,
+                    type: 'EMAIL_SIGNAL'
+                  });
                   
                   this.logger.log(`✅ Signal processed: ID ${signal.id}, Status: ${signal.status}`);
                 } catch (error) {
@@ -169,7 +169,7 @@ export class EmailService implements OnModuleInit, OnModuleDestroy {
     return { processed: 0, errors: 0 }; // Заглушка для подсчета
   }
   
-  // Извлечение данных сигнала из текста письма (если понадобится)
+  // Извлечение данных сигнала из текста письма
   private extractSignalData(emailText: string): any {
     const data: any = {};
 
