@@ -3,9 +3,10 @@ Write-Host "🚀 Запуск системы ГМСКЦ..." -ForegroundColor Gre
 
 # Проверка БД
 Write-Host "`n📊 Проверка подключения к БД..." -ForegroundColor Yellow
-node test-db.js
+node "C:\Projects\test-ssto-project\backend-nest\test-db.js"
 
 # Запуск backend
+cd C:\Projects\test-ssto-project\backend-nest
 Write-Host "`n🔧 Запуск Backend..." -ForegroundColor Yellow
 Start-Process powershell -ArgumentList "cd $PWD; npm run start:dev"
 
