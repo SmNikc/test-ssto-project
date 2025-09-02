@@ -1,0 +1,12 @@
+{
+  "mmsi": "273500001",
+  "signal_type": "SSAS_TEST",
+  "ssas_number": "427301234",
+  "received_at": "2025-09-02T10:05:00Z",
+  "status": "MATCHED",
+  "metadata": {
+    "message": "TEST ALERT - SSAS ID: 427301234",
+    "vessel_name": "Арктика-1",
+    "position": "59.56N 030.19E"
+  }
+}

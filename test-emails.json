@@ -1,0 +1,46 @@
+[
+  {
+    "vessel_name": "Северное Сияние",
+    "mmsi": "273100001",
+    "ship_owner": "СевФлот",
+    "contact_email": "SmetaninNN@hotmail.com",
+    "contact_person": "Сметанин Н.Н.",
+    "contact_phone": "+7-921-111-1111",
+    "test_date": "2025-09-02T10:00:00",
+    "test_window_hours": 2,
+    "status": "pending"
+  },
+  {
+    "vessel_name": "Балтика",
+    "mmsi": "273100002",
+    "ship_owner": "БалтМорФлот",
+    "contact_email": "Smetanin.nik@yandex.ru",
+    "contact_person": "Сметанин Н.В.",
+    "contact_phone": "+7-921-222-2222",
+    "test_date": "2025-09-02T14:00:00",
+    "test_window_hours": 2,
+    "status": "pending"
+  },
+  {
+    "vessel_name": "Арктика",
+    "mmsi": "273100003",
+    "ship_owner": "АрктикШиппинг",
+    "contact_email": "NNSmetanin@gmail.com",
+    "contact_person": "Сметанин Н.А.",
+    "contact_phone": "+7-921-333-3333",
+    "test_date": "2025-09-03T09:00:00",
+    "test_window_hours": 3,
+    "status": "pending"
+  },
+  {
+    "vessel_name": "Паллада",
+    "mmsi": "273100004",
+    "ship_owner": "ГеоПаллада",
+    "contact_email": "geopallada@mail.ru",
+    "contact_person": "Капитан Паллады",
+    "contact_phone": "+7-921-444-4444",
+    "test_date": "2025-09-03T15:00:00",
+    "test_window_hours": 2,
+    "status": "pending"
+  }
+]

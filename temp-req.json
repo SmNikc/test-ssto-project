@@ -1,0 +1,11 @@
+{
+  "vessel_name": "Волга",
+  "mmsi": "273111333",
+  "ship_owner": "Речфлот",
+  "contact_email": "volga@river.ru",
+  "contact_phone": "+7-495-222-3344",
+  "test_date": "2025-09-01T09:00:00",
+  "test_window_hours": 2,
+  "status": "completed",
+  "notes": "Тестирование завершено успешно"
+}

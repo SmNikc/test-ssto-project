@@ -1,0 +1,11 @@
+{
+  "mmsi": "273999999",
+  "signal_type": "SSAS_TEST",
+  "ssas_number": "427399999",
+  "received_at": "2025-09-02T15:30:00Z",
+  "status": "UNMATCHED",
+  "metadata": {
+    "message": "ALERT - SSAS ID: 427399999 - NO REQUEST FOUND",
+    "warning": "Сигнал без заявки!"
+  }
+}

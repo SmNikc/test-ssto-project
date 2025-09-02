@@ -1,0 +1,12 @@
+{
+  "vessel_name": "Балтика-2",
+  "mmsi": "273500002",
+  "ssas_number": "427305678",
+  "ship_owner": "БалтШиппинг",
+  "contact_email": "Smetanin.nik@yandex.ru",
+  "contact_person": "Ст.пом. Петров И.С.",
+  "contact_phone": "+7-812-444-2222",
+  "test_date": "2025-09-02T14:00:00",
+  "test_window_hours": 2,
+  "status": "pending"
+}

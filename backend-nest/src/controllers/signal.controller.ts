@@ -1,5 +1,3 @@
-// src/controllers/signal.controller.ts
-
 import {
   Controller,
   Get,
@@ -12,15 +10,13 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { SignalService } from '../signal/signal.service';
-// import { EmailService } from '../signal/email.service';
-import { AuthGuard } from '../security/auth.guard';
+import { PdfService } from '../signal/pdf.service';
 
 @Controller('signals')
-// @UseGuards(AuthGuard) // Временно отключено
 export class SignalController {
   constructor(
     private readonly signalService: SignalService,
-    // private readonly emailService: EmailService,
+    private readonly pdfService: PdfService,
   ) {}
 
   @Post('send-confirmation/:requestId')
@@ -30,9 +26,6 @@ export class SignalController {
       if (!request) {
         throw new HttpException('Заявка не найдена', HttpStatus.NOT_FOUND);
       }
-
-      // Здесь будет логика отправки подтверждения
-      // await this.emailService.sendConfirmation(request);
 
       return {
         success: true,
@@ -55,24 +48,30 @@ export class SignalController {
         throw new HttpException('Заявка не найдена', HttpStatus.NOT_FOUND);
       }
 
-      // Здесь будет логика генерации отчета
-      const report = {
-        requestId: requestId,
-        generatedAt: new Date(),
-        status: 'generated',
-        // Добавить больше полей отчета
+      // Используем данные напрямую из request, без vessel
+      const requestData = {
+        id: request.id,
+        vessel_name: request.vessel_name || 'Неизвестное судно',
+        mmsi: request.mmsi || 'Неизвестно',
+        imo: request.imo || 'Неизвестно',
+        status: request.status,
+        test_date: request.test_date,
       };
 
+      const html = this.pdfService.generateConfirmation(requestData);
+      
       return {
         success: true,
         message: 'Отчет сгенерирован',
-        report: report,
+        html: html,
+        requestId: requestId,
       };
     } catch (error) {
-      throw new HttpException(
-        error.message || 'Ошибка при генерации отчета',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      console.error('Generate report error:', error);
+      return {
+        success: false,
+        message: error.message || 'Ошибка при генерации отчета',
+      };
     }
   }
 

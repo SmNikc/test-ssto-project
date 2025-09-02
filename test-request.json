@@ -1,0 +1,16 @@
+{
+  "vessel_name": "Test Vessel",
+  "mmsi": "123456789",
+  "request_id": "REQ001",
+  "ssas_number": "SSAS123",
+  "ship_owner": "Test Company",
+  "owner_organization": "Test Company",
+  "contact_person": "Иван Иванов",
+  "contact_phone": "+7-900-123-4567",
+  "contact_email": "test@example.com",
+  "email": "test@example.com",
+  "test_date": "2025-09-02",
+  "start_time": "10:00",
+  "end_time": "14:00",
+  "status": "DRAFT"
+}

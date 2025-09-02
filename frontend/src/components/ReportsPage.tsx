@@ -52,7 +52,7 @@ export default function ReportsPage() {
   const fetchReports = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:3000/reports');
+      const response = await fetch('http://localhost:3001/reports');
       if (response.ok) {
         const data = await response.json();
         setReports(data);
@@ -66,7 +66,7 @@ export default function ReportsPage() {
 
   const handleDownload = async (reportId: number, fileName: string) => {
     try {
-      const response = await fetch(`http://localhost:3000/reports/${reportId}/download`);
+      const response = await fetch(`http://localhost:3001/reports/${reportId}/download`);
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
@@ -83,7 +83,7 @@ export default function ReportsPage() {
 
   const handleSendEmail = async (reportId: number) => {
     try {
-      const response = await fetch(`http://localhost:3000/reports/${reportId}/send`, {
+      const response = await fetch(`http://localhost:3001/reports/${reportId}/send`, {
         method: 'POST'
       });
       if (response.ok) {

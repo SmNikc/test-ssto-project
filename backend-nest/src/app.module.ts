@@ -21,6 +21,7 @@ import { ConfirmationApiController } from './controllers/confirmation-api.contro
 // Существующие сервисы из корневых папок
 import { RequestService } from './request/request.service';
 import { SignalService } from './signal/signal.service';
+import { PdfService } from './signal/pdf.service';
 import { TestingService } from './testing/testing.service';
 import { LogService } from './log/log.service';
 import { UserService } from './user/user.service';
@@ -119,6 +120,7 @@ import ConfirmationDocument from './models/confirmation-document.model';
     // Сервисы из корневых папок
     RequestService,
     SignalService,
+    PdfService,
     TestingService,
     LogService,
     UserService,

@@ -1,0 +1,11 @@
+{
+  "vessel_name": "Паллада",
+  "mmsi": "273100004",
+  "ship_owner": "ГеоПаллада",
+  "contact_email": "geopallada@mail.ru",
+  "contact_person": "Капитан Паллады",
+  "contact_phone": "+7-921-444-4444",
+  "test_date": "2025-09-03T15:00:00",
+  "test_window_hours": 2,
+  "status": "pending"
+}

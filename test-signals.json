@@ -1,0 +1,26 @@
+[
+  {
+    "from": "ssas-alert@inmarsat.com",
+    "to": "gmskc@morflot.ru",
+    "subject": "SSAS TEST ALERT - Северное Сияние",
+    "body": "TEST SSAS ACTIVATION\nVessel: Северное Сияние\nMMSI: 273100001\nPosition: 59°56'N 030°19'E\nTime: 10:05 UTC\nInmarsat ID: 427300001\nStatus: TEST",
+    "mmsi": "273100001",
+    "timestamp": "2025-09-02T10:05:00Z"
+  },
+  {
+    "from": "alerts@skyfile.com",
+    "to": "gmskc@morflot.ru",
+    "subject": "TEST SIGNAL - Балтика",
+    "body": "SSAS TEST SIGNAL RECEIVED\nShip Name: Балтика\nMMSI: 273100002\nLat: 55.45 N\nLon: 20.30 E\nAlert Time: 14:03 UTC\nType: TEST ALERT",
+    "mmsi": "273100002",
+    "timestamp": "2025-09-02T14:03:00Z"
+  },
+  {
+    "from": "no-reply@cospas-sarsat.org",
+    "to": "gmskc@morflot.ru",
+    "subject": "EPIRB TEST - Неизвестное судно",
+    "body": "EPIRB TEST ACTIVATION\nMMSI: 273999999\nPosition: 68°12'N 033°45'E\nTime: 15:30 UTC\nBeacon ID: 2730999999999\nNO MATCHING REQUEST FOUND",
+    "mmsi": "273999999",
+    "timestamp": "2025-09-02T15:30:00Z"
+  }
+]
