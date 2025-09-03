@@ -12,7 +12,7 @@ import { RequestController } from './controllers/request-ssto.controller';
 import { LogService } from './log/log.service';
 import { RequestService } from './request/request.service';
 import { SignalService } from './signal/signal.service';
-import { PdfService } from './services/pdf.service';
+import { PdfService } from './signal/pdf.service';
 
 // Models - только основные
 import Log from './models/log.model';
