@@ -22,7 +22,7 @@ export class SignalController {
   @Post('send-confirmation/:requestId')
   async sendConfirmation(@Param('requestId') requestId: string) {
     try {
-      const request = await this.signalService.findRequestById(requestId);
+      const request = await this.signalService.findRequest(Number(requestId));
       if (!request) {
         throw new HttpException('Заявка не найдена', HttpStatus.NOT_FOUND);
       }
@@ -43,7 +43,7 @@ export class SignalController {
   @Post('generate-report/:requestId')
   async generateReport(@Param('requestId') requestId: string) {
     try {
-      const request = await this.signalService.findRequestById(requestId);
+      const request = await this.signalService.findRequest(Number(requestId));
       if (!request) {
         throw new HttpException('Заявка не найдена', HttpStatus.NOT_FOUND);
       }
@@ -53,9 +53,9 @@ export class SignalController {
         id: request.id,
         vessel_name: request.vessel_name || 'Неизвестное судно',
         mmsi: request.mmsi || 'Неизвестно',
-        imo: request.imo || 'Неизвестно',
+        imo: request.imo_number || 'Неизвестно',
         status: request.status,
-        test_date: request.test_date,
+        test_date: request.planned_test_date,
       };
 
       const html = this.pdfService.generateConfirmation(requestData);
@@ -78,7 +78,7 @@ export class SignalController {
   @Get('requests')
   async getAllRequests(@Query() query: any) {
     try {
-      const requests = await this.signalService.findAllRequests(query);
+      const requests = await this.signalService.findAllRequests();
       return {
         success: true,
         data: requests,
@@ -94,7 +94,7 @@ export class SignalController {
   @Get('requests/:id')
   async getRequestById(@Param('id') id: string) {
     try {
-      const request = await this.signalService.findRequestById(id);
+      const request = await this.signalService.findRequest(Number(id));
       if (!request) {
         throw new HttpException('Заявка не найдена', HttpStatus.NOT_FOUND);
       }
@@ -110,3 +110,5 @@ export class SignalController {
     }
   }
 }
+
+

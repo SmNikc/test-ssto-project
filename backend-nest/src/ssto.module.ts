@@ -6,7 +6,7 @@ import { ConfigModule } from '@nestjs/config';
 import { SequelizeModule } from '@nestjs/sequelize';
 
 // Импорт моделей
-import SSASRequest from './models/request';
+import SSASRequest from './models/request.model';
 import Signal from './models/signal.model';
 import TestingScenario from './models/testingScenario.model';
 import User from './models/user.model';

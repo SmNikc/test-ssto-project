@@ -1,4 +1,4 @@
-import { Table, Column, Model, DataType } from 'sequelize-typescript';
+import { Table, Column, Model, DataType, HasMany } from 'sequelize-typescript';
 
 @Table({
   tableName: 'vessels',
@@ -88,6 +88,4 @@ export class Vessel extends Model {
 }
 
 export default Vessel;
-
-
 

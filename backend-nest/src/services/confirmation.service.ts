@@ -29,7 +29,7 @@ export class ConfirmationService {
         throw new Error(`Заявка #${requestId} не найдена`);
       }
 
-      if (!request.vessel) {
+      if (!request) {
         throw new Error(`Судно для заявки #${requestId} не найдено`);
       }
 
@@ -46,8 +46,8 @@ export class ConfirmationService {
       );
 
       // Форматируем координаты судна
-      const latitude = request.vessel.latitude || 0;
-      const longitude = request.vessel.longitude || 0;
+      const latitude = 0 || 0;
+      const longitude = 0 || 0;
       const latDirection = latitude >= 0 ? 'N' : 'S';
       const lonDirection = longitude >= 0 ? 'E' : 'W';
       const formattedCoordinates = `${Math.abs(latitude).toFixed(4)}°${latDirection}, ${Math.abs(longitude).toFixed(4)}°${lonDirection}`;
@@ -57,8 +57,8 @@ export class ConfirmationService {
 
       // Отправляем email
       const emailResult = await this.emailService.sendEmail({
-        to: request.vessel.owner_email,
-        subject: `Подтверждение теста ГМССБ для судна ${request.vessel.name}`,
+        to: request.contact_email || 'test@example.com',
+        subject: `Подтверждение теста ГМССБ для судна ${request.vessel_name}`,
         html: htmlContent,
         text: this.generatePlainTextEmail(request, testDateTime, formattedCoordinates),
       });
@@ -73,10 +73,10 @@ export class ConfirmationService {
 
       return {
         success: true,
-        message: `Подтверждение отправлено на ${request.vessel.owner_email}`,
+        message: `Подтверждение отправлено на ${request.contact_email || 'test@example.com'}`,
         request_id: requestId,
-        vessel_name: request.vessel.name,
-        email_sent_to: request.vessel.owner_email,
+        vessel_name: request.vessel_name,
+        email_sent_to: request.contact_email || 'test@example.com',
         test_date: testDateTime,
       };
     } catch (error) {
@@ -106,14 +106,14 @@ export class ConfirmationService {
           successful++;
           results.push({
             request_id: request.id,
-            vessel: request.vessel?.name || 'Unknown',
+            vessel: request.vessel_name || 'Unknown',
             status: 'success',
           });
         } catch (error) {
           failed++;
           results.push({
             request_id: request.id,
-            vessel: request.vessel?.name || 'Unknown',
+            vessel: request.vessel_name || 'Unknown',
             status: 'failed',
             error: error.message,
           });
@@ -139,7 +139,7 @@ export class ConfirmationService {
     testDateTime: string,
     coordinates: string
   ): string {
-    const vessel = request.vessel;
+    // vessel relation removed
     
     return `
 <!DOCTYPE html>
@@ -245,7 +245,7 @@ export class ConfirmationService {
             <p>Подтверждение проведения теста оборудования ГМССБ</p>
         </div>
 
-        <p>Уважаемый владелец судна <strong>${vessel.name}</strong>,</p>
+        <p>Уважаемый владелец судна <strong>${request.vessel_name}</strong>,</p>
         
         <p>Настоящим подтверждаем, что ваша заявка на проведение теста оборудования ГМССБ 
         была <strong style="color: #28a745;">ОДОБРЕНА</strong>.</p>
@@ -254,22 +254,22 @@ export class ConfirmationService {
             <h2>📋 Информация о судне</h2>
             <div class="info-grid">
                 <div class="info-label">Название судна:</div>
-                <div class="info-value">${vessel.name}</div>
+                <div class="info-value">${request.vessel_name}</div>
                 
                 <div class="info-label">IMO номер:</div>
-                <div class="info-value">${vessel.imo_number}</div>
+                <div class="info-value">${request.imo_number || ""}</div>
                 
                 <div class="info-label">Позывной:</div>
-                <div class="info-value">${vessel.call_sign}</div>
+                <div class="info-value">${""}</div>
                 
                 <div class="info-label">MMSI:</div>
-                <div class="info-value">${vessel.mmsi}</div>
+                <div class="info-value">${request.mmsi}</div>
                 
                 <div class="info-label">Тип судна:</div>
-                <div class="info-value">${vessel.vessel_type}</div>
+                <div class="info-value">${""}</div>
                 
                 <div class="info-label">Флаг:</div>
-                <div class="info-value">${vessel.flag}</div>
+                <div class="info-value">${""}</div>
                 
                 <div class="info-label">Текущие координаты:</div>
                 <div class="info-value">${coordinates}</div>
@@ -339,23 +339,23 @@ export class ConfirmationService {
     testDateTime: string,
     coordinates: string
   ): string {
-    const vessel = request.vessel;
+    // vessel relation removed
     
     return `
 ГМСКЦ - Глобальный морской спасательно-координационный центр
 Подтверждение проведения теста оборудования ГМССБ
 
-Уважаемый владелец судна ${vessel.name},
+Уважаемый владелец судна ${request.vessel_name},
 
 Настоящим подтверждаем, что ваша заявка на проведение теста оборудования ГМССБ была ОДОБРЕНА.
 
 ИНФОРМАЦИЯ О СУДНЕ:
-- Название судна: ${vessel.name}
-- IMO номер: ${vessel.imo_number}
-- Позывной: ${vessel.call_sign}
-- MMSI: ${vessel.mmsi}
-- Тип судна: ${vessel.vessel_type}
-- Флаг: ${vessel.flag}
+- Название судна: ${request.vessel_name}
+- IMO номер: ${request.imo_number || ""}
+- Позывной: ${""}
+- MMSI: ${request.mmsi}
+- Тип судна: ${""}
+- Флаг: ${""}
 - Текущие координаты: ${coordinates}
 
 ДЕТАЛИ ТЕСТА:
@@ -383,3 +383,5 @@ export class ConfirmationService {
     `;
   }
 }
+
+

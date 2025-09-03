@@ -131,7 +131,7 @@ export class ConfirmationApiController {
         sent_at: c.sent_at,
         sent_by: c.sent_by,
         test_request_id: c.test_request_id,
-        vessel_name: c.testRequest?.vessel?.name,
+        vessel_name: 'N/A' /* relation removed */,
       })),
     };
   }

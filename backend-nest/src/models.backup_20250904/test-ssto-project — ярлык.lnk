@@ -1,0 +1,92 @@
+// C:\Projects\test-ssto-project\backend-nest\src\models\signal.model.ts
+// Модель сигнала ССТО
+
+import { Table, Column, Model, DataType, ForeignKey, BelongsTo } from 'sequelize-typescript';
+import { Request } from './request.model';
+
+@Table({
+  tableName: 'signals',
+  timestamps: true,
+})
+export class Signal extends Model {
+  @Column({
+    type: DataType.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  })
+  id: number;
+
+  @Column({
+    type: DataType.STRING,
+    unique: true,
+    allowNull: false,
+    comment: 'Уникальный ID сигнала',
+  })
+  signal_id: string;
+
+  @Column({
+    type: DataType.STRING,
+    allowNull: false,
+    comment: 'ИНМАРСАТ номер терминала',
+  })
+  inmarsat: string;
+
+  @Column({
+    type: DataType.JSONB,
+    allowNull: false,
+    comment: 'Координаты судна',
+  })
+  position: {
+    lat: number;
+    lng: number;
+    lat_str: string; // Например: "43°04.81'N"
+    lng_str: string; // Например: "131°51.31'E"
+  };
+
+  @Column({
+    type: DataType.DATE,
+    allowNull: false,
+    comment: 'Время обновления позиции',
+  })
+  position_updated: Date;
+
+  @Column({
+    type: DataType.ENUM('TEST', 'REAL', 'PIRACY', 'DISTRESS'),
+    defaultValue: 'TEST',
+    comment: 'Тип сигнала',
+  })
+  signal_type: string;
+
+  @Column({
+    type: DataType.TEXT,
+    allowNull: true,
+    comment: 'Исходное сообщение',
+  })
+  raw_message: string;
+
+  @Column({
+    type: DataType.BOOLEAN,
+    defaultValue: false,
+    comment: 'Обработан ли сигнал',
+  })
+  processed: boolean;
+
+  @Column({
+    type: DataType.STRING,
+    allowNull: true,
+    comment: 'Email отправителя',
+  })
+  sender_email: string;
+
+  // Связь с заявкой
+  @ForeignKey(() => Request)
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: true,
+    comment: 'ID связанной заявки',
+  })
+  request_id: number;
+
+  @BelongsTo(() => Request)
+  request: Request;
+}

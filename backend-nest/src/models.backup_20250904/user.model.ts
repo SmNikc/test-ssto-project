@@ -16,4 +16,3 @@ export default class User extends Model {
 }
 
 export { default as User } from "./user.model";
-

@@ -25,4 +25,3 @@ export default class TestingScenario extends Model {
 }
 
 export { default as TestingScenario } from "./testingScenario.model";
-

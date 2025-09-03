@@ -8,7 +8,7 @@ import { RequestService } from './request.service';
 import { SignalService } from '../signal/signal.service';
 import { EmailSenderService } from '../services/email-sender.service';
 import { ReportService } from '../services/report.service';
-import SSASRequest from '../models/request';
+import SSASRequest from '../models/request.model';
 import Signal from '../models/signal.model';
 
 @Module({

@@ -1,0 +1,100 @@
+import { Table, Column, Model, DataType, ForeignKey, BelongsTo } from 'sequelize-typescript';
+import SSASRequest from './request';
+
+@Table({ tableName: 'signals' })
+export default class Signal extends Model {
+  @Column({
+    type: DataType.INTEGER,
+    primaryKey: true,
+    autoIncrement: true,
+  })
+  id: number;
+
+  @ForeignKey(() => SSASRequest)
+  @Column({ type: DataType.STRING, allowNull: true })
+  request_id: string;
+
+  @Column({ type: DataType.STRING(15), allowNull: false })
+  beacon_hex_id: string;
+
+  @Column({ 
+    type: DataType.ENUM('406', '121.5', 'both'),
+    defaultValue: '406'
+  })
+  frequency: string;
+
+  @Column({ type: DataType.DATE, allowNull: false })
+  detection_time: Date;
+
+  @Column({
+    type: DataType.DATE,
+  })
+  received_at: Date;
+
+  @Column({ type: DataType.STRING(255), allowNull: false })
+  email_subject: string;
+
+  @Column({ type: DataType.TEXT, allowNull: false })
+  email_body: string;
+
+  @Column({ type: DataType.STRING(255), allowNull: false })
+  email_from: string;
+
+  @Column({ type: DataType.DATE, allowNull: false })
+  email_received_at: Date;
+
+  @Column({ type: DataType.STRING(255), allowNull: true })
+  email_message_id: string;
+
+  @Column({ type: DataType.STRING(50), allowNull: true })
+  latitude: string;
+
+  @Column({ type: DataType.STRING(50), allowNull: true })
+  longitude: string;
+
+  @Column({ type: DataType.STRING(100), allowNull: true })
+  satellite_name: string;
+
+  @Column({ type: DataType.STRING(100), allowNull: true })
+  lut_name: string;
+
+  @Column({ type: DataType.STRING(10), allowNull: true })
+  country_code: string;
+
+  @Column({ type: DataType.STRING(50), allowNull: true })
+  beacon_type: string;
+
+  @Column({ type: DataType.STRING(20), allowNull: true })
+  mmsi: string;
+
+  @Column({ type: DataType.STRING(20), allowNull: true })
+  call_sign: string;
+
+  @Column({ type: DataType.STRING(50), allowNull: true })
+  serial_number: string;
+
+  @Column({
+    type: DataType.STRING,
+  })
+  status: string;
+
+  @Column({ type: DataType.DATE, allowNull: true })
+  processed_at: Date;
+
+  @Column({ type: DataType.STRING(100), allowNull: true })
+  processed_by: string;
+
+  @Column({ type: DataType.TEXT, allowNull: true })
+  notes: string;
+
+  @Column({
+    type: DataType.TEXT,
+  })
+  error_message: string;
+
+  @Column({ type: DataType.JSON, allowNull: true })
+  metadata: any;
+
+  @BelongsTo(() => SSASRequest)
+  request: SSASRequest;
+}

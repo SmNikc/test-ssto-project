@@ -1,100 +1,92 @@
-// src/models/confirmation-document.model.ts
+import { Table, Column, Model, DataType } from 'sequelize-typescript';
 
-import {
-  Table,
-  Column,
-  Model,
-  DataType,
-  ForeignKey,
-  BelongsTo,
-  CreatedAt,
-  UpdatedAt,
-} from 'sequelize-typescript';
-import TestRequest from './test-request.model';
-
-@Table({ tableName: 'confirmation_documents' })
+@Table({
+  tableName: 'confirmation_documents',
+  timestamps: true
+})
 export default class ConfirmationDocument extends Model {
   @Column({
     type: DataType.INTEGER,
     primaryKey: true,
-    autoIncrement: true,
+    autoIncrement: true
   })
   id: number;
 
-  @ForeignKey(() => TestRequest)
   @Column({
     type: DataType.INTEGER,
-    allowNull: false,
+    allowNull: false
+  })
+  signal_id: number;
+
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: false
+  })
+  request_id: number;
+
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: true
   })
   test_request_id: number;
 
   @Column({
-    type: DataType.STRING,
-    unique: true,
-    allowNull: false,
+    type: DataType.STRING(50),
+    allowNull: false
   })
-  document_number: string; // Формат: GMSKC-2025-001
-
-  @Column({
-    type: DataType.TEXT,
-    allowNull: false,
-  })
-  html_content: string;
-
-  @Column({
-    type: DataType.BLOB,
-    allowNull: true,
-  })
-  pdf_content: Buffer;
+  document_number: string;
 
   @Column({
     type: DataType.STRING,
-    allowNull: false,
-  })
-  recipient_email: string;
-
-  @Column({
-    type: DataType.ENUM('draft', 'ready', 'sent', 'delivered', 'failed'),
-    defaultValue: 'draft',
+    defaultValue: 'draft'
   })
   status: string;
 
   @Column({
-    type: DataType.BOOLEAN,
-    defaultValue: false,
+    type: DataType.TEXT,
+    allowNull: true
   })
-  auto_send_enabled: boolean;
+  html_content: string;
+
+  @Column({
+    type: DataType.TEXT,
+    allowNull: true
+  })
+  pdf_content: string;
+
+  @Column({
+    type: DataType.STRING,
+    allowNull: true
+  })
+  pdf_path: string;
 
   @Column({
     type: DataType.DATE,
-    allowNull: true,
+    allowNull: true
   })
   sent_at: Date;
 
   @Column({
-    type: DataType.DATE,
-    allowNull: true,
+    type: DataType.STRING,
+    allowNull: true
   })
-  delivered_at: Date;
+  sent_to: string;
 
   @Column({
     type: DataType.STRING,
-    allowNull: true,
+    allowNull: true
   })
-  sent_by: string; // Имя оператора или 'AUTO'
+  sent_by: string;
 
   @Column({
-    type: DataType.TEXT,
-    allowNull: true,
+    type: DataType.STRING,
+    allowNull: true
   })
-  notes: string;
+  recipient_email: string;
 
-  @CreatedAt
-  created_at: Date;
-
-  @UpdatedAt
-  updated_at: Date;
-
-  @BelongsTo(() => TestRequest)
-  testRequest: TestRequest;
+  @Column({
+    type: DataType.BOOLEAN,
+    defaultValue: false
+  })
+  auto_send_enabled: boolean;
 }

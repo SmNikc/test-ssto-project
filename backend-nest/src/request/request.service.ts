@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Transaction } from 'sequelize'; // ✅ Оставляем только для типа Transaction
-import SSASRequest from '../models/request';
+import SSASRequest from '../models/request.model';
 
 export enum RequestStatus {
   DRAFT = 'DRAFT',

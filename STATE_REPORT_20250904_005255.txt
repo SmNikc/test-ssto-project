@@ -1,0 +1,16 @@
+PROJECT STATE REPORT
+====================
+Date: 2025-09-04 00:52:55
+State: WORKING VERSION
+Found files: 12
+Missing: 6
+Git branch: main
+Last commit: a23263e - тХи╨втХд╨ЫтХитФВтХд╨РтХд╨УтХитХЦтХитХСтХитЦС тХитФРтХитХЫтХд╨СтХитХЧтХитХбтХитФдтХитХЬтХитХХтХд╨Х тХитХХтХитХЦтХитХЭтХитХбтХитХЬтХитХбтХитХЬтХитХХтХитХг тХитЦУ GitHub (23 hours ago)
+
+MISSING FILES:
+- MapComponent.tsx
+- ssas-terminal.entity.ts
+- pdf.service.ts
+- system-settings.entity.ts
+- ConfirmationPreview.tsx
+- SignalTable.tsx

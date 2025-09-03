@@ -16,5 +16,3 @@ export default class Log extends Model {
 }
 
 export { default as Log } from "./log.model";
-
-
