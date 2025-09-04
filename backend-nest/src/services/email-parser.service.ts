@@ -56,7 +56,7 @@ export class EmailParserService {
       vessel_name: vesselName,
       mmsi: mmsi,
       imo: imo,
-      request_id: `EMAIL${Date.now()}`,
+      id: `EMAIL${Date.now()}`,
       ssas_number: `SSAS${imo}`,
       owner_organization: this.extractOrganization(emailContent.from),
       contact_person: contactPerson,

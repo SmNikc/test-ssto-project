@@ -13,16 +13,7 @@ export default class SSASRequest extends Model {
     type: DataType.STRING,
     allowNull: false
   })
-  request_id: string;
-
-  // Virtual id alias for compatibility with existing code
-  get id(): string {
-    return this.request_id;
-  }
-
-  set id(value: string) {
-    this.request_id = value;
-  }
+  id: string;
 
   @Column({
     type: DataType.STRING(50),
