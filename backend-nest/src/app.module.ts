@@ -9,6 +9,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 // Контроллеры
 import { AppController } from './app.controller';
 import { HealthController } from './controllers/health.controller';
+import { RequestsController } from './controllers/requests.controller';
 
 // Сервисы
 import { AppService } from './app.service';
