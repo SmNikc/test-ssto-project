@@ -1,16 +1,26 @@
-import { Table, Column, Model, DataType } from 'sequelize-typescript';
+import { Table, Column, Model, DataType, PrimaryKey } from 'sequelize-typescript';
 
 @Table({
   tableName: 'ssas_requests',
   timestamps: true
 })
 export default class SSASRequest extends Model {
+  // Use `request_id` from the existing database schema as the primary key
+  @PrimaryKey
   @Column({
-    type: DataType.INTEGER,
-    primaryKey: true,
-    autoIncrement: true
+    field: 'request_id',
+    type: DataType.STRING,
+    allowNull: false
   })
-  id: number;
+  request_id: string;
+
+  // Virtual id alias for compatibility with existing code
+  get id(): string {
+    return this.request_id;
+  }
+  set id(value: string) {
+    this.request_id = value;
+  }
 
   @Column({
     type: DataType.STRING(50),

@@ -87,7 +87,7 @@ export class RequestController {
   @Get(':id')
   async findOne(@Param('id') id: string, @Res() res: Response) {
     try {
-      const request = await this.requestService.findOne(+id);
+      const request = await this.requestService.findOne(id);
       
       if (!request) {
         return res.status(HttpStatus.NOT_FOUND).json({
@@ -117,8 +117,8 @@ export class RequestController {
     @Res() res: Response,
   ) {
     try {
-      await this.requestService.update(+id, updateRequestDto);
-      const updated = await this.requestService.findOne(+id);
+      await this.requestService.update(id, updateRequestDto);
+      const updated = await this.requestService.findOne(id);
 
       return res.status(HttpStatus.OK).json({
         success: true,
@@ -142,7 +142,7 @@ export class RequestController {
     @Res() res: Response,
   ) {
     try {
-      await this.requestService.updateStatus(+id, status);
+      await this.requestService.updateStatus(id, status);
       
       return res.status(HttpStatus.OK).json({
         success: true,
@@ -161,7 +161,7 @@ export class RequestController {
   @Delete(':id')
   async remove(@Param('id') id: string, @Res() res: Response) {
     try {
-      await this.requestService.remove(+id);
+      await this.requestService.remove(id);
       
       return res.status(HttpStatus.OK).json({
         success: true,
