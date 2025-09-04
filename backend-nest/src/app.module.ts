@@ -99,7 +99,6 @@ import TestingScenario from './models/testingScenario.model';
   controllers: [
     AppController,
     HealthController,
-    RequestsController,
   ],
   providers: [
     AppService,
