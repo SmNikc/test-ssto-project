@@ -1,269 +1,203 @@
-// src/services/email.service.ts
-
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as nodemailer from 'nodemailer';
-import { Transporter } from 'nodemailer';
+const nodemailer = require('nodemailer');
+const Imap = require('imap');
+const { simpleParser } = require('mailparser');
 
 @Injectable()
 export class EmailService {
-  private readonly logger = new Logger(EmailService.name);
-  private transporter: Transporter;
-  private defaultFrom: string;
+  private transporter: any;
+  private imap: any;
 
   constructor(private configService: ConfigService) {
-    this.initializeTransporter();
-  }
-
-  private initializeTransporter() {
-    // Получаем конфигурацию из переменных окружения
-    const emailConfig = {
-      host: this.configService.get<string>('SMTP_HOST', 'smtp.gmail.com'),
-      port: this.configService.get<number>('SMTP_PORT', 587),
-      secure: this.configService.get<boolean>('SMTP_SECURE', false),
+    // Настройка SMTP
+    this.transporter = nodemailer.createTransport({
+      host: this.configService.get('SMTP_HOST', 'smtp.gmail.com'),
+      port: this.configService.get('SMTP_PORT', 587),
+      secure: false,
       auth: {
-        user: this.configService.get<string>('SMTP_USER', ''),
-        pass: this.configService.get<string>('SMTP_PASS', ''),
-      },
-    };
-
-    this.defaultFrom = this.configService.get<string>(
-      'SMTP_FROM',
-      'ГМСКЦ <noreply@gmskc.ru>',
-    );
-
-    // Создаем транспортер для отправки писем
-    this.transporter = nodemailer.createTransport(emailConfig);
-
-    // Проверяем подключение
-    this.transporter.verify((error, success) => {
-      if (error) {
-        this.logger.error('SMTP connection failed:', error);
-      } else {
-        this.logger.log('SMTP server is ready to send emails');
+        user: this.configService.get('SMTP_USER'),
+        pass: this.configService.get('SMTP_PASSWORD')
       }
     });
-  }
 
-  // Общий метод отправки email
-  async sendEmail(emailData: {
-    to: string;
-    subject: string;
-    text?: string;
-    html?: string;
-    from?: string;
-  }): Promise<any> {
-    try {
-      const mailOptions = {
-        from: emailData.from || this.defaultFrom,
-        to: emailData.to,
-        subject: emailData.subject,
-        text: emailData.text,
-        html: emailData.html,
-      };
-
-      const result = await this.transporter.sendMail(mailOptions);
-      this.logger.log(`Email sent to ${emailData.to}: ${result.messageId}`);
-      return result;
-    } catch (error) {
-      this.logger.error(`Failed to send email to ${emailData.to}:`, error);
-      throw error;
-    }
-  }
-
-  // Тестовая отправка писем для отладки
-  async sendTestEmail(to: string): Promise<any> {
-    const htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center;">
-          <h1>Тестовое письмо ГМСКЦ</h1>
-        </div>
-        <div style="padding: 20px; background-color: #f5f5f5;">
-          <p>Это тестовое письмо от системы ГМСКЦ.</p>
-          <p>Если вы получили это письмо, значит email-сервис работает корректно.</p>
-          <p><strong>Время отправки:</strong> ${new Date().toLocaleString('ru-RU')}</p>
-        </div>
-        <div style="text-align: center; padding: 10px; color: #666; font-size: 12px;">
-          © ${new Date().getFullYear()} ГМСКЦ России
-        </div>
-      </div>
-    `;
-
-    return this.sendEmail({
-      to,
-      subject: 'Тестовое письмо от ГМСКЦ',
-      text: 'Это тестовое письмо от системы ГМСКЦ. Email-сервис работает корректно.',
-      html: htmlContent,
+    // Настройка IMAP
+    this.imap = new Imap({
+      user: this.configService.get('IMAP_USER'),
+      password: this.configService.get('IMAP_PASSWORD'),
+      host: this.configService.get('IMAP_HOST', 'imap.gmail.com'),
+      port: this.configService.get('IMAP_PORT', 993),
+      tls: true,
+      tlsOptions: { rejectUnauthorized: false }
     });
   }
 
-  // Отправка уведомления о новой заявке
-  async sendNewRequestNotification(requestData: {
-    vessel_name: string;
-    imo_number: string;
-    test_type: string;
-    test_date: string;
-    operator_email: string;
-  }): Promise<any> {
-    const htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center;">
-          <h1>Новая заявка на тестирование ГМССБ</h1>
-        </div>
-        <div style="padding: 20px; background-color: #f5f5f5;">
-          <h2>Детали заявки:</h2>
-          <table style="width: 100%; border-collapse: collapse;">
-            <tr>
-              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Судно:</strong></td>
-              <td style="padding: 8px; border-bottom: 1px solid #ddd;">${requestData.vessel_name}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>IMO номер:</strong></td>
-              <td style="padding: 8px; border-bottom: 1px solid #ddd;">${requestData.imo_number}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Тип теста:</strong></td>
-              <td style="padding: 8px; border-bottom: 1px solid #ddd;">${requestData.test_type}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Дата теста:</strong></td>
-              <td style="padding: 8px; border-bottom: 1px solid #ddd;">${requestData.test_date}</td>
-            </tr>
-          </table>
-          <p style="margin-top: 20px;">
-            <a href="#" style="display: inline-block; padding: 10px 20px; background-color: #667eea; color: white; text-decoration: none; border-radius: 5px;">
-              Перейти к заявке
-            </a>
-          </p>
-        </div>
-        <div style="text-align: center; padding: 10px; color: #666; font-size: 12px;">
-          © ${new Date().getFullYear()} ГМСКЦ России
-        </div>
-      </div>
-    `;
+  /**
+   * Проверка входящих email с сигналами
+   */
+  async checkIncomingSignals(): Promise<any[]> {
+    const signals = [];
+    
+    return new Promise((resolve, reject) => {
+      this.imap.once('ready', () => {
+        this.imap.openBox('INBOX', false, (err, box) => {
+          if (err) {
+            reject(err);
+            return;
+          }
 
-    return this.sendEmail({
-      to: requestData.operator_email,
-      subject: `Новая заявка на тестирование: ${requestData.vessel_name}`,
-      html: htmlContent,
-    });
-  }
-
-  // Отправка уведомления об изменении статуса заявки
-  async sendStatusChangeNotification(data: {
-    request_id: number;
-    vessel_name: string;
-    old_status: string;
-    new_status: string;
-    owner_email: string;
-    rejection_reason?: string;
-  }): Promise<any> {
-    const statusColors = {
-      approved: '#28a745',
-      rejected: '#dc3545',
-      completed: '#17a2b8',
-      pending: '#ffc107',
-    };
-
-    const statusTexts = {
-      approved: 'ОДОБРЕНА',
-      rejected: 'ОТКЛОНЕНА',
-      completed: 'ЗАВЕРШЕНА',
-      pending: 'НА РАССМОТРЕНИИ',
-    };
-
-    const htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center;">
-          <h1>Изменение статуса заявки</h1>
-        </div>
-        <div style="padding: 20px; background-color: #f5f5f5;">
-          <p>Уважаемый владелец судна <strong>${data.vessel_name}</strong>,</p>
-          <p>Статус вашей заявки #${data.request_id} был изменен:</p>
-          <div style="background-color: white; padding: 15px; border-radius: 5px; margin: 20px 0;">
-            <p style="text-align: center; font-size: 18px;">
-              Новый статус: 
-              <span style="color: ${statusColors[data.new_status]}; font-weight: bold;">
-                ${statusTexts[data.new_status]}
-              </span>
-            </p>
-            ${
-              data.rejection_reason
-                ? `<p style="color: #dc3545;"><strong>Причина отклонения:</strong> ${data.rejection_reason}</p>`
-                : ''
+          this.imap.search(['UNSEEN'], (err, results) => {
+            if (err) {
+              reject(err);
+              return;
             }
-          </div>
-          <p>С уважением,<br>ГМСКЦ России</p>
-        </div>
-        <div style="text-align: center; padding: 10px; color: #666; font-size: 12px;">
-          © ${new Date().getFullYear()} ГМСКЦ России
-        </div>
-      </div>
-    `;
 
-    return this.sendEmail({
-      to: data.owner_email,
-      subject: `Изменение статуса заявки #${data.request_id}`,
-      html: htmlContent,
+            if (results.length === 0) {
+              this.imap.end();
+              resolve([]);
+              return;
+            }
+
+            const fetch = this.imap.fetch(results, { bodies: '', markSeen: true });
+
+            fetch.on('message', (msg) => {
+              let rawEmail = '';
+
+              msg.on('body', (stream) => {
+                stream.on('data', (chunk) => {
+                  rawEmail += chunk.toString('utf8');
+                });
+
+                stream.once('end', async () => {
+                  try {
+                    const parsed = await simpleParser(rawEmail);
+                    const signalData = this.parseSignalFromEmail(parsed);
+                    if (signalData) {
+                      signals.push(signalData);
+                    }
+                  } catch (parseErr) {
+                    console.error('Ошибка парсинга:', parseErr);
+                  }
+                });
+              });
+            });
+
+            fetch.once('end', () => {
+              this.imap.end();
+              resolve(signals);
+            });
+
+            fetch.once('error', reject);
+          });
+        });
+      });
+
+      this.imap.once('error', reject);
+      this.imap.connect();
     });
   }
 
-  // Массовая рассылка
-  async sendBulkEmails(
-    recipients: string[],
-    subject: string,
-    content: { text?: string; html?: string },
-  ): Promise<any[]> {
-    const results = [];
-    
-    for (const recipient of recipients) {
-      try {
-        const result = await this.sendEmail({
-          to: recipient,
-          subject,
-          text: content.text,
-          html: content.html,
-        });
-        results.push({ recipient, success: true, messageId: result.messageId });
-      } catch (error) {
-        results.push({ recipient, success: false, error: error.message });
+  /**
+   * Парсинг сигнала из email - поддержка русских дат
+   */
+  private parseSignalFromEmail(parsed: any): any {
+    const text = parsed.text || '';
+    const subject = parsed.subject || '';
+
+    const patterns = {
+      mmsi: /MMSI[:\s]+(\d{9})/i,
+      terminal: /Terminal[:\s]+([A-Z0-9-]+)/i,
+      inmarsat: /(\d{9,})/,
+      iridium: /IR-(\d+)/i,
+      time: /Time[:\s]+([^\n\r]+)/i,
+      lat: /Lat[:\s]+([-\d.]+)/i,
+      lon: /Lon[:\s]+([-\d.]+)/i
+    };
+
+    const signal: any = {
+      receivedAt: new Date(),
+      emailSubject: subject,
+      emailFrom: parsed.from?.text,
+      rawMessage: text
+    };
+
+    // Извлекаем данные
+    const mmsiMatch = text.match(patterns.mmsi);
+    if (mmsiMatch) signal.mmsi = mmsiMatch[1];
+
+    const terminalMatch = text.match(patterns.terminal);
+    if (terminalMatch) {
+      signal.terminalId = terminalMatch[1];
+    } else {
+      const inmarsatMatch = text.match(patterns.inmarsat);
+      if (inmarsatMatch && inmarsatMatch[1].length === 9) {
+        signal.terminalId = inmarsatMatch[1];
+        signal.terminalType = 'INMARSAT';
       }
     }
-    
-    return results;
+
+    // Парсинг времени с поддержкой русского формата
+    const timeMatch = text.match(patterns.time);
+    if (timeMatch) {
+      signal.signalTime = this.parseRussianDate(timeMatch[1]);
+    }
+
+    const latMatch = text.match(patterns.lat);
+    const lonMatch = text.match(patterns.lon);
+    if (latMatch && lonMatch) {
+      signal.latitude = parseFloat(latMatch[1]);
+      signal.longitude = parseFloat(lonMatch[1]);
+    }
+
+    // Определяем тип сигнала
+    if (text.toLowerCase().includes('test')) {
+      signal.signalType = 'test_406';
+    } else {
+      signal.signalType = 'real_alert';
+    }
+
+    return signal.terminalId || signal.mmsi ? signal : null;
   }
 
-  // Проверка валидности email адреса
-  isValidEmail(email: string): boolean {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+  /**
+   * Парсинг русских дат
+   */
+  private parseRussianDate(dateStr: string): Date {
+    const months = {
+      'января': 0, 'февраля': 1, 'марта': 2, 'апреля': 3,
+      'мая': 4, 'июня': 5, 'июля': 6, 'августа': 7,
+      'сентября': 8, 'октября': 9, 'ноября': 10, 'декабря': 11
+    };
+
+    const match = dateStr.match(/(\d+)\s+(\w+)\s+(\d{4})\s+г?\.\s+(\d{1,2}):(\d{2}):(\d{2})/);
+    if (match) {
+      const month = months[match[2].toLowerCase()];
+      if (month !== undefined) {
+        return new Date(
+          parseInt(match[3]), month, parseInt(match[1]),
+          parseInt(match[4]), parseInt(match[5]), parseInt(match[6])
+        );
+      }
+    }
+
+    return new Date(dateStr);
   }
 
-  // Создание HTML шаблона письма (вспомогательный метод)
-  private createEmailTemplate(title: string, content: string): string {
-    return `
-      <!DOCTYPE html>
-      <html lang="ru">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>${title}</title>
-      </head>
-      <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
-        <div style="max-width: 600px; margin: 0 auto; background-color: white;">
-          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center;">
-            <h1 style="margin: 0; font-size: 24px;">${title}</h1>
-          </div>
-          <div style="padding: 30px;">
-            ${content}
-          </div>
-          <div style="background-color: #f8f9fa; padding: 20px; text-align: center; color: #6c757d; font-size: 14px;">
-            <p style="margin: 0;">© ${new Date().getFullYear()} ГМСКЦ России</p>
-            <p style="margin: 5px 0 0 0;">Глобальный морской спасательно-координационный центр</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
+  /**
+   * Отправка отчета по email
+   */
+  async sendTestReport(testData: any, pdfBuffer?: Buffer): Promise<void> {
+    const mailOptions = {
+      from: this.configService.get('SMTP_USER'),
+      to: testData.requesterEmail,
+      subject: 'Отчет о тестировании ССТО - ' + testData.vesselName,
+      html: '<h2>Тестирование ССТО завершено</h2><p>Результаты во вложении.</p>',
+      attachments: pdfBuffer ? [{
+        filename: 'report.pdf',
+        content: pdfBuffer
+      }] : []
+    };
+
+    await this.transporter.sendMail(mailOptions);
   }
 }
