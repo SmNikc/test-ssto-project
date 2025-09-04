@@ -42,7 +42,7 @@ export class SignalService {
     return deleted > 0;
   }
 
-  async findRequest(id: number): Promise<SSASRequest | null> {
+  async findRequest(id: string): Promise<SSASRequest | null> {
     return await this.requestModel.findByPk(id);
   }
 

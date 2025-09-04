@@ -49,10 +49,10 @@ export default class Signal extends Model {
   status: string;
 
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.STRING,
     allowNull: true
   })
-  request_id: number;
+  request_id: string;
 
   @Column({
     type: DataType.STRING(20),

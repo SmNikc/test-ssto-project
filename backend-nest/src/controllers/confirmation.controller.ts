@@ -9,7 +9,6 @@ import {
   Logger,
   HttpStatus,
   HttpCode,
-  ParseIntPipe,
   BadRequestException,
   NotFoundException
 } from '@nestjs/common';
@@ -38,8 +37,8 @@ export class ConfirmationController {
   @Post('requests/:id/send-confirmation')
   @HttpCode(HttpStatus.OK)
   async sendConfirmation(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() options: { 
+    @Param('id') id: string,
+    @Body() options: {
       send_email?: boolean; 
       generate_pdf?: boolean;
       test_mode?: boolean;

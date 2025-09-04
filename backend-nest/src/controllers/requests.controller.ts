@@ -62,7 +62,7 @@ export class RequestsController {
   @Put(':id')
   async update(@Param('id') id: string, @Body() updateRequestDto: any) {
     await this.requestModel.update(updateRequestDto, {
-      where: { id }
+      where: { request_id: id }
     });
     return this.requestModel.findByPk(id);
   }

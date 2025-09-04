@@ -22,7 +22,7 @@ export class SignalController {
   @Post('send-confirmation/:requestId')
   async sendConfirmation(@Param('requestId') requestId: string) {
     try {
-      const request = await this.signalService.findRequest(Number(requestId));
+      const request = await this.signalService.findRequest(requestId);
       if (!request) {
         throw new HttpException('Заявка не найдена', HttpStatus.NOT_FOUND);
       }
@@ -43,7 +43,7 @@ export class SignalController {
   @Post('generate-report/:requestId')
   async generateReport(@Param('requestId') requestId: string) {
     try {
-      const request = await this.signalService.findRequest(Number(requestId));
+      const request = await this.signalService.findRequest(requestId);
       if (!request) {
         throw new HttpException('Заявка не найдена', HttpStatus.NOT_FOUND);
       }
@@ -94,7 +94,7 @@ export class SignalController {
   @Get('requests/:id')
   async getRequestById(@Param('id') id: string) {
     try {
-      const request = await this.signalService.findRequest(Number(id));
+      const request = await this.signalService.findRequest(id);
       if (!request) {
         throw new HttpException('Заявка не найдена', HttpStatus.NOT_FOUND);
       }

@@ -1,6 +1,7 @@
+// backend-nest/src/request/request.service.ts
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { Transaction } from 'sequelize'; // ✅ Оставляем только для типа Transaction
+import { Transaction } from 'sequelize';
 import SSASRequest from '../models/request.model';
 
 export enum RequestStatus {
@@ -46,15 +47,18 @@ export class RequestService {
     if (!data.mmsi || !data.vessel_name) {
       throw new BadRequestException('MMSI and vessel_name are required');
     }
+    
     const requestData = {
       ...data,
       status: data.status || RequestStatus.DRAFT
     };
+    
     return this.reqModel.create(requestData as any);
   }
 
   async update(id: string, data: Partial<SSASRequest>) {
-    await this.reqModel.update(data, { where: { id } });
+    // Используем request_id для обновления
+    await this.reqModel.update(data, { where: { request_id: id } });
     return this.findOne(id);
   }
 
@@ -87,13 +91,16 @@ export class RequestService {
     const request = await this.findOne(id);
     const currentStatus = request.status as RequestStatus;
     const allowedTransitions = STATUS_TRANSITIONS[currentStatus];
+    
     if (!allowedTransitions.includes(newStatus)) {
       throw new BadRequestException(
         `Cannot transition from ${currentStatus} to ${newStatus}`
       );
     }
+    
     request.status = newStatus;
     await request.save({ transaction });
+    
     return request;
   }
 

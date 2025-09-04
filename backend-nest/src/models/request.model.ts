@@ -1,4 +1,5 @@
-import { Table, Column, Model, DataType } from 'sequelize-typescript';
+// backend-nest/src/models/request.model.ts
+import { Table, Column, Model, DataType, PrimaryKey } from 'sequelize-typescript';
 
 @Table({
   tableName: 'ssas_requests',
@@ -6,13 +7,22 @@ import { Table, Column, Model, DataType } from 'sequelize-typescript';
 })
 export default class SSASRequest extends Model {
   // Use `request_id` from the existing database schema as the primary key
+  @PrimaryKey
   @Column({
     field: 'request_id',
     type: DataType.STRING,
-    primaryKey: true,
     allowNull: false
   })
-  id: string;
+  request_id: string;
+
+  // Virtual id alias for compatibility with existing code
+  get id(): string {
+    return this.request_id;
+  }
+
+  set id(value: string) {
+    this.request_id = value;
+  }
 
   @Column({
     type: DataType.STRING(50),
@@ -91,53 +101,53 @@ export default class SSASRequest extends Model {
     allowNull: true
   })
   signal_mmsi: string;
+
   @Column({
-  type: DataType.ENUM('web_form', 'email', 'api', 'manual'),
-  defaultValue: 'web_form',
-  comment: 'Источник заявки'
-})
-source: string;
+    type: DataType.ENUM('web_form', 'email', 'api', 'manual'),
+    defaultValue: 'web_form',
+    comment: 'Источник заявки'
+  })
+  source: string;
 
-@Column({
-  type: DataType.BOOLEAN,
-  defaultValue: false,
-  comment: 'Флаг неформализованной заявки из email'
-})
-isInformalRequest: boolean;
+  @Column({
+    type: DataType.BOOLEAN,
+    defaultValue: false,
+    comment: 'Флаг неформализованной заявки из email'
+  })
+  isInformalRequest: boolean;
 
-@Column({
-  type: DataType.BOOLEAN,
-  defaultValue: false,
-  comment: 'Флаг неполных данных'
-})
-hasIncompleteData: boolean;
+  @Column({
+    type: DataType.BOOLEAN,
+    defaultValue: false,
+    comment: 'Флаг неполных данных'
+  })
+  hasIncompleteData: boolean;
 
-@Column({
-  type: DataType.STRING,
-  allowNull: true,
-  comment: 'Тема email заявки'
-})
-emailSubject: string;
+  @Column({
+    type: DataType.STRING,
+    allowNull: true,
+    comment: 'Тема email заявки'
+  })
+  emailSubject: string;
 
-@Column({
-  type: DataType.STRING,
-  allowNull: true,
-  comment: 'От кого email'
-})
-emailFrom: string;
+  @Column({
+    type: DataType.STRING,
+    allowNull: true,
+    comment: 'От кого email'
+  })
+  emailFrom: string;
 
-@Column({
-  type: DataType.DATE,
-  allowNull: true,
-  comment: 'Время получения email'
-})
-emailReceivedAt: Date;
+  @Column({
+    type: DataType.DATE,
+    allowNull: true,
+    comment: 'Время получения email'
+  })
+  emailReceivedAt: Date;
 
-@Column({
-  type: DataType.TEXT,
-  allowNull: true,
-  comment: 'Исходный текст email'
-})
-rawEmailContent: string;
+  @Column({
+    type: DataType.TEXT,
+    allowNull: true,
+    comment: 'Исходный текст email'
+  })
+  rawEmailContent: string;
 }
-
