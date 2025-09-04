@@ -15,21 +15,15 @@ import { AppService } from './app.service';
 import { PdfService } from './services/pdf.service';
 
 // Модули
+import { ApplicationsModule } from './applications/applications.module';
 import { EmailModule } from './email/email.module';
-import { RequestModule } from './request/request.module';
 
 // Sequelize модели
-import SSASRequest from './models/request.model';
-import SSASTerminal from './models/ssas-terminal.model';
-import Signal from './models/signal.model';
-import SystemSettings from './models/system-settings.model';
-import User from './models/user.model';
-import Log from './models/log.model';
-import Vessel from './models/vessel.model';
-import TestRequest from './models/test-request.model';
-import TestReport from './models/test-report.model';
-import ConfirmationDocument from './models/confirmation-document.model';
-import TestingScenario from './models/testingScenario.model';
+import { SSASRequest } from './models/request.model';
+import { SSASTerminal } from './models/ssas-terminal.model';
+import { SSASSignal } from './models/ssas-signal.model';
+import { SystemSettings } from './models/system-settings.model';
+import { User } from './models/user.model';
 
 @Module({
   imports: [
@@ -55,15 +49,9 @@ import TestingScenario from './models/testingScenario.model';
         models: [
           SSASRequest,
           SSASTerminal,
-          Signal,
+          SSASSignal,
           SystemSettings,
-          User,
-          Log,
-          Vessel,
-          TestRequest,
-          TestReport,
-          ConfirmationDocument,
-          TestingScenario
+          User
         ],
         autoLoadModels: false, // Используем явную загрузку моделей
         synchronize: true, // В продакшене установить false
@@ -79,7 +67,7 @@ import TestingScenario from './models/testingScenario.model';
     // Регистрация моделей для инъекций
     SequelizeModule.forFeature([
       SSASRequest,
-      SSASTerminal,
+      SSASTerminal, 
       Signal,
       SystemSettings,
       User,
@@ -88,17 +76,19 @@ import TestingScenario from './models/testingScenario.model';
       TestRequest,
       TestReport,
       ConfirmationDocument,
-      TestingScenario,
+      TestingScenario
     ]),
 
     // Функциональные модули
-    EmailModule,
-    RequestModule,
+    ApplicationsModule,
+    EmailModule, // <-- EmailModule добавлен здесь
+    RequestModule, // <-- RequestModule добавлен здесь
 
   ],
   controllers: [
     AppController,
     HealthController,
+    RequestsController,
   ],
   providers: [
     AppService,
