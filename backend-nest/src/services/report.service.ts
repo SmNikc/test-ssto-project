@@ -11,7 +11,7 @@ export class ReportService {
       margins: { top: 50, bottom: 50, left: 50, right: 50 }
     });
     
-    const fileName = `confirmation_${request.request_id}_${Date.now()}.pdf`;
+    const fileName = `confirmation_${request.id}_${Date.now()}.pdf`;
     const filePath = path.join(__dirname, '../../uploads/reports', fileName);
     
     if (!fs.existsSync(path.dirname(filePath))) {
