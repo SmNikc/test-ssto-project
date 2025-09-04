@@ -10,11 +10,12 @@ import { EmailSenderService } from '../services/email-sender.service';
 import { ReportService } from '../services/report.service';
 import SSASRequest from '../models/request.model';
 import Signal from '../models/signal.model';
+import Vessel from '../models/vessel.model';
 
 @Module({
   imports: [
     ConfigModule,
-    SequelizeModule.forFeature([SSASRequest, Signal])
+    SequelizeModule.forFeature([SSASRequest, Signal, Vessel])
   ],
   controllers: [
     RequestController,

@@ -9,12 +9,13 @@ import { EmailSenderService } from '../services/email-sender.service';
 import { ReportService } from '../services/report.service';
 import Signal from '../models/signal.model';
 import SSASRequest from '../models/request.model';
+import Vessel from '../models/vessel.model';
 import { SecurityModule } from '../security/security.module';
 
 @Module({
   imports: [
     ConfigModule,  // Для доступа к ConfigService
-    SequelizeModule.forFeature([Signal, SSASRequest]),
+    SequelizeModule.forFeature([Signal, SSASRequest, Vessel]),
     SecurityModule
   ],
   controllers: [SignalController],
