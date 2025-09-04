@@ -15,15 +15,21 @@ import { AppService } from './app.service';
 import { PdfService } from './services/pdf.service';
 
 // Модули
-import { ApplicationsModule } from './applications/applications.module';
 import { EmailModule } from './email/email.module';
+import { RequestModule } from './request/request.module';
 
 // Sequelize модели
-import { SSASRequest } from './models/request.model';
-import { SSASTerminal } from './models/ssas-terminal.model';
-import { SSASSignal } from './models/ssas-signal.model';
-import { SystemSettings } from './models/system-settings.model';
-import { User } from './models/user.model';
+import SSASRequest from './models/request.model';
+import SSASTerminal from './models/ssas-terminal.model';
+import Signal from './models/signal.model';
+import SystemSettings from './models/system-settings.model';
+import User from './models/user.model';
+import Log from './models/log.model';
+import Vessel from './models/vessel.model';
+import TestRequest from './models/test-request.model';
+import TestReport from './models/test-report.model';
+import ConfirmationDocument from './models/confirmation-document.model';
+import TestingScenario from './models/testingScenario.model';
 
 @Module({
   imports: [
@@ -49,9 +55,15 @@ import { User } from './models/user.model';
         models: [
           SSASRequest,
           SSASTerminal,
-          SSASSignal,
+          Signal,
           SystemSettings,
-          User
+          User,
+          Log,
+          Vessel,
+          TestRequest,
+          TestReport,
+          ConfirmationDocument,
+          TestingScenario
         ],
         autoLoadModels: false, // Используем явную загрузку моделей
         synchronize: true, // В продакшене установить false
@@ -67,7 +79,7 @@ import { User } from './models/user.model';
     // Регистрация моделей для инъекций
     SequelizeModule.forFeature([
       SSASRequest,
-      SSASTerminal, 
+      SSASTerminal,
       Signal,
       SystemSettings,
       User,
@@ -76,13 +88,12 @@ import { User } from './models/user.model';
       TestRequest,
       TestReport,
       ConfirmationDocument,
-      TestingScenario
+      TestingScenario,
     ]),
 
     // Функциональные модули
-    ApplicationsModule,
-    EmailModule, // <-- EmailModule добавлен здесь
-    RequestModule, // <-- RequestModule добавлен здесь
+    EmailModule,
+    RequestModule,
 
   ],
   controllers: [
