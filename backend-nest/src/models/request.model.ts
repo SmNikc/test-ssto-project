@@ -89,5 +89,53 @@ export default class SSASRequest extends Model {
     allowNull: true
   })
   signal_mmsi: string;
+  @Column({
+  type: DataType.ENUM('web_form', 'email', 'api', 'manual'),
+  defaultValue: 'web_form',
+  comment: 'Источник заявки'
+})
+source: string;
+
+@Column({
+  type: DataType.BOOLEAN,
+  defaultValue: false,
+  comment: 'Флаг неформализованной заявки из email'
+})
+isInformalRequest: boolean;
+
+@Column({
+  type: DataType.BOOLEAN,
+  defaultValue: false,
+  comment: 'Флаг неполных данных'
+})
+hasIncompleteData: boolean;
+
+@Column({
+  type: DataType.STRING,
+  allowNull: true,
+  comment: 'Тема email заявки'
+})
+emailSubject: string;
+
+@Column({
+  type: DataType.STRING,
+  allowNull: true,
+  comment: 'От кого email'
+})
+emailFrom: string;
+
+@Column({
+  type: DataType.DATE,
+  allowNull: true,
+  comment: 'Время получения email'
+})
+emailReceivedAt: Date;
+
+@Column({
+  type: DataType.TEXT,
+  allowNull: true,
+  comment: 'Исходный текст email'
+})
+rawEmailContent: string;
 }
 

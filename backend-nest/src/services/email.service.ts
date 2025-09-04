@@ -33,10 +33,14 @@ export class EmailService {
   }
 
   /**
-   * Проверка входящих email с сигналами
+   * Проверка входящих email с сигналами и заявками
    */
-  async checkIncomingSignals(): Promise<any[]> {
-    const signals = [];
+  async checkIncomingEmails(): Promise<any> {
+    const results = {
+      signals: [],
+      requests: [],
+      unrecognized: []
+    };
     
     return new Promise((resolve, reject) => {
       this.imap.once('ready', () => {
@@ -46,19 +50,19 @@ export class EmailService {
             return;
           }
 
-          this.imap.search(['UNSEEN'], (err, results) => {
+          this.imap.search(['UNSEEN'], (err, searchResults) => {
             if (err) {
               reject(err);
               return;
             }
 
-            if (results.length === 0) {
+            if (searchResults.length === 0) {
               this.imap.end();
-              resolve([]);
+              resolve(results);
               return;
             }
 
-            const fetch = this.imap.fetch(results, { bodies: '', markSeen: true });
+            const fetch = this.imap.fetch(searchResults, { bodies: '', markSeen: true });
 
             fetch.on('message', (msg) => {
               let rawEmail = '';
@@ -71,12 +75,30 @@ export class EmailService {
                 stream.once('end', async () => {
                   try {
                     const parsed = await simpleParser(rawEmail);
-                    const signalData = this.parseSignalFromEmail(parsed);
-                    if (signalData) {
-                      signals.push(signalData);
+                    
+                    // Определяем тип письма
+                    const emailType = this.detectEmailType(parsed);
+                    
+                    if (emailType === 'signal') {
+                      const signalData = this.parseSignalFromEmail(parsed);
+                      if (signalData) {
+                        results.signals.push(signalData);
+                      }
+                    } else if (emailType === 'request') {
+                      const requestData = this.parseRequestFromEmail(parsed);
+                      if (requestData) {
+                        results.requests.push(requestData);
+                      }
+                    } else {
+                      results.unrecognized.push({
+                        subject: parsed.subject,
+                        from: parsed.from?.text,
+                        date: parsed.date,
+                        preview: (parsed.text || '').substring(0, 200)
+                      });
                     }
                   } catch (parseErr) {
-                    console.error('Ошибка парсинга:', parseErr);
+                    console.error('Ошибка парсинга email:', parseErr);
                   }
                 });
               });
@@ -84,7 +106,7 @@ export class EmailService {
 
             fetch.once('end', () => {
               this.imap.end();
-              resolve(signals);
+              resolve(results);
             });
 
             fetch.once('error', reject);
@@ -98,7 +120,144 @@ export class EmailService {
   }
 
   /**
-   * Парсинг сигнала из email - поддержка русских дат
+   * Определение типа письма с приоритетом на тему
+   */
+  private detectEmailType(parsed: any): 'signal' | 'request' | 'unknown' {
+    const text = (parsed.text || '').toLowerCase();
+    const subject = (parsed.subject || '').toLowerCase();
+    
+    // ПРИОРИТЕТ 1: Проверяем тему письма на ключевые слова заявки
+    const requestSubjectKeywords = [
+      'заявка', 'заявке', 'заявку',
+      'ссто', 
+      'тест', 'теста', 'тесте', 'тестирование', 'тестирования', 'тестировании',
+      'проверка', 'проверке', 'проверку', 'проверки', 'проверить', 'проверяем'
+    ];
+    
+    const hasRequestKeywordsInSubject = requestSubjectKeywords.some(kw => subject.includes(kw));
+    
+    if (hasRequestKeywordsInSubject) {
+      console.log(`Обнаружена ЗАЯВКА по теме письма: "${parsed.subject}"`);
+      return 'request';
+    }
+    
+    // ПРИОРИТЕТ 2: Проверяем на признаки сигнала ССТО
+    const signalKeywords = ['mmsi', 'terminal', 'lat:', 'lon:', 'latitude', 'longitude', 'alert', 'distress'];
+    const signalScore = signalKeywords.filter(kw => text.includes(kw) || subject.includes(kw)).length;
+    
+    if (signalScore >= 3) {
+      console.log(`Обнаружен СИГНАЛ по содержимому`);
+      return 'signal';
+    }
+    
+    // ПРИОРИТЕТ 3: Проверяем текст на признаки заявки
+    const requestTextKeywords = [
+      'просим провести', 'необходимо протестировать', 'планируем тест',
+      'требуется проверка', 'судно', 'vessel', 'imo', 'название судна'
+    ];
+    const requestTextScore = requestTextKeywords.filter(kw => text.includes(kw)).length;
+    
+    if (requestTextScore >= 2) {
+      console.log(`Вероятная заявка по содержимому текста`);
+      return 'request';
+    }
+    
+    console.log(`Не удалось определить тип письма: "${parsed.subject}"`);
+    return 'unknown';
+  }
+
+  /**
+   * Парсинг неформализованной заявки на тестирование
+   */
+  private parseRequestFromEmail(parsed: any): any {
+    const text = parsed.text || '';
+    const subject = parsed.subject || '';
+    
+    const request: any = {
+      emailSubject: subject,
+      emailFrom: parsed.from?.text,
+      emailDate: parsed.date,
+      rawMessage: text,
+      parsedData: {}
+    };
+
+    // Извлечение email отправителя
+    const emailMatch = parsed.from?.text?.match(/<(.+@.+)>/);
+    request.parsedData.requesterEmail = emailMatch ? emailMatch[1] : parsed.from?.text;
+    
+    // Извлечение имени отправителя
+    const nameMatch = parsed.from?.text?.match(/^([^<]+)</);
+    request.parsedData.requesterName = nameMatch ? nameMatch[1].trim() : 'Не указано';
+
+    // Паттерны для извлечения данных
+    const patterns = {
+      terminal: [
+        /(?:номер стойки|стойка|terminal|терминал)[:\s]*([0-9]{9}|IR-[0-9]+)/i,
+        /(?:ИНМАРСАТ|INMARSAT)[:\s]*([0-9]{9})/i,
+        /(?:ИРИДИУМ|IRIDIUM)[:\s]*(IR-[0-9]+)/i,
+        /\b([0-9]{9})\b/
+      ],
+      mmsi: [
+        /MMSI[:\s]*([0-9]{9})/i,
+        /ММСИ[:\s]*([0-9]{9})/i
+      ],
+      vessel: [
+        /(?:судно|vessel|ship|название)[:\s]*([А-Яа-яA-Za-z0-9\s\-\.]+?)(?:\n|,|;|$)/i,
+        /(?:т\/х|м\/в|MV|MT)\s+([А-Яа-яA-Za-z0-9\s\-\.]+?)(?:\n|,|;|$)/i,
+        /«([^»]+)»/,
+        /"([^"]+)"/
+      ],
+      imo: [
+        /IMO[:\s]*([0-9]{7})/i,
+        /ИМО[:\s]*([0-9]{7})/i
+      ],
+      testDate: [
+        /(?:дата|date|планируем|тестирование)[:\s]*([0-9]{1,2}[\.\-\/][0-9]{1,2}[\.\-\/][0-9]{2,4})/i,
+        /([0-9]{1,2})\s+(января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)\s+([0-9]{4})/i
+      ],
+      phone: [
+        /(?:тел|телефон|phone|mobile)[:\s]*([\+\d\s\-\(\)]+)/i,
+        /(\+7[\s\-\(\)]*\d{3}[\s\-\(\)]*\d{3}[\s\-]*\d{2}[\s\-]*\d{2})/
+      ],
+      company: [
+        /(?:компания|организация|company|ООО|ОАО|ЗАО|ПАО|LLC|Ltd)[:\s]*([А-Яа-яA-Za-z0-9\s\-\.\"]+?)(?:\n|,|;|$)/i
+      ]
+    };
+
+    // Применяем паттерны
+    for (const [field, fieldPatterns] of Object.entries(patterns)) {
+      for (const pattern of fieldPatterns) {
+        const match = text.match(pattern);
+        if (match) {
+          if (field === 'testDate' && match[2]) {
+            request.parsedData[field] = this.parseRussianDate(`${match[1]} ${match[2]} ${match[3]}`);
+          } else {
+            request.parsedData[field] = match[1]?.trim();
+          }
+          break;
+        }
+      }
+    }
+
+    // Определяем тип системы по номеру терминала
+    if (request.parsedData.terminal) {
+      if (request.parsedData.terminal.startsWith('IR-')) {
+        request.parsedData.terminalType = 'IRIDIUM';
+      } else if (request.parsedData.terminal.match(/^[0-9]{9}$/)) {
+        request.parsedData.terminalType = 'INMARSAT';
+      }
+    }
+
+    // Проверка минимальных данных для заявки
+    if (request.parsedData.terminal || request.parsedData.vessel || request.parsedData.mmsi) {
+      return request;
+    }
+
+    return null;
+  }
+
+  /**
+   * Парсинг сигнала из email
    */
   private parseSignalFromEmail(parsed: any): any {
     const text = parsed.text || '';
@@ -163,7 +322,7 @@ export class EmailService {
    * Парсинг русских дат
    */
   private parseRussianDate(dateStr: string): Date {
-    const months = {
+    const months: { [key: string]: number } = {
       'января': 0, 'февраля': 1, 'марта': 2, 'апреля': 3,
       'мая': 4, 'июня': 5, 'июля': 6, 'августа': 7,
       'сентября': 8, 'октября': 9, 'ноября': 10, 'декабря': 11
@@ -180,7 +339,9 @@ export class EmailService {
       }
     }
 
-    return new Date(dateStr);
+    // Пробуем стандартный парсинг
+    const date = new Date(dateStr);
+    return isNaN(date.getTime()) ? new Date() : date;
   }
 
   /**
@@ -199,7 +360,7 @@ export class EmailService {
       subject: options.subject,
       text: options.text,
       html: options.html || options.text,
-      attachments: options.attachments || [],
+      attachments: options.attachments || []
     };
 
     return await this.transporter.sendMail(mailOptions);
@@ -212,7 +373,7 @@ export class EmailService {
     const mailOptions = {
       from: this.configService.get('SMTP_USER'),
       to: testData.requesterEmail,
-      subject: 'Отчет о тестировании ССТО - ' + testData.vesselName,
+      subject: `Отчет о тестировании ССТО - ${testData.vesselName}`,
       html: '<h2>Тестирование ССТО завершено</h2><p>Результаты во вложении.</p>',
       attachments: pdfBuffer ? [{
         filename: 'report.pdf',
