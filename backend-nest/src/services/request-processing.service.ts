@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Op } from 'sequelize';
 import { EmailService } from './email.service';
-import { SSASRequest } from '../models/request.model';
-import { SSASTerminal } from '../models/ssas-terminal.model';
+import SSASRequest from '../models/request.model';
+import SSASTerminal from '../models/ssas-terminal.model';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
