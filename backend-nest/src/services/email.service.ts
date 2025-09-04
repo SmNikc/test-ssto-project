@@ -184,6 +184,28 @@ export class EmailService {
   }
 
   /**
+   * Универсальная отправка email
+   */
+  async sendEmail(options: {
+    to: string;
+    subject: string;
+    text?: string;
+    html?: string;
+    attachments?: any[];
+  }): Promise<any> {
+    const mailOptions = {
+      from: this.configService.get('SMTP_USER'),
+      to: options.to,
+      subject: options.subject,
+      text: options.text,
+      html: options.html || options.text,
+      attachments: options.attachments || [],
+    };
+
+    return await this.transporter.sendMail(mailOptions);
+  }
+
+  /**
    * Отправка отчета по email
    */
   async sendTestReport(testData: any, pdfBuffer?: Buffer): Promise<void> {
