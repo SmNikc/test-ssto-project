@@ -36,7 +36,7 @@ export class RequestService {
     return this.reqModel.findAll();
   }
 
-  async findOne(id: number) {
+  async findOne(id: string) {
     const row = await this.reqModel.findByPk(id);
     if (!row) throw new NotFoundException(`Request #${id} not found`);
     return row;
@@ -53,19 +53,19 @@ export class RequestService {
     return this.reqModel.create(requestData as any);
   }
 
-  async update(id: number, data: Partial<SSASRequest>) {
+  async update(id: string, data: Partial<SSASRequest>) {
     await this.reqModel.update(data, { where: { id } });
     return this.findOne(id);
   }
 
-  async updateStatus(id: number, status: string) {
+  async updateStatus(id: string, status: string) {
     const request = await this.findOne(id);
     request.status = status;
     await request.save();
     return request;
   }
 
-  async remove(id: number) {
+  async remove(id: string) {
     const request = await this.findOne(id);
     await request.destroy();
     return { deleted: true };
@@ -80,7 +80,7 @@ export class RequestService {
   }
 
   async transitionStatus(
-    id: number,
+    id: string,
     newStatus: RequestStatus,
     transaction?: Transaction
   ): Promise<SSASRequest> {
@@ -97,7 +97,7 @@ export class RequestService {
     return request;
   }
 
-  async getAvailableTransitions(id: number): Promise<RequestStatus[]> {
+  async getAvailableTransitions(id: string): Promise<RequestStatus[]> {
     const request = await this.findOne(id);
     const currentStatus = request.status as RequestStatus;
     return STATUS_TRANSITIONS[currentStatus] || [];

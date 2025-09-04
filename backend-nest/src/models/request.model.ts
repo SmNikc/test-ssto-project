@@ -5,12 +5,14 @@ import { Table, Column, Model, DataType } from 'sequelize-typescript';
   timestamps: true
 })
 export default class SSASRequest extends Model {
+  // Use `request_id` from the existing database schema as the primary key
   @Column({
-    type: DataType.INTEGER,
+    field: 'request_id',
+    type: DataType.STRING,
     primaryKey: true,
-    autoIncrement: true
+    allowNull: false
   })
-  id: number;
+  id: string;
 
   @Column({
     type: DataType.STRING(50),
