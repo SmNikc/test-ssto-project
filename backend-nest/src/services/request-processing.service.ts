@@ -2,15 +2,19 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Op } from 'sequelize';
 import { EmailService } from './email.service';
-import SSASRequest from '../models/request.model';
-import SSASTerminal from '../models/ssas-terminal.model';
+import { SSASRequest } from '../models/request.model';
+import { SSASTerminal } from '../models/ssas-terminal.model';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
 export class RequestProcessingService {
   constructor(
-    @InjectModel(SSASRequest) private requestModel: typeof SSASRequest,
-    @InjectModel(SSASTerminal) private terminalModel: typeof SSASTerminal,
+    @InjectModel(SSASRequest) 
+    private requestModel: typeof SSASRequest,
+    
+    @InjectModel(SSASTerminal) 
+    private terminalModel: typeof SSASTerminal,
+    
     private emailService: EmailService
   ) {}
 
@@ -78,7 +82,7 @@ export class RequestProcessingService {
         return existingRequest;
       }
       
-      // Создаем новую заявку
+      // Создаем новую заявку (используем Sequelize create)
       const newRequest = await this.requestModel.create({
         // Основные поля
         terminalId: data.terminal || null,
@@ -210,7 +214,7 @@ export class RequestProcessingService {
     }
     
     if (request) {
-      // Обновляем статус заявки
+      // Обновляем статус заявки (используем Sequelize update)
       await request.update({
         status: 'in_progress',
         lastSignalAt: new Date()

@@ -1,73 +1,100 @@
+// backend-nest/src/app.module.ts
+// Главный модуль приложения с подключенным EmailModule
+
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { SequelizeModule } from '@nestjs/sequelize';
+import { ScheduleModule } from '@nestjs/schedule';
 
-// Controllers
+// Контроллеры
+import { AppController } from './app.controller';
 import { HealthController } from './controllers/health.controller';
-import { LogController } from './controllers/log.controller';
-import { SignalController } from './controllers/signal.controller';
-import { RequestController } from './controllers/request-ssto.controller';
 
-// Services
-import { LogService } from './log/log.service';
-import { RequestService } from './request/request.service';
-import { SignalService } from './signal/signal.service';
-import { PdfService } from './signal/pdf.service';
-import { EmailService } from './services/email.service';
-import { MapService } from './services/map.service';
-import { PoiskMoreService } from './services/poisk-more.service';
+// Сервисы
+import { AppService } from './app.service';
+import { PdfService } from './services/pdf.service';
 
-// Models
-import Log from './models/log.model';
-import SSASRequest from './models/request.model';
-import Signal from './models/signal.model';
-import Vessel from './models/vessel.model';
-import SystemSettings from './models/system-settings.model';
-import SSASTerminal from './models/ssas-terminal.model';
-import TestReport from './models/test-report.model';
+// Модули
+import { ApplicationsModule } from './applications/applications.module';
+import { EmailModule } from './email/email.module';
+
+// Sequelize модели
+import { SSASRequest } from './models/request.model';
+import { SSASTerminal } from './models/ssas-terminal.model';
+import { SSASSignal } from './models/ssas-signal.model';
+import { SystemSettings } from './models/system-settings.model';
+import { User } from './models/user.model';
 
 @Module({
   imports: [
+    // Конфигурация
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
     }),
 
+    // Планировщик задач
+    ScheduleModule.forRoot(),
+
+    // База данных - Sequelize
     SequelizeModule.forRootAsync({
       imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: async (configService: ConfigService) => ({
+      useFactory: (configService: ConfigService) => ({
         dialect: 'postgres',
         host: configService.get('DB_HOST', 'localhost'),
         port: configService.get('DB_PORT', 5432),
-        username: configService.get('DB_USER', 'postgres'),
-        password: configService.get('DB_PASSWORD', 'postgres'),
+        username: configService.get('DB_USER', 'ssto'),
+        password: configService.get('DB_PASSWORD', 'sstopass'),
         database: configService.get('DB_NAME', 'sstodb'),
-        models: [Log, SSASRequest, Signal, Vessel, SystemSettings, SSASTerminal, TestReport],
-        autoLoadModels: false,
-        synchronize: false,
-        logging: false,
+        models: [
+          SSASRequest,
+          SSASTerminal,
+          SSASSignal,
+          SystemSettings,
+          User
+        ],
+        autoLoadModels: false, // Используем явную загрузку моделей
+        synchronize: true, // В продакшене установить false
+        logging: false, // Отключаем SQL логи для чистоты консоли
+        define: {
+          timestamps: true,
+          underscored: true, // Используем snake_case для полей БД
+        },
       }),
+      inject: [ConfigService],
     }),
 
-    SequelizeModule.forFeature([Log, SSASRequest, Signal, Vessel, SystemSettings, SSASTerminal, TestReport]),
-  ],
+    // Регистрация моделей для инъекций
+    SequelizeModule.forFeature([
+      SSASRequest,
+      SSASTerminal, 
+      Signal,
+      SystemSettings,
+      User,
+      Log,
+      Vessel,
+      TestRequest,
+      TestReport,
+      ConfirmationDocument,
+      TestingScenario
+    ]),
 
+    // Функциональные модули
+    ApplicationsModule,
+    EmailModule, // <-- EmailModule добавлен здесь
+    RequestModule, // <-- RequestModule добавлен здесь
+
+  ],
   controllers: [
+    AppController,
     HealthController,
-    LogController,
-    RequestController,
-    SignalController,
   ],
-
   providers: [
+    AppService,
     PdfService,
-    LogService,
-    RequestService,
-    SignalService,
-    EmailService,
-    MapService,
-    PoiskMoreService,
+  ],
+  exports: [
+    PdfService,
   ],
 })
 export class AppModule {}
