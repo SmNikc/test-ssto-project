@@ -3,7 +3,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Op } from 'sequelize';
-import TestRequest from '../models/test-request.model';
+import SSASRequest from '../models/request.model';
 import Vessel from '../models/vessel.model';
 import Signal from '../models/signal.model';
 import ConfirmationDocument from '../models/confirmation-document.model';
@@ -17,8 +17,8 @@ export class EnhancedConfirmationService {
   private autoSendEnabled = false; // Глобальная настройка
 
   constructor(
-    @InjectModel(TestRequest)
-    private testRequestModel: typeof TestRequest,
+    @InjectModel(SSASRequest)
+    private requestModel: typeof SSASRequest,
     @InjectModel(ConfirmationDocument)
     private confirmationDocModel: typeof ConfirmationDocument,
     @InjectModel(Signal)

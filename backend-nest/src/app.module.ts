@@ -1,35 +1,55 @@
-// src/app.module.ts
-// Полностью обновленный главный модуль
-// Замените содержимое вашего app.module.ts на это
+// C:\Projects\test-ssto-project\backend-nest\src\app.module.ts
+// Полный код БЕЗ СОКРАЩЕНИЙ с EmailTaskService
 
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { SequelizeModule } from '@nestjs/sequelize';
 
-// Controllers
+// Импорт готовых модулей
+import { RequestModule } from './request/request.module';
+import { SignalModule } from './signal/signal.module';
+import { TestingModule } from './testing/testing.module';
+import { UserModule } from './user/user.module';
+import { LogModule } from './log/log.module';
+
+// Импорт контроллеров, которые не входят в модули
 import { AppController } from './app.controller';
-import { RequestController } from './controllers/request.controller';
-import { SignalController } from './controllers/signal.controller';
+import { EmailController } from './controllers/email.controller';
+import { HealthController } from './controllers/health.controller';
 
-// Services
+// Импорт ВСЕХ сервисов включая EmailTaskService
 import { AppService } from './app.service';
-import { SignalService } from './signal/signal.service';
-import { PdfService } from './signal/pdf.service';
+import { EmailSenderService } from './services/email-sender.service';
+import { EmailParserService } from './services/email-parser.service';
+import { EmailTaskService } from './services/email-task.service';  // Вы создали этот файл
+import { EnhancedConfirmationService } from './services/enhanced-confirmation.service';
+import { ReportService } from './services/report.service';
 
-// Models
+// Импорт моделей базы данных
 import SSASRequest from './models/request.model';
 import Signal from './models/signal.model';
+import User from './models/user.model';
+import Log from './models/log.model';
+import TestingScenario from './models/testingScenario.model';
 import Vessel from './models/vessel.model';
+import TestRequest from './models/test-request.model';
+import ConfirmationDocument from './models/confirmation-document.model';
+import SSASTerminal from './models/ssas-terminal.model';
+import SystemSettings from './models/system-settings.model';
+
+// Импорт дополнительных сервисов безопасности
+import { AuthService } from './security/auth.service';
+import { AuthGuard } from './security/auth.guard';
 
 @Module({
   imports: [
-    // Конфигурация
+    // Глобальная конфигурация из .env файла
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
     }),
     
-    // База данных - Sequelize с PostgreSQL
+    // Конфигурация базы данных PostgreSQL через Sequelize
     SequelizeModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -40,25 +60,59 @@ import Vessel from './models/vessel.model';
         username: configService.get('DB_USER', 'ssto'),
         password: configService.get('DB_PASSWORD', 'sstopass'),
         database: configService.get('DB_NAME', 'sstodb'),
-        models: [SSASRequest, Signal, Vessel],
+        models: [
+          SSASRequest,
+          Signal,
+          User,
+          Log,
+          TestingScenario,
+          Vessel,
+          TestRequest,
+          ConfirmationDocument,
+          SSASTerminal,
+          SystemSettings
+        ],
         autoLoadModels: true,
         synchronize: false, // Важно: false для production
-        logging: false, // Отключаем логи SQL
+        logging: false, // Отключаем SQL логи для production
       }),
     }),
     
-    // Регистрируем модели для инъекции
-    SequelizeModule.forFeature([SSASRequest, Signal, Vessel]),
+    // Регистрация моделей для инъекций в сервисы, которые не в модулях
+    SequelizeModule.forFeature([
+      ConfirmationDocument,
+      SSASTerminal,
+      SystemSettings
+    ]),
+    
+    // Импортируем готовые функциональные модули
+    RequestModule,    // Содержит RequestController, ConfirmationController, RequestService
+    SignalModule,     // Содержит SignalController, SignalService, PdfService
+    TestingModule,    // Содержит TestingController, TestingService
+    UserModule,       // Содержит UserController, UserService
+    LogModule,        // Содержит LogController, LogService
   ],
+  
+  // Контроллеры, которые не входят в модули
   controllers: [
     AppController,
-    RequestController,
-    SignalController,
+    EmailController,
+    HealthController,
   ],
+  
+  // ВСЕ сервисы включая EmailTaskService
   providers: [
     AppService,
-    SignalService,
-    PdfService,
+    EmailSenderService,
+    EmailParserService,
+    EmailTaskService,  // Добавлен так как вы создали файл
+    EnhancedConfirmationService,
+    ReportService,
+    AuthService,
+    AuthGuard,
   ],
+  
+  // Экспорт для использования в других модулях при необходимости
+  exports: []
 })
 export class AppModule {}
