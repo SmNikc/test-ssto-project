@@ -23,11 +23,20 @@ export default class SSASRequest extends Model {
   })
   id: number;
 
+  // In the current database schema the table does not contain a separate
+  // `request_id` column – the auto-incremented `id` column is used as the
+  // identifier.  Previously the model expected a physical `request_id`
+  // column which caused SQL errors like "column \"request_id\" does not
+  // exist" when querying the table.  To maintain backward compatibility with
+  // the frontend (which still expects a `request_id` field) we expose the
+  // numeric `id` value through a virtual column.
   @Column({
-    field: 'request_id',
-    type: DataType.STRING,
-    allowNull: false,
-    unique: true,
+    type: DataType.VIRTUAL,
+    get(this: SSASRequest) {
+      const id = this.getDataValue('id');
+      return id != null ? id.toString() : undefined;
+    },
+    // No setter: the value is derived from `id`
   })
   request_id: string;
 

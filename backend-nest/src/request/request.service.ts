@@ -57,8 +57,9 @@ export class RequestService {
   }
 
   async update(id: string, data: Partial<SSASRequest>) {
-    // Используем request_id для обновления
-    await this.reqModel.update(data, { where: { request_id: id } });
+    // База данных не содержит отдельного поля `request_id`, поэтому
+    // обновление выполняется по первичному ключу `id`.
+    await this.reqModel.update(data, { where: { id } });
     return this.findOne(id);
   }
 
