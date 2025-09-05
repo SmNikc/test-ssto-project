@@ -17,7 +17,7 @@ export class RequestsController {
   async findAll() {
     try {
       const requests = await this.requestModel.findAll({
-        order: [['createdAt', 'DESC']]
+        order: [['created_at', 'DESC']]
       });
       return requests || [];
     } catch (error) {
