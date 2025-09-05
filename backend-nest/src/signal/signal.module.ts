@@ -1,30 +1,21 @@
-// backend-nest/src/signal/signal.module.ts
+// C:\Projects\test-ssto-project\backend-nest\src\signal\signal.module.ts
+// Правильная версия SignalModule
+
 import { Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
-import { ConfigModule } from '@nestjs/config';
 import { SignalController } from '../controllers/signal.controller';
 import { SignalService } from './signal.service';
-import { EmailService } from './email.service';
-import { EmailSenderService } from '../services/email-sender.service';
-import { ReportService } from '../services/report.service';
+import { PdfService } from './pdf.service';
 import Signal from '../models/signal.model';
 import SSASRequest from '../models/request.model';
 import Vessel from '../models/vessel.model';
-import { SecurityModule } from '../security/security.module';
 
 @Module({
   imports: [
-    ConfigModule,  // Для доступа к ConfigService
-    SequelizeModule.forFeature([Signal, SSASRequest, Vessel]),
-    SecurityModule
+    SequelizeModule.forFeature([Signal, SSASRequest, Vessel])
   ],
   controllers: [SignalController],
-  providers: [
-    SignalService,
-    EmailService,
-    EmailSenderService,  // Добавляем EmailSenderService
-    ReportService        // Добавляем ReportService
-  ],
-  exports: [SignalService, EmailService]
+  providers: [SignalService, PdfService],
+  exports: [SignalService, PdfService]
 })
 export class SignalModule {}
