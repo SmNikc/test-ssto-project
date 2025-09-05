@@ -80,6 +80,8 @@ import { AuthGuard } from './security/auth.guard';
     
     // Регистрация моделей для инъекций в сервисы, которые не в модулях
     SequelizeModule.forFeature([
+      SSASRequest,
+      Signal,
       ConfirmationDocument,
       SSASTerminal,
       SystemSettings
