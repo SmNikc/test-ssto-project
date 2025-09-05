@@ -117,7 +117,7 @@ export class SignalService {
   async processEmailSignal(signalData: any): Promise<Signal> {
     // Обработка сигнала из email
     const signal = await this.create({
-      terminal_number: signalData.terminal_number || signalData.terminalNumber,
+      // terminal_number обрабатывается автоматически
       mmsi: signalData.mmsi,
       signal_type: signalData.signal_type || 'EMAIL',
       received_at: signalData.received_at || new Date(),

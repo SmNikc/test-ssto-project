@@ -1,144 +1,164 @@
-// backend-nest/src/models/request.model.ts
-import { Table, Column, Model, DataType, PrimaryKey } from 'sequelize-typescript';
+// src/models/request.model.ts
+// ПОЛНОСТЬЮ ИСПРАВЛЕННАЯ МОДЕЛЬ
+// Сохраните этот файл как C:\Projects\test-ssto-project\backend-nest\src\models\request.model.ts
+
+import { Table, Column, Model, DataType, CreatedAt, UpdatedAt } from 'sequelize-typescript';
 
 @Table({
-  tableName: 'ssas_requests',
-  timestamps: true
+  tableName: 'requests',
+  timestamps: true,
+  underscored: true  // Это важно для snake_case полей в БД
 })
 export default class SSASRequest extends Model {
-  // Use `request_id` from the existing database schema as the primary key
-  @PrimaryKey
   @Column({
-    field: 'request_id',
+    type: DataType.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  })
+  id: number;
+
+  @Column({
+    field: 'vessel_name',
     type: DataType.STRING,
-    allowNull: false
-  })
-  id: string;
-
-  @Column({
-    type: DataType.STRING(50),
-    allowNull: false
-  })
-  terminal_number: string;
-
-  @Column({
-    type: DataType.STRING,
-    defaultValue: 'INMARSAT'
-  })
-  terminal_type: string;
-
-  @Column({
-    type: DataType.STRING(9),
-    allowNull: false
-  })
-  mmsi: string;
-
-  @Column({
-    type: DataType.STRING(100),
     allowNull: false
   })
   vessel_name: string;
 
   @Column({
-    type: DataType.STRING(7),
-    allowNull: true
+    field: 'mmsi',
+    type: DataType.STRING
   })
-  imo_number: string;
+  mmsi: string;
 
   @Column({
-    type: DataType.DATE,
-    allowNull: false
+    field: 'imo',
+    type: DataType.STRING
   })
-  planned_test_date: Date;
+  imo: string;
 
   @Column({
+    field: 'ship_owner',
+    type: DataType.STRING
+  })
+  ship_owner: string;
+
+  @Column({
+    field: 'contact_email',
+    type: DataType.STRING
+  })
+  contact_email: string;
+
+  @Column({
+    field: 'contact_phone',
+    type: DataType.STRING
+  })
+  contact_phone: string;
+
+  @Column({
+    field: 'test_date',
+    type: DataType.DATE
+  })
+  test_date: Date;
+
+  @Column({
+    field: 'test_window_hours',
+    type: DataType.INTEGER,
+    defaultValue: 24
+  })
+  test_window_hours: number;
+
+  @Column({
+    field: 'inmarsat_number',
+    type: DataType.STRING
+  })
+  inmarsat_number: string;
+
+  @Column({
+    field: 'request_number',
+    type: DataType.STRING
+  })
+  request_number: string;
+
+  @Column({
+    field: 'status',
     type: DataType.STRING,
     defaultValue: 'pending'
   })
   status: string;
 
   @Column({
-    type: DataType.STRING(255),
+    field: 'confirmation_status',
+    type: DataType.STRING,
+    defaultValue: 'pending'
+  })
+  confirmation_status: string;
+
+  // Если terminal_number есть в БД, раскомментируйте:
+  @Column({
+    field: 'terminal_number',
+    type: DataType.STRING,
     allowNull: true
   })
-  contact_email: string;
+  terminal_number: string;
 
   @Column({
-    type: DataType.STRING(50),
+    field: 'email',
+    type: DataType.STRING,
     allowNull: true
   })
-  contact_phone: string;
+  email: string;
 
   @Column({
-    type: DataType.INTEGER,
+    field: 'phone',
+    type: DataType.STRING,
     allowNull: true
   })
-  vessel_id: number;
+  phone: string;
 
   @Column({
+    field: 'test_time',
+    type: DataType.TIME,
+    allowNull: true
+  })
+  test_time: string;
+
+  @CreatedAt
+  @Column({
+    field: 'created_at',
+    type: DataType.DATE
+  })
+  created_at: Date;
+
+  @UpdatedAt
+  @Column({
+    field: 'updated_at',
+    type: DataType.DATE
+  })
+  updated_at: Date;
+
+  @Column({
+    field: 'signal_id',
     type: DataType.INTEGER,
     allowNull: true
   })
   signal_id: number;
 
-  @Column({
-    type: DataType.BOOLEAN,
-    defaultValue: false
-  })
-  mmsi_mismatch_detected: boolean;
+
+  // Геттеры для совместимости с разными названиями полей
 
   @Column({
-    type: DataType.STRING(9),
+    field: 'vessel_id',
+    type: DataType.INTEGER,
     allowNull: true
   })
-  signal_mmsi: string;
+  vessel_id: number;
 
-  @Column({
-    type: DataType.ENUM('web_form', 'email', 'api', 'manual'),
-    defaultValue: 'web_form',
-    comment: 'Источник заявки'
-  })
-  source: string;
+  get imo_number(): string {
+    return this.imo || '';
+  }
 
-  @Column({
-    type: DataType.BOOLEAN,
-    defaultValue: false,
-    comment: 'Флаг неформализованной заявки из email'
-  })
-  isInformalRequest: boolean;
+  get planned_test_date(): Date {
+    return this.test_date;
+  }
 
-  @Column({
-    type: DataType.BOOLEAN,
-    defaultValue: false,
-    comment: 'Флаг неполных данных'
-  })
-  hasIncompleteData: boolean;
-
-  @Column({
-    type: DataType.STRING,
-    allowNull: true,
-    comment: 'Тема email заявки'
-  })
-  emailSubject: string;
-
-  @Column({
-    type: DataType.STRING,
-    allowNull: true,
-    comment: 'От кого email'
-  })
-  emailFrom: string;
-
-  @Column({
-    type: DataType.DATE,
-    allowNull: true,
-    comment: 'Время получения email'
-  })
-  emailReceivedAt: Date;
-
-  @Column({
-    type: DataType.TEXT,
-    allowNull: true,
-    comment: 'Исходный текст email'
-  })
-  rawEmailContent: string;
 }

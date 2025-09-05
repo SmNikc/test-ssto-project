@@ -1,8 +1,9 @@
 import { Table, Column, Model, DataType } from 'sequelize-typescript';
 
 @Table({
-  tableName: 'ssas_signals',
-  timestamps: true
+  tableName: 'signals',
+  timestamps: true,
+  underscored: true
 })
 export default class Signal extends Model {
   @Column({
@@ -25,6 +26,12 @@ export default class Signal extends Model {
   mmsi: string;
 
   @Column({
+    type: DataType.STRING(20),
+    allowNull: true
+  })
+  call_sign: string;
+
+  @Column({
     type: DataType.STRING,
     defaultValue: 'TEST'
   })
@@ -32,7 +39,8 @@ export default class Signal extends Model {
 
   @Column({
     type: DataType.DATE,
-    allowNull: false
+    allowNull: false,
+    defaultValue: DataType.NOW
   })
   received_at: Date;
 
@@ -49,16 +57,10 @@ export default class Signal extends Model {
   status: string;
 
   @Column({
-    type: DataType.STRING,
+    type: DataType.INTEGER,
     allowNull: true
   })
-  request_id: string;
-
-  @Column({
-    type: DataType.STRING(20),
-    allowNull: true
-  })
-  call_sign: string;
+  request_id: number;
 
   @Column({
     type: DataType.JSONB,
@@ -71,5 +73,16 @@ export default class Signal extends Model {
     allowNull: true
   })
   metadata: any;
+
+  @Column({
+    type: DataType.DATE
+  })
+  created_at: Date;
+
+  @Column({
+    type: DataType.DATE
+  })
+  updated_at: Date;
 }
 
+export { Signal };

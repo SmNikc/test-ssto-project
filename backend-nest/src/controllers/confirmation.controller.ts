@@ -174,7 +174,7 @@ export class ConfirmationController {
         try {
           this.logger.log(`Обработка заявки ${request.id}: ${request.vessel_name}`);
           
-          const result = await this.sendConfirmation(request.id, {
+          const result = await this.sendConfirmation(request.id.toString(), {
             send_email: true,
             generate_pdf: true,
           });

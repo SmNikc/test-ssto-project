@@ -1,3 +1,6 @@
+// src/models/vessel.model.ts
+// ВОССТАНОВЛЕНИЕ СУЩЕСТВУЮЩЕГО ФАЙЛА из репозитория
+
 import { Table, Column, Model, DataType } from 'sequelize-typescript';
 
 @Table({
@@ -88,6 +91,3 @@ export class Vessel extends Model {
 }
 
 export default Vessel;
-
-
-
