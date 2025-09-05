@@ -41,7 +41,7 @@ export class EnhancedConfirmationService {
       }
 
       // Ищем заявку по MMSI или позывному
-      const request = await this.testRequestModel.findOne({
+      const request = await this.requestModel.findOne({
         include: [Vessel],
         where: {
           status: 'approved',
@@ -99,7 +99,7 @@ export class EnhancedConfirmationService {
   // Подготовка подтверждения (создание документа без отправки)
   async prepareConfirmation(requestId: number): Promise<ConfirmationDocument> {
     try {
-      const request = await this.testRequestModel.findByPk(requestId, {
+      const request = await this.requestModel.findByPk(requestId, {
         include: [Vessel],
       });
 
@@ -143,7 +143,7 @@ export class EnhancedConfirmationService {
   async sendConfirmation(confirmationId: number, sentBy: string = 'MANUAL'): Promise<any> {
     try {
       const confirmation = await this.confirmationDocModel.findByPk(confirmationId, {
-        include: [{ model: TestRequest, include: [Vessel] }],
+        include: [{ model: SSASRequest, include: [Vessel] }],
       });
 
       if (!confirmation) {
@@ -225,7 +225,7 @@ export class EnhancedConfirmationService {
 
     return await this.confirmationDocModel.findAll({
       where,
-      include: [{ model: TestRequest, include: [Vessel] }],
+      include: [{ model: SSASRequest, include: [Vessel] }],
       order: [['created_at', 'DESC']],
     });
   }
@@ -249,7 +249,7 @@ export class EnhancedConfirmationService {
     };
   }
 
-  private generateConfirmationHtml(request: TestRequest, documentNumber: string): string {
+  private generateConfirmationHtml(request: SSASRequest, documentNumber: string): string {
     const vessel = null;
     const testDateTime = formatInTimeZone(
       request.test_date,
