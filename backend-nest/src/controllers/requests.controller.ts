@@ -61,8 +61,12 @@ export class RequestsController {
   // PUT /requests/:id
   @Put(':id')
   async update(@Param('id') id: string, @Body() updateRequestDto: any) {
+    // В базе данных используется только числовой первичный ключ `id`,
+    // поэтому обновление выполняем по этому полю. Ранее код ссылался на
+    // несуществующий столбец `request_id`, что приводило к ошибке
+    // "column \"request_id\" does not exist".
     await this.requestModel.update(updateRequestDto, {
-      where: { request_id: id }
+      where: { id }
     });
     return this.requestModel.findByPk(id);
   }
