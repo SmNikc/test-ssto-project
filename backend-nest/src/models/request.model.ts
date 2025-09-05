@@ -68,6 +68,13 @@ export default class SSASRequest extends Model {
   test_window_hours: number;
 
   @Column({
+    field: 'test_type',
+    type: DataType.STRING,
+    defaultValue: 'routine'
+  })
+  test_type: string;
+
+  @Column({
     field: 'inmarsat_number',
     type: DataType.STRING
   })
