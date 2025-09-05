@@ -22,6 +22,7 @@ import { AppService } from './app.service';
 import { EmailSenderService } from './services/email-sender.service';
 import { EmailParserService } from './services/email-parser.service';
 import { EmailTaskService } from './services/email-task.service';  // Вы создали этот файл
+import { EmailService } from './services/email.service';
 import { EnhancedConfirmationService } from './services/enhanced-confirmation.service';
 import { ReportService } from './services/report.service';
 
@@ -108,6 +109,7 @@ import { AuthGuard } from './security/auth.guard';
     EmailSenderService,
     EmailParserService,
     EmailTaskService,  // Добавлен так как вы создали файл
+    EmailService,
     EnhancedConfirmationService,
     ReportService,
     AuthService,
