@@ -1,6 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import React from 'react';
-import { createRoot } from 'react-dom/client';
 import { 
   AppBar, 
   Toolbar, 
@@ -113,23 +112,23 @@ function App() {
           <Routes>
             {/* Главная страница */}
             <Route path="/" element={<HomePage />} />
-            
+
             {/* Работа с заявками */}
             <Route path="/requests" element={<RequestList />} />
             <Route path="/request" element={<RequestForm />} />
-            
+
             {/* Мониторинг сигналов */}
             <Route path="/signals" element={<SignalMonitor />} />
-            
+
             {/* Тестирование */}
             <Route path="/testing" element={<TestingForm />} />
-            
+
             {/* Отчеты */}
             <Route path="/reports" element={<ReportsPage />} />
-            
+
             {/* Dashboard (legacy) */}
             <Route path="/dashboard" element={<Dashboard />} />
-            
+
             {/* Редирект для неизвестных маршрутов */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
@@ -137,12 +136,6 @@ function App() {
       </Box>
     </Router>
   );
-}
-
-// Точка входа приложения
-const container = document.getElementById('root');
-if (container) {
-  createRoot(container).render(<App />);
 }
 
 export default App;
