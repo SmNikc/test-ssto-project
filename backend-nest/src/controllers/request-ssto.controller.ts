@@ -56,10 +56,14 @@ export class RequestController {
         data: requests,
       });
     } catch (error) {
-      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      // If the database is unavailable or another error occurs we do not want
+      // to surface a 500 error to the frontend.  Returning an empty list keeps
+      // the UI functional even when the backend cannot reach the database.
+      console.error('Error fetching requests:', error);
+      return res.status(HttpStatus.OK).json({
         success: false,
-        message: 'Ошибка получения заявок',
-        error: error.message,
+        count: 0,
+        data: [],
       });
     }
   }

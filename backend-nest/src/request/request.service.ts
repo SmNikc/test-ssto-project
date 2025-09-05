@@ -34,7 +34,16 @@ export class RequestService {
   ) {}
 
   async findAll() {
-    return this.reqModel.findAll();
+    try {
+      // If the database is unreachable or the query fails we don't want the
+      // whole `/requests` endpoint to crash with a 500 error.  Instead we log
+      // the problem and return an empty list so that the frontend can handle
+      // the situation gracefully.
+      return await this.reqModel.findAll();
+    } catch (error) {
+      console.error('Failed to fetch requests:', error);
+      return [];
+    }
   }
 
   async findOne(id: string) {
