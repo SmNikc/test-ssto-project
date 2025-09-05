@@ -74,7 +74,7 @@ export class ReportService {
     // Email адреса
     doc.text('Covert message setup:', 50, 415);
     doc.text(`E-mail:od_smrcc@morflot.ru`, 50, 430);
-    doc.text(`E-mail:${request.email}`, 50, 445);
+    doc.text(`E-mail:${request.contact_email}`, 50, 445);
     if (request.contact_phone) {
       doc.text(`E-mail:${request.contact_person.toLowerCase().replace(' ', '_')}@volgaflot.com`, 50, 460);
     }

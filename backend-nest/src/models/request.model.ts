@@ -46,6 +46,12 @@ export default class SSASRequest extends Model {
   mmsi: string;
 
   @Column({
+    field: 'imo_number',
+    type: DataType.STRING,
+  })
+  imo_number: string;
+
+  @Column({
     field: 'ssas_number',
     type: DataType.STRING,
   })
@@ -72,17 +78,23 @@ export default class SSASRequest extends Model {
   contact_phone: string;
 
   @Column({
-    field: 'email',
+    field: 'contact_email',
     type: DataType.STRING,
     allowNull: false,
   })
-  email: string;
+  contact_email: string;
 
   @Column({
     field: 'test_date',
     type: DataType.DATE,
   })
   test_date: Date;
+
+  @Column({
+    field: 'planned_test_date',
+    type: DataType.DATE,
+  })
+  planned_test_date: Date;
 
   @Column({
     field: 'start_time',
@@ -110,6 +122,13 @@ export default class SSASRequest extends Model {
   status: string;
 
   @Column({
+    field: 'test_type',
+    type: DataType.STRING,
+    defaultValue: 'routine',
+  })
+  test_type: string;
+
+  @Column({
     field: 'signal_received_time',
     type: DataType.STRING,
   })
@@ -126,6 +145,18 @@ export default class SSASRequest extends Model {
     type: DataType.STRING,
   })
   signal_strength: string;
+
+  @Column({
+    field: 'vessel_id',
+    type: DataType.INTEGER,
+  })
+  vessel_id: number;
+
+  @Column({
+    field: 'signal_id',
+    type: DataType.INTEGER,
+  })
+  signal_id: number;
 
   @Column({
     field: 'confirmation_sent_at',
