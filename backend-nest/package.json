@@ -20,7 +20,6 @@
     "@nestjs/platform-express": "^10.3.10",
     "@nestjs/sequelize": "^10.0.1",
     "@nestjs/swagger": "^7.4.0",
-    "@nestjs/terminus": "^10.2.0",
     "@nestjs/typeorm": "^11.0.0",
     "@types/imap": "^0.8.42",
     "@types/pdfkit": "^0.17.2",
