@@ -6,8 +6,8 @@
   "scripts": {
     "start": "nest start",
     "start:dev": "nest start --watch",
-    "build": "nest build",
-    "lint": "eslint \"src/**/*.{ts,js}\"",
+    "build": "tsc -p tsconfig.build.json",
+    "lint": "eslint \"src/**/*.{ts,js}\" --max-warnings=0",
     "format": "prettier --write .",
     "test": "jest",
     "test:watch": "jest --watch"
