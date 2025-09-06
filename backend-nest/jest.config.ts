@@ -4,19 +4,18 @@ const config: Config = {
   preset: 'ts-jest',
   testEnvironment: 'node',
 
-  // Ищем тесты только в каталоге test, чтобы случайные файлы в src не подхватывались
-  roots: ['<rootDir>/test'],
+  // Разрешаем тесты как в test/, так и в src/
+  roots: ['<rootDir>/test', '<rootDir>/src'],
 
   moduleFileExtensions: ['ts', 'tsx', 'js'],
 
-  // Компиляция тестов TypeScript через ts-jest по основному tsconfig
+  // Компиляция TS-тестов через ts-jest по основному tsconfig
   transform: { '^.+\\.(t|j)sx?$': ['ts-jest', { tsconfig: 'tsconfig.json' }] },
 
-  // Игнорируем node_modules
   transformIgnorePatterns: ['/node_modules/'],
 
-  // Ищем только спецификации в папке test
-  testMatch: ['**/test/**/*.spec.(ts|tsx|js)'],
+  // Ищем любые *.(spec|test).(ts|tsx|js) в разрешённых корнях
+  testMatch: ['**/?(*.)+(spec|test).(ts|tsx|js)'],
 
   // Не сканируем артефакты сборки
   testPathIgnorePatterns: ['/node_modules/', '/dist/']
