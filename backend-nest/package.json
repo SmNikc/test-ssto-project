@@ -10,7 +10,8 @@
     "lint": "eslint \"src/**/*.{ts,js}\"",
     "format": "prettier --write .",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "db:probe:local": "node scripts/test-db.js"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.10",
