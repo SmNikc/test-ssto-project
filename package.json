@@ -1,0 +1,11 @@
+{
+  "name": "test-ssto-monorepo",
+  "private": true,
+  "workspaces": ["frontend", "backend-nest"],
+  "scripts": {
+    "build": "npm -w backend-nest run build && npm -w frontend run build",
+    "test": "npm -w backend-nest test && npm -w frontend test",
+    "lint": "npm -w backend-nest run lint && npm -w frontend run lint"
+  },
+  "engines": { "node": ">=18.18.0" }
+}
