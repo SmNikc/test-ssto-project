@@ -1,190 +1,117 @@
-// backend-nest/src/models/request.model.ts
-// Модель заявки, соответствующая структуре таблицы requests
+// backend-nest/src/request/request.service.ts
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/sequelize';
+import { Transaction } from 'sequelize';
+import SSASRequest from '../models/request.model';
 
-import {
-  Table,
-  Column,
-  Model,
-  DataType,
-  CreatedAt,
-  UpdatedAt,
-} from 'sequelize-typescript';
-
-@Table({
-  tableName: 'requests',
-  timestamps: true,
-  underscored: true,
-})
-export default class SSASRequest extends Model {
-  @Column({
-    type: DataType.INTEGER,
-    primaryKey: true,
-    autoIncrement: true,
-  })
-  id: number;
-
-  // In the current database schema the table does not contain a separate
-  // `request_id` column – the auto-incremented `id` column is used as the
-  // identifier.  Previously the model expected a physical `request_id`
-  // column which caused SQL errors like "column \"request_id\" does not
-  // exist" when querying the table.  To maintain backward compatibility with
-  // the frontend (which still expects a `request_id` field) we expose the
-  // numeric `id` value through a virtual column.
-  @Column({
-    type: DataType.VIRTUAL,
-    get(this: SSASRequest) {
-      const id = this.getDataValue('id');
-      return id != null ? id.toString() : undefined;
-    },
-    // No setter: the value is derived from `id`
-  })
-  request_id: string;
-
-  @Column({
-    field: 'vessel_name',
-    type: DataType.STRING,
-    allowNull: false,
-  })
-  vessel_name: string;
-
-  @Column({
-    field: 'mmsi',
-    type: DataType.STRING,
-    allowNull: false,
-  })
-  mmsi: string;
-
-  @Column({
-    field: 'imo_number',
-    type: DataType.STRING,
-  })
-  imo_number: string;
-
-  @Column({
-    field: 'ssas_number',
-    type: DataType.STRING,
-  })
-  ssas_number: string;
-
-  @Column({
-    field: 'owner_organization',
-    type: DataType.STRING,
-  })
-  owner_organization: string;
-
-  @Column({
-    field: 'contact_person',
-    type: DataType.STRING,
-    allowNull: false,
-  })
-  contact_person: string;
-
-  @Column({
-    field: 'contact_phone',
-    type: DataType.STRING,
-    allowNull: false,
-  })
-  contact_phone: string;
-
-  @Column({
-    field: 'contact_email',
-    type: DataType.STRING,
-    allowNull: false,
-  })
-  contact_email: string;
-
-  @Column({
-    field: 'test_date',
-    type: DataType.DATE,
-  })
-  test_date: Date;
-
-  @Column({
-    field: 'planned_test_date',
-    type: DataType.DATE,
-  })
-  planned_test_date: Date;
-
-  @Column({
-    field: 'start_time',
-    type: DataType.STRING,
-  })
-  start_time: string;
-
-  @Column({
-    field: 'end_time',
-    type: DataType.STRING,
-  })
-  end_time: string;
-
-  @Column({
-    field: 'notes',
-    type: DataType.TEXT,
-  })
-  notes: string;
-
-  @Column({
-    field: 'status',
-    type: DataType.STRING,
-    defaultValue: 'DRAFT',
-  })
-  status: string;
-
-  @Column({
-    field: 'test_type',
-    type: DataType.STRING,
-    defaultValue: 'routine',
-  })
-  test_type: string;
-
-  @Column({
-    field: 'signal_received_time',
-    type: DataType.STRING,
-  })
-  signal_received_time: string;
-
-  @Column({
-    field: 'signal_coordinates',
-    type: DataType.STRING,
-  })
-  signal_coordinates: string;
-
-  @Column({
-    field: 'signal_strength',
-    type: DataType.STRING,
-  })
-  signal_strength: string;
-
-  @Column({
-    field: 'vessel_id',
-    type: DataType.INTEGER,
-  })
-  vessel_id: number;
-
-  @Column({
-    field: 'signal_id',
-    type: DataType.INTEGER,
-  })
-  signal_id: number;
-
-  @Column({
-    field: 'confirmation_sent_at',
-    type: DataType.STRING,
-  })
-  confirmation_sent_at: string;
-
-  @CreatedAt
-  @Column({
-    field: 'created_at',
-    type: DataType.DATE,
-  })
-  created_at: Date;
-
-  @UpdatedAt
-  @Column({
-    field: 'updated_at',
-    type: DataType.DATE,
-  })
-  updated_at: Date;
+export enum RequestStatus {
+  DRAFT = 'DRAFT',
+  SUBMITTED = 'SUBMITTED',
+  IN_REVIEW = 'IN_REVIEW',
+  APPROVED = 'APPROVED',
+  IN_TESTING = 'IN_TESTING',
+  COMPLETED = 'COMPLETED',
+  REJECTED = 'REJECTED',
+  CANCELLED = 'CANCELLED'
 }
 
+const STATUS_TRANSITIONS: Record<RequestStatus, RequestStatus[]> = {
+  [RequestStatus.DRAFT]: [RequestStatus.SUBMITTED, RequestStatus.CANCELLED],
+  [RequestStatus.SUBMITTED]: [RequestStatus.IN_REVIEW, RequestStatus.CANCELLED],
+  [RequestStatus.IN_REVIEW]: [RequestStatus.APPROVED, RequestStatus.REJECTED],
+  [RequestStatus.APPROVED]: [RequestStatus.IN_TESTING, RequestStatus.CANCELLED],
+  [RequestStatus.IN_TESTING]: [RequestStatus.COMPLETED, RequestStatus.CANCELLED],
+  [RequestStatus.COMPLETED]: [],
+  [RequestStatus.REJECTED]: [RequestStatus.DRAFT],
+  [RequestStatus.CANCELLED]: []
+};
+
+@Injectable()
+export class RequestService {
+  constructor(
+    @InjectModel(SSASRequest)
+    private readonly reqModel: typeof SSASRequest,
+  ) {}
+
+  async findAll() {
+    return this.reqModel.findAll({ order: [['created_at', 'DESC']] });
+  }
+
+  /**
+   * Надёжный поиск только по первичному ключу id (число).
+   * Виртуальное поле request_id в модели используется лишь для совместимости в ответах,
+   * в БД его нет — по нему не ищем.
+   */
+  async findOne(id: string) {
+    const asNumber = Number(id);
+    if (!Number.isFinite(asNumber)) {
+      throw new NotFoundException(`Request #${id} not found`);
+    }
+    const row = await this.reqModel.findByPk(asNumber as any);
+    if (!row) throw new NotFoundException(`Request #${id} not found`);
+    return row;
+  }
+
+  async create(data: Partial<SSASRequest>) {
+    if (!data.mmsi || !data.vessel_name) {
+      throw new BadRequestException('MMSI and vessel_name are required');
+    }
+    const payload = {
+      ...data,
+      status: (data.status as RequestStatus) || RequestStatus.DRAFT
+    };
+    return this.reqModel.create(payload as any);
+  }
+
+  /**
+   * Обновление по реальному PK id.
+   * Если пришёл строковый id — приводим к числу и используем PK.
+   */
+  async update(id: string, data: Partial<SSASRequest>) {
+    const row = await this.findOne(id); // гарантируем существование
+    await this.reqModel.update(data, { where: { id: row.id } });
+    return this.findOne(String(row.id));
+  }
+
+  async updateStatus(id: string, status: string) {
+    const row = await this.findOne(id);
+    row.status = status;
+    await row.save();
+    return row;
+  }
+
+  async remove(id: string) {
+    const row = await this.findOne(id);
+    await row.destroy();
+    return { deleted: true };
+  }
+
+  async findPending() {
+    return this.reqModel.findAll({
+      where: { status: [RequestStatus.SUBMITTED, RequestStatus.IN_REVIEW] } as any,
+      order: [['created_at', 'DESC']]
+    });
+  }
+
+  async transitionStatus(
+    id: string,
+    newStatus: RequestStatus,
+    transaction?: Transaction
+  ): Promise<SSASRequest> {
+    const request = await this.findOne(id);
+    const currentStatus = request.status as RequestStatus;
+    const allowedTransitions = STATUS_TRANSITIONS[currentStatus];
+    if (!allowedTransitions.includes(newStatus)) {
+      throw new BadRequestException(`Cannot transition from ${currentStatus} to ${newStatus}`);
+    }
+    request.status = newStatus;
+    await request.save({ transaction });
+    return request;
+  }
+
+  async getAvailableTransitions(id: string): Promise<RequestStatus[]> {
+    const request = await this.findOne(id);
+    const currentStatus = request.status as RequestStatus;
+    return STATUS_TRANSITIONS[currentStatus] || [];
+  }
+}
