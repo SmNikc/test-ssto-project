@@ -2,13 +2,18 @@
 node_modules/
 npm-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+*.tsbuildinfo
+
+# Сборочные артефакты (корень и любые вложенные пакеты)
 dist/
+**/dist/
 build/
+**/build/
 .angular/
 .vite/
 .cache/
 .sass-cache/
-*.tsbuildinfo
 
 # Python, Pytest, Coverage
 __pycache__/
@@ -35,9 +40,7 @@ desktop.ini
 ehthumbs.db
 Icon?
 
-# Git, архивы
-.git/
-.gitignore
+# Архивы
 *.zip
 *.tar
 *.tar.gz
@@ -94,10 +97,10 @@ local.settings.json
 !backend-nest/docs/
 !frontend/docs/
 
-# Временные файлы
-/scripts/*
-!/scripts/README.md
-/temp/
+# Временные файлы/скрипты в корне (если нужны — удалите этот блок)
+scripts/*
+!scripts/README.md
+temp/
 *.bak
 *.tmp
 test-*.js
