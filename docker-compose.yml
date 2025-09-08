@@ -5,13 +5,16 @@ services:
     container_name: ssto-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: sstodb  # Изменено с ssto на sstodb
+      POSTGRES_DB: sstodb
       POSTGRES_USER: ssto
       POSTGRES_PASSWORD: ssto_pw
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    networks:
+      - ssto-network
+
   pgadmin:
     image: dpage/pgadmin4:8
     container_name: ssto-pgadmin
@@ -23,5 +26,46 @@ services:
       - "5050:80"
     depends_on:
       - db
+    networks:
+      - ssto-network
+
+  backend:
+    build:
+      context: ./backend-nest
+      dockerfile: Dockerfile
+    container_name: ssto-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: ssto
+      DB_PASSWORD: ssto_pw
+      DB_NAME: sstodb
+      KEYCLOAK_ENABLED: false
+    ports:
+      - "3001:3001"
+    depends_on:
+      - db
+    networks:
+      - ssto-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ssto-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    networks:
+      - ssto-network
+
+networks:
+  ssto-network:
+    driver: bridge
+
 volumes:
   pgdata:
