@@ -1,285 +1,340 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Op } from 'sequelize';
+import { Cron, CronExpression } from '@nestjs/schedule';
+
 import { EmailService } from './email.service';
 import SSASRequest from '../models/request.model';
 import SSASTerminal from '../models/ssas-terminal.model';
-import { Cron, CronExpression } from '@nestjs/schedule';
+
+type ParsedEmailRequest = {
+  terminal?: string;           // номер стойки ССТО (Inmarsat/Iridium)
+  terminal_number?: string;    // синоним
+  ssas?: string;               // синоним
+  vessel?: string;
+  mmsi?: string;
+  imo?: string;
+  requesterEmail?: string;
+  requesterName?: string;
+  phone?: string;
+  company?: string;
+  testDate?: string | Date;    // дата теста из письма (если была)
+  testType?: string;           // 'combined' | 'routine' | ...
+};
+
+type ParsedSignal = {
+  terminal_number?: string;    // номер стойки из сигнала
+  terminal?: string;           // синоним
+  ssas_number?: string;        // синоним
+  mmsi?: string;
+  received_at?: string | Date;
+};
 
 @Injectable()
 export class RequestProcessingService {
   constructor(
-    @InjectModel(SSASRequest) 
-    private requestModel: typeof SSASRequest,
-    
-    @InjectModel(SSASTerminal) 
-    private terminalModel: typeof SSASTerminal,
-    
-    private emailService: EmailService
+    @InjectModel(SSASRequest)
+    private readonly requestModel: typeof SSASRequest,
+
+    @InjectModel(SSASTerminal)
+    private readonly terminalModel: typeof SSASTerminal,
+
+    private readonly emailService: EmailService,
   ) {}
 
   /**
-   * Автоматическая проверка email каждые 5 минут
+   * Периодический опрос входящих писем (каждые 5 минут)
    */
   @Cron(CronExpression.EVERY_5_MINUTES)
   async processIncomingEmails() {
-    console.log('Проверка входящих email...');
-    
     try {
       const emailData = await this.emailService.checkIncomingEmails();
-      
-      // Обработка заявок
-      if (emailData.requests && emailData.requests.length > 0) {
-        console.log(`Найдено заявок: ${emailData.requests.length}`);
-        
-        for (const requestEmail of emailData.requests) {
-          await this.processEmailRequest(requestEmail);
+
+      // Обработка неформализованных заявок
+      if (emailData?.requests?.length) {
+        for (const req of emailData.requests) {
+          await this.processEmailRequest(req);
         }
       }
-      
+
       // Обработка сигналов
-      if (emailData.signals && emailData.signals.length > 0) {
-        console.log(`Найдено сигналов: ${emailData.signals.length}`);
-        
-        for (const signal of emailData.signals) {
-          await this.matchSignalToRequest(signal);
+      if (emailData?.signals?.length) {
+        for (const sig of emailData.signals) {
+          await this.matchSignalToRequest(sig);
         }
       }
-      
-      // Логирование нераспознанных
-      if (emailData.unrecognized && emailData.unrecognized.length > 0) {
-        console.log(`Нераспознанных писем: ${emailData.unrecognized.length}`);
-        for (const unrec of emailData.unrecognized) {
-          console.log(`  - ${unrec.subject} от ${unrec.from}`);
+
+      // Нераспознанные для логов
+      if (emailData?.unrecognized?.length) {
+        for (const u of emailData.unrecognized) {
+          // намеренно только логируем, чтобы не мешать основному потоку
+          // console.log(`[unrecognized] ${u.subject} from ${u.from}`);
         }
       }
-      
     } catch (error) {
-      console.error('Ошибка при обработке email:', error);
+      console.error('[processIncomingEmails] error:', error);
     }
   }
 
   /**
-   * Обработка заявки из email
+   * Обработка одной email-заявки (неформализованной)
+   * ожидается структура: { parsedData, emailSubject, emailFrom, emailDate, rawMessage }
    */
   private async processEmailRequest(emailRequest: any) {
-    const data = emailRequest.parsedData;
-    
-    try {
-      // Проверяем, есть ли уже заявка с таким терминалом
-      let existingRequest = null;
-      if (data.terminal) {
-        existingRequest = await this.requestModel.findOne({
-          where: {
-            terminalId: data.terminal,
-            status: ['pending', 'in_progress']
-          }
-        });
-      }
-      
-      if (existingRequest) {
-        console.log(`Заявка для терминала ${data.terminal} уже существует`);
-        return existingRequest;
-      }
-      
-      // Создаем новую заявку (используем Sequelize create)
-      const newRequest = await this.requestModel.create({
-        // Основные поля
-        terminalId: data.terminal || null,
-        vesselName: data.vessel || 'Не указано',
-        mmsi: data.mmsi || null,
-        imo: data.imo || null,
-        
-        // Контактные данные
-        requesterEmail: data.requesterEmail,
-        requesterName: data.requesterName || 'Не указано',
-        requesterPhone: data.phone || null,
-        requesterCompany: data.company || null,
-        
-        // Данные теста
-        testDate: data.testDate || new Date(),
-        testType: data.testType || 'combined',
-        
-        // Метаданные
-        status: 'pending',
-        source: 'email',  // ВАЖНО: помечаем источник
-        emailSubject: emailRequest.emailSubject,
-        emailFrom: emailRequest.emailFrom,
-        emailReceivedAt: emailRequest.emailDate,
-        rawEmailContent: emailRequest.rawMessage,
-        
-        // Флаг неформализованной заявки
-        isInformalRequest: true,
-        
-        // Отметка о неполных данных
-        hasIncompleteData: this.checkIncompleteData(data)
+    const data: ParsedEmailRequest = emailRequest?.parsedData ?? {};
+
+    // Номер стойки (основной идентификатор) → кладём в requests.ssas_number
+    const ssas_number =
+      data.terminal ??
+      data.terminal_number ??
+      data.ssas ??
+      null;
+
+    // Проверка дубликата по номеру стойки и «свежести» заявки (за сутки)
+    if (ssas_number) {
+      const duplicate = await this.requestModel.findOne({
+        where: {
+          ssas_number,
+          status: { [Op.in]: ['pending', 'in_testing'] },
+          test_date: { [Op.gte]: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+        },
+        order: [['created_at', 'DESC']],
       });
-      
-      console.log(`Создана заявка #${newRequest.id} из email`);
-      
-      // Отправляем подтверждение
-      await this.sendRequestConfirmation(newRequest, data);
-      
-      // Если есть терминал, проверяем/создаем его в справочнике
-      if (data.terminal) {
-        await this.ensureTerminalExists(data);
+      if (duplicate) {
+        // уже есть активная/ожидающая заявка по этой стойке — не плодим дубликаты
+        return duplicate;
       }
-      
-      return newRequest;
-      
-    } catch (error) {
-      console.error('Ошибка создания заявки:', error);
-      throw error;
     }
-  }
 
-  /**
-   * Проверка на неполные данные
-   */
-  private checkIncompleteData(data: any): boolean {
-    const requiredFields = ['terminal', 'mmsi', 'vessel', 'testDate'];
-    const missingFields = requiredFields.filter(field => !data[field]);
-    return missingFields.length > 0;
-  }
+    // Безопасные значения по умолчанию для NOT NULL полей
+    const contact_email = data.requesterEmail || 'unknown@example.com';
+    const contact_person = data.requesterName || 'Не указан';
+    const contact_phone = data.phone || '+7 (000) 000-00-00';
 
-  /**
-   * Создание/обновление терминала в справочнике
-   */
-  private async ensureTerminalExists(data: any) {
-    if (!data.terminal) return;
-    
-    let terminal = await this.terminalModel.findByPk(data.terminal);
-    
-    if (!terminal) {
-      // Создаем новый терминал
-      terminal = await this.terminalModel.create({
-        terminalId: data.terminal,
-        terminalType: data.terminalType || 'INMARSAT',
-        mmsi: data.mmsi || 'UNKNOWN',
-        vesselName: data.vessel || 'UNKNOWN',
-        imo: data.imo || null,
-        status: 'active'
-      });
-      console.log(`Создан новый терминал ${data.terminal}`);
-    } else if (data.mmsi && terminal.mmsi !== data.mmsi) {
-      // Проверяем возможное перемещение стойки
-      console.log(`Обнаружено несоответствие MMSI для терминала ${data.terminal}`);
-      
-      await terminal.update({
-        previousMmsi: terminal.mmsi,
-        previousVessel: terminal.vesselName,
+    // Дата теста (если не извлекли из письма) — сегодня
+    const test_date = data.testDate ? new Date(data.testDate) : new Date();
+
+    // Время теста — если нет в письме, 10:00–14:00 (как у вас в примерах)
+    const start_time = '10:00';
+    const end_time = '14:00';
+
+    // Тип теста (совместим с вашей моделью)
+    const test_type = (data.testType || 'routine').toString();
+
+    // Хозяйская организация (если пришла)
+    const owner_organization = data.company || null;
+
+    // Примечание — фиксируем контекст письма (не даёт ошибок даже при большой длине)
+    const notesChunks: string[] = [];
+    if (emailRequest?.emailSubject) notesChunks.push(`Subject: ${emailRequest.emailSubject}`);
+    if (emailRequest?.emailFrom) notesChunks.push(`From: ${emailRequest.emailFrom}`);
+    if (emailRequest?.emailDate) notesChunks.push(`Received: ${new Date(emailRequest.emailDate).toISOString()}`);
+    if (emailRequest?.rawMessage) {
+      const raw = String(emailRequest.rawMessage);
+      // не раздуваем запись: сохраняем начало письма
+      notesChunks.push(`Raw(512): ${raw.slice(0, 512)}`);
+    }
+    const notes = notesChunks.join('\n');
+
+    // Создание заявки — строго в поля, существующие в вашей модели
+    const created = await this.requestModel.create({
+      ssas_number,
+      vessel_name: data.vessel || 'Неизвестно',
+      mmsi: data.mmsi || null,
+      imo_number: data.imo || null,
+
+      owner_organization,
+      contact_person,
+      contact_phone,
+      contact_email,
+
+      test_date,
+      start_time,
+      end_time,
+
+      test_type,
+      status: 'pending',
+      notes,
+    } as any);
+
+    // Дополнительно поддержим справочник терминалов (если такой моделью управляете вы)
+    if (ssas_number) {
+      await this.ensureTerminalExists({
+        terminal_number: ssas_number,
         mmsi: data.mmsi,
-        vesselName: data.vessel || terminal.vesselName,
-        lastTransferDate: new Date()
+        vessel_name: data.vessel,
+        imo_number: data.imo,
       });
+    }
+
+    // Письмо-подтверждение заявителю (если email валиден)
+    await this.sendRequestConfirmation(created, {
+      terminal: ssas_number,
+      vessel: data.vessel,
+      mmsi: data.mmsi,
+      imo: data.imo,
+      phone: contact_phone,
+      company: owner_organization ?? '—',
+      requesterEmail: contact_email,
+      requesterName: contact_person,
+      testDate: test_date,
+    });
+
+    return created;
+  }
+
+  /**
+   * Создание/актуализация записи терминала (мягкая типизация, чтобы не падать по несовпадению атрибутов)
+   */
+  private async ensureTerminalExists(payload: {
+    terminal_number?: string;
+    mmsi?: string;
+    vessel_name?: string;
+    imo_number?: string;
+  }) {
+    if (!payload.terminal_number) return;
+
+    // пытаемся найти по terminal_number
+    const existing = await this.terminalModel.findOne({
+      where: { terminal_number: payload.terminal_number } as any,
+    });
+
+    if (!existing) {
+      await this.terminalModel.create(
+        {
+          terminal_number: payload.terminal_number,
+          mmsi: payload.mmsi ?? null,
+          vessel_name: payload.vessel_name ?? null,
+          imo_number: payload.imo_number ?? null,
+          status: 'active',
+        } as any,
+      );
+      return;
+    }
+
+    // Обновим, если появились/изменились данные
+    const patch: any = {};
+    if (payload.mmsi && existing['mmsi'] !== payload.mmsi) patch.mmsi = payload.mmsi;
+    if (payload.vessel_name && existing['vessel_name'] !== payload.vessel_name) patch.vessel_name = payload.vessel_name;
+    if (payload.imo_number && existing['imo_number'] !== payload.imo_number) patch.imo_number = payload.imo_number;
+    if (Object.keys(patch).length) {
+      await (existing as any).update(patch);
     }
   }
 
   /**
-   * Сопоставление сигнала с заявкой
+   * Сопоставление входящего сигнала с активной заявкой
    */
-  private async matchSignalToRequest(signal: any) {
-    // Ищем заявку по номеру терминала (приоритет)
-    let request = null;
-    
-    if (signal.terminalId) {
+  private async matchSignalToRequest(signal: ParsedSignal) {
+    const terminal =
+      signal.terminal_number ??
+      signal.terminal ??
+      signal.ssas_number ??
+      null;
+
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    let request: SSASRequest | null = null;
+
+    if (terminal) {
       request = await this.requestModel.findOne({
         where: {
-          terminalId: signal.terminalId,
-          status: ['pending', 'in_progress'],
-          testDate: {
-            [Op.gte]: new Date(Date.now() - 24 * 60 * 60 * 1000) // за последние сутки
-          }
+          ssas_number: terminal,
+          status: { [Op.in]: ['pending', 'in_testing'] },
+          test_date: { [Op.gte]: since },
         },
-        order: [['createdAt', 'DESC']]
+        order: [['created_at', 'DESC']],
       });
     }
-    
-    // Если не нашли по терминалу, ищем по MMSI
+
     if (!request && signal.mmsi) {
       request = await this.requestModel.findOne({
         where: {
           mmsi: signal.mmsi,
-          status: ['pending', 'in_progress'],
-          testDate: {
-            [Op.gte]: new Date(Date.now() - 24 * 60 * 60 * 1000)
-          }
+          status: { [Op.in]: ['pending', 'in_testing'] },
+          test_date: { [Op.gte]: since },
         },
-        order: [['createdAt', 'DESC']]
+        order: [['created_at', 'DESC']],
       });
-      
-      if (request) {
-        console.log(`Сигнал сопоставлен с заявкой по MMSI (терминал не совпал)`);
-      }
     }
-    
+
     if (request) {
-      // Обновляем статус заявки (используем Sequelize update)
+      // фиксируем факт сигнала
       await request.update({
-        status: 'in_progress',
-        lastSignalAt: new Date()
-      });
-      
-      console.log(`Сигнал сопоставлен с заявкой #${request.id}`);
-    } else {
-      console.log(`Сигнал не сопоставлен ни с одной заявкой`);
+        status: 'in_testing', // соответствует вашей карте статусов
+        signal_received_time: new Date(signal.received_at ?? Date.now()).toISOString(),
+      } as any);
     }
-    
+
     return request;
   }
 
   /**
-   * Отправка подтверждения получения заявки
+   * Отправка подтверждения по email заявителю
    */
-  private async sendRequestConfirmation(request: any, parsedData: any) {
-    const missingFields = [];
-    if (!parsedData.terminal) missingFields.push('номер стойки ССТО');
-    if (!parsedData.mmsi) missingFields.push('MMSI судна');
-    if (!parsedData.vessel) missingFields.push('название судна');
-    if (!parsedData.testDate) missingFields.push('дата тестирования');
-    
+  private async sendRequestConfirmation(
+    request: SSASRequest,
+    parsed: {
+      terminal?: string | null;
+      vessel?: string | null;
+      mmsi?: string | null;
+      imo?: string | null;
+      phone?: string | null;
+      company?: string | null;
+      requesterEmail?: string;
+      requesterName?: string;
+      testDate?: string | Date | null;
+    },
+  ) {
+    const missing: string[] = [];
+    if (!parsed.terminal) missing.push('номер стойки ССТО');
+    if (!parsed.mmsi) missing.push('MMSI');
+    if (!parsed.vessel) missing.push('название судна');
+    if (!parsed.testDate) missing.push('дата теста');
+
+    const displayNumber =
+      // если у вас есть вычисляемая/реальная колонка request_number — покажем её
+      (request as any).request_number ??
+      (typeof (request as any).getDataValue === 'function' ? (request as any).getDataValue('request_number') : undefined) ??
+      request.id;
+
     const html = `
       <h2>Заявка на тестирование ССТО получена</h2>
-      <p>Уважаемый ${parsedData.requesterName || 'заявитель'},</p>
-      <p>Ваша заявка получена и зарегистрирована в системе.</p>
-      
-      <div style="background: #f0f8ff; padding: 15px; border-radius: 5px; margin: 15px 0;">
-        <h3>Номер заявки: #${request.id}</h3>
-        <p><strong>Источник:</strong> Email (неформализованная заявка)</p>
+      <p>Уважаемый(ая) ${parsed.requesterName || 'заявитель'},</p>
+      <p>Ваша заявка <strong>#${displayNumber}</strong> зарегистрирована в системе.</p>
+
+      <div style="background:#f0f8ff;padding:12px;border-radius:6px;margin:12px 0;">
+        <p><strong>Номер стойки:</strong> ${parsed.terminal || '—'}</p>
+        <p><strong>Судно:</strong> ${parsed.vessel || '—'}</p>
+        <p><strong>MMSI:</strong> ${parsed.mmsi || '—'}</p>
+        <p><strong>IMO:</strong> ${parsed.imo || '—'}</p>
+        <p><strong>Дата теста:</strong> ${
+          parsed.testDate ? new Date(parsed.testDate).toLocaleDateString('ru-RU') : '—'
+        }</p>
+        <p><strong>Телефон:</strong> ${parsed.phone || '—'}</p>
+        <p><strong>Организация:</strong> ${parsed.company || '—'}</p>
       </div>
-      
-      <h3>Извлеченные данные:</h3>
-      <ul>
-        <li>Номер стойки: ${parsedData.terminal || 'НЕ УКАЗАН'}</li>
-        <li>Судно: ${parsedData.vessel || 'НЕ УКАЗАНО'}</li>
-        <li>MMSI: ${parsedData.mmsi || 'НЕ УКАЗАН'}</li>
-        <li>IMO: ${parsedData.imo || 'не указан'}</li>
-        <li>Дата теста: ${parsedData.testDate ? new Date(parsedData.testDate).toLocaleDateString('ru-RU') : 'НЕ УКАЗАНА'}</li>
-        <li>Телефон: ${parsedData.phone || 'не указан'}</li>
-        <li>Организация: ${parsedData.company || 'не указана'}</li>
-      </ul>
-      
-      ${missingFields.length > 0 ? `
-        <div style="background: #fff3cd; padding: 15px; border-radius: 5px; margin: 15px 0;">
-          <h3>⚠️ Требуется уточнить:</h3>
-          <ul>
-            ${missingFields.map(f => `<li>${f}</li>`).join('')}
-          </ul>
-          <p>Ответьте на это письмо с недостающей информацией или войдите в систему TEST SSTO для редактирования заявки.</p>
-        </div>
-      ` : ''}
-      
-      <p>Для отслеживания статуса заявки используйте номер <strong>#${request.id}</strong></p>
-      
-      <hr>
-      <p><small>Это автоматическое уведомление системы TEST SSTO<br>
-      ГМСКЦ Владивосток</small></p>
+
+      ${
+        missing.length
+          ? `<div style="background:#fff3cd;padding:12px;border-radius:6px;margin:12px 0;">
+               <p><strong>Требуется уточнить:</strong></p>
+               <ul>${missing.map((m) => `<li>${m}</li>`).join('')}</ul>
+               <p>Ответьте на это письмо недостающей информацией или отредактируйте заявку в модуле TEST SSTO.</p>
+             </div>`
+          : ''
+      }
+
+      <p>С уважением,<br/>ГМСКЦ (модуль TEST SSTO)</p>
     `;
-    
-    await this.emailService.sendEmail({
-      to: parsedData.requesterEmail,
-      subject: `Заявка #${request.id} на тестирование ССТО получена`,
-      html
-    });
+
+    const to = parsed.requesterEmail || (request as any).contact_email || null;
+    if (to) {
+      await this.emailService.sendEmail({
+        to,
+        subject: `Заявка #${displayNumber} на тестирование ССТО получена`,
+        html,
+      });
+    }
   }
 }

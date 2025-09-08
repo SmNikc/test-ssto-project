@@ -2,23 +2,27 @@
 node_modules/
 npm-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+*.tsbuildinfo
+
+# Сборочные артефакты (корень и любые вложенные пакеты)
 dist/
+**/dist/
 build/
+**/build/
 .angular/
 .vite/
 .cache/
 .sass-cache/
-*.tsbuildinfo
 
-# Python, Pytest, Coverage
+# Тесты/coverage/инструменты
 __pycache__/
 *.pyc
 .pytest_cache/
 .nyc_output/
 .coverage
 .coverage.*
-.cache/
-*.pyo
+coverage/
 
 # IDE и служебные файлы
 .idea/
@@ -27,6 +31,7 @@ __pycache__/
 *.swo
 *.bak
 *.tmp
+.eslintcache
 
 # System, OS-specific
 .DS_Store
@@ -35,9 +40,7 @@ desktop.ini
 ehthumbs.db
 Icon?
 
-# Git, архивы
-.git/
-.gitignore
+# Архивы и большие бинарники
 *.zip
 *.tar
 *.tar.gz
@@ -50,14 +53,14 @@ Icon?
 *.sql
 *.dump
 
-# Сборочные/исполняемые файлы
+# Исполняемые/объектные
 *.exe
 *.dll
 *.so
 *.obj
 *.out
 
-# Документы, медиа (если не исходники)
+# Документы/медиа (по умолчанию игнорим, но сделаем исключения ниже)
 *.png
 *.jpg
 *.jpeg
@@ -79,7 +82,9 @@ Icon?
 .env.*
 local.settings.json
 
-# Исключения для шаблонов env и других важных файлов
+# --- ИСКЛЮЧЕНИЯ (хотим ТРАКАТЬ эти пути/файлы) ---
+
+# Шаблоны env
 !backend-nest/.env.example
 !frontend/.env.example
 !backend-nest/.env.sample
@@ -87,19 +92,43 @@ local.settings.json
 !backend-nest/.env.dist
 !frontend/.env.dist
 
-# Исключения для шаблонов миграций и инструкций
+# Документация и её вложения
 !docs/
 !README.md
-!migrations/
-!backend-nest/docs/
-!frontend/docs/
 
-# Временные файлы
-/scripts/*
-!/scripts/README.md
-/temp/
-*.bak
-*.tmp
-test-*.js
-clean-*.js
-fix-*.js
+# Разрешаем ВНУТРИ docs типы, которые глобально игнорим
+!docs/**/*.png
+!docs/**/*.jpg
+!docs/**/*.jpeg
+!docs/**/*.gif
+!docs/**/*.pdf
+!docs/**/*.docx
+!docs/**/*.xlsx
+!docs/**/*.csv
+!docs/**/*.pptx
+
+# Миграции (если есть .sql)
+!migrations/
+!migrations/**/*.sql
+
+# Манифесты и важные CSV
+!**/manifest.csv
+
+# Ассеты фронтенда и публичные файлы приложения
+!frontend/public/**
+!frontend/src/assets/**
+
+# Скрипты (не игнорим их по умолчанию)
+# Если нужны временные — кладите в scripts/tmp/
+# и игнорьте только его:
+scripts/tmp/**
+
+# Логи проекта
+logs/
+*.log
+
+# Docker локальные данные (если используете bind volume)
+docker-data/
+db-data/
+pgdata/
+pgadmin-data/

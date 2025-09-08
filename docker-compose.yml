@@ -5,7 +5,7 @@ services:
     container_name: ssto-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ssto
+      POSTGRES_DB: sstodb  # Изменено с ssto на sstodb
       POSTGRES_USER: ssto
       POSTGRES_PASSWORD: ssto_pw
     ports:

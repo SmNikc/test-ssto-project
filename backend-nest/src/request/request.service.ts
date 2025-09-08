@@ -52,6 +52,39 @@ export class RequestService {
     return row;
   }
 
+  // ===== ДОБАВЛЕНО: нормализация статуса под ENUM в БД (без изменения бизнес-смыслов) =====
+  /**
+   * Приводит значение статуса к допустимым меткам БД (строчные):
+   * pending / approved / rejected / completed / failed / matched / unmatched / in_review / in_testing / cancelled
+   * Если пришёл enum в верхнем регистре — маппим на ближайшую допустимую метку.
+   * Если пришла произвольная строка — берём 'pending' по умолчанию.
+   */
+  private normalizeDbStatus(input: any): string {
+    const allowed = new Set([
+      'pending', 'approved', 'rejected', 'completed', 'failed',
+      'matched', 'unmatched', 'in_review', 'in_testing', 'cancelled',
+    ]);
+
+    // Если прилетело одно из наших enum-значений — переводим в метки БД
+    switch (input) {
+      case RequestStatus.DRAFT:        return 'pending';
+      case RequestStatus.SUBMITTED:    return 'pending';
+      case RequestStatus.IN_REVIEW:    return 'in_review';
+      case RequestStatus.APPROVED:     return 'approved';
+      case RequestStatus.IN_TESTING:   return 'in_testing';
+      case RequestStatus.COMPLETED:    return 'completed';
+      case RequestStatus.REJECTED:     return 'rejected';
+      case RequestStatus.CANCELLED:    return 'cancelled';
+      default: break;
+    }
+
+    const raw = (input ?? '').toString().trim();
+    if (!raw) return 'pending';
+    const lower = raw.toLowerCase();
+    return allowed.has(lower) ? lower : 'pending';
+  }
+  // =========================================================================================
+
   async create(data: Partial<SSASRequest>) {
     if (!data.mmsi || !data.vessel_name) {
       throw new BadRequestException('MMSI and vessel_name are required');
@@ -59,7 +92,9 @@ export class RequestService {
     
     const requestData = {
       ...data,
-      status: data.status || RequestStatus.DRAFT
+      // было: status: data.status || RequestStatus.DRAFT
+      // стало: нормализация под БД, без изменения вашей семантики
+      status: this.normalizeDbStatus(data.status ?? RequestStatus.DRAFT)
     };
     
     return this.reqModel.create(requestData as any);
@@ -68,13 +103,17 @@ export class RequestService {
   async update(id: string, data: Partial<SSASRequest>) {
     // База данных не содержит отдельного поля `request_id`, поэтому
     // обновление выполняется по первичному ключу `id`.
-    await this.reqModel.update(data, { where: { id } });
+    const patch: any = { ...data };
+    if (data.status !== undefined) {
+      patch.status = this.normalizeDbStatus(data.status);
+    }
+    await this.reqModel.update(patch, { where: { id } });
     return this.findOne(id);
   }
 
   async updateStatus(id: string, status: string) {
     const request = await this.findOne(id);
-    request.status = status;
+    request.status = this.normalizeDbStatus(status);
     await request.save();
     return request;
   }
@@ -86,9 +125,10 @@ export class RequestService {
   }
 
   async findPending() {
+    // чтобы работало независимо от регистра в БД — используем оба варианта
     return this.reqModel.findAll({
       where: {
-        status: ['SUBMITTED', 'IN_REVIEW']
+        status: ['SUBMITTED', 'IN_REVIEW', 'submitted', 'in_review', 'pending'] as any
       }
     });
   }
@@ -102,13 +142,14 @@ export class RequestService {
     const currentStatus = request.status as RequestStatus;
     const allowedTransitions = STATUS_TRANSITIONS[currentStatus];
     
-    if (!allowedTransitions.includes(newStatus)) {
+    if (!allowedTransitions || !allowedTransitions.includes(newStatus)) {
       throw new BadRequestException(
         `Cannot transition from ${currentStatus} to ${newStatus}`
       );
     }
     
-    request.status = newStatus;
+    // сохраняем в БД нормализованную метку
+    request.status = this.normalizeDbStatus(newStatus);
     await request.save({ transaction });
     
     return request;

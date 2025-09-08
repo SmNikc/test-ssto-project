@@ -1,3 +1,6 @@
+// backend-nest/src/controllers/signal.controller.ts
+// Контроллер сигналов. Гарантируем сериализацию с signal_number во всех ответах списков/объектов.
+
 import {
   Controller,
   Get,
@@ -5,7 +8,6 @@ import {
   Body,
   Param,
   Query,
-  UseGuards,
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
@@ -19,6 +21,33 @@ export class SignalController {
     private readonly pdfService: PdfService,
   ) {}
 
+  /** Гарантируем наличие signal_number в JSON */
+  private withSignalNumber(row: any) {
+    if (!row) return row;
+    const plain = typeof row.toJSON === 'function' ? row.toJSON() : row;
+    const sn =
+      (typeof row.getDataValue === 'function' &&
+        row.getDataValue('signal_number')) ||
+      plain.signal_number ||
+      row['signal_number'];
+    return { ...plain, signal_number: sn };
+  }
+
+  /** GET /signals — список сигналов с signal_number */
+  @Get()
+  async getAllSignals() {
+    try {
+      const rows = await this.signalService.findAll();
+      const data = (rows || []).map((s) => this.withSignalNumber(s));
+      return { success: true, count: data.length, data };
+    } catch (error: any) {
+      throw new HttpException(
+        error.message || 'Ошибка при получении сигналов',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   @Post('send-confirmation/:requestId')
   async sendConfirmation(@Param('requestId') requestId: string) {
     try {
@@ -26,13 +55,12 @@ export class SignalController {
       if (!request) {
         throw new HttpException('Заявка не найдена', HttpStatus.NOT_FOUND);
       }
-
       return {
         success: true,
         message: 'Подтверждение отправлено',
-        requestId: requestId,
+        requestId,
       };
-    } catch (error) {
+    } catch (error: any) {
       throw new HttpException(
         error.message || 'Ошибка при отправке подтверждения',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -48,26 +76,25 @@ export class SignalController {
         throw new HttpException('Заявка не найдена', HttpStatus.NOT_FOUND);
       }
 
-      // Используем данные напрямую из request, без vessel
+      // Данные берём напрямую из заявки (без обращения к справочнику судов)
       const requestData = {
         id: request.id,
-        vessel_name: request.vessel_name || 'Неизвестное судно',
-        mmsi: request.mmsi || 'Неизвестно',
-        imo: request.imo_number || 'Неизвестно',
-        status: request.status,
-        test_date: request.planned_test_date,
+        vessel_name: (request as any).vessel_name || 'Неизвестное судно',
+        mmsi: (request as any).mmsi || 'Неизвестно',
+        imo: (request as any).imo_number || 'Неизвестно',
+        status: (request as any).status,
+        test_date: (request as any).planned_test_date,
       };
 
       const html = this.pdfService.generateConfirmation(requestData);
-      
+
       return {
         success: true,
         message: 'Отчет сгенерирован',
-        html: html,
-        requestId: requestId,
+        html,
+        requestId,
       };
-    } catch (error) {
-      console.error('Generate report error:', error);
+    } catch (error: any) {
       return {
         success: false,
         message: error.message || 'Ошибка при генерации отчета',
@@ -75,15 +102,13 @@ export class SignalController {
     }
   }
 
+  // Сопутствующие запросы к заявкам
   @Get('requests')
-  async getAllRequests(@Query() query: any) {
+  async getAllRequests(@Query() _query: any) {
     try {
       const requests = await this.signalService.findAllRequests();
-      return {
-        success: true,
-        data: requests,
-      };
-    } catch (error) {
+      return { success: true, data: requests };
+    } catch (error: any) {
       throw new HttpException(
         error.message || 'Ошибка при получении заявок',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -98,11 +123,8 @@ export class SignalController {
       if (!request) {
         throw new HttpException('Заявка не найдена', HttpStatus.NOT_FOUND);
       }
-      return {
-        success: true,
-        data: request,
-      };
-    } catch (error) {
+      return { success: true, data: request };
+    } catch (error: any) {
       throw new HttpException(
         error.message || 'Ошибка при получении заявки',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -110,5 +132,3 @@ export class SignalController {
     }
   }
 }
-
-
