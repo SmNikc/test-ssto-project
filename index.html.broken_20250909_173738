@@ -1,0 +1,6705 @@
+<!DOCTYPE html>
+
+<html lang="ru">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Модуль ТЕСТ ССТО - Система управления тестированием</title>
+
+    
+
+    <!-- OpenLayers для карты -->
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v7.3.0/ol.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/ol@v7.3.0/dist/ol.js"></script>
+
+    
+
+    <!-- XLSX для работы с Excel -->
+
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    
+
+    <!-- jsPDF для генерации PDF -->
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <!-- Поддержка кириллицы для PDF -->
+
+    <script>
+
+        //      
+
+        function cyrillicToTranslit(text) {
+
+            const converter = {
+
+                '': 'a', '': 'b', '': 'v', '': 'g', '': 'd',
+
+                '': 'e', '': 'e', '': 'zh', '': 'z', '': 'i',
+
+                '': 'y', '': 'k', '': 'l', '': 'm', '': 'n',
+
+                '': 'o', '': 'p', '': 'r', '': 's', '': 't',
+
+                '': 'u', '': 'f', '': 'h', '': 'ts', '': 'ch',
+
+                '': 'sh', '': 'sch', '': '', '': 'y', '': '',
+
+                '': 'e', '': 'yu', '': 'ya',
+
+                '': 'A', '': 'B', '': 'V', '': 'G', '': 'D',
+
+                '': 'E', '': 'E', '': 'Zh', '': 'Z', '': 'I',
+
+                '': 'Y', '': 'K', '': 'L', '': 'M', '': 'N',
+
+                '': 'O', '': 'P', '': 'R', '': 'S', '': 'T',
+
+                '': 'U', '': 'F', '': 'H', '': 'Ts', '': 'Ch',
+
+                '': 'Sh', '': 'Sch', '': '', '': 'Y', '': '',
+
+                '': 'E', '': 'Yu', '': 'Ya',
+
+                ' ': ' ', '.': '.', ',': ',', '!': '!', '?': '?',
+
+                '-': '-', ':': ':', ';': ';', '"': '"', "'": "'",
+
+                '(': '(', ')': ')', '[': '[', ']': ']', '/': '/',
+
+                '': '"', '': '"', '': '-', '': '-'
+
+            };
+
+            
+
+            if (!text) return '';
+
+            return text.split('').map(char => converter[char] || char).join('');
+
+        }
+
+        
+
+        // -      PDF
+
+        function addTextToPDF(doc, text, x, y, options) {
+
+            try {
+
+                //    PDF
+
+                const translitText = cyrillicToTranslit(String(text));
+
+                doc.text(translitText, x, y, options);
+
+            } catch (e) {
+
+                console.error('     PDF:', e);
+
+                //    
+
+                try {
+
+                    doc.text(String(text), x, y);
+
+                } catch (e2) {
+
+                    console.error('   :', text);
+
+                }
+
+            }
+
+        }
+
+    </script>
+
+    
+
+    <style "switchTab(\'map\')">
+
+        /* =====   ===== */
+
+        * {
+
+            margin: 0;
+
+            padding: 0;
+
+            box-sizing: border-box;
+
+        }
+
+        
+
+        body {
+
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+            min-height: 100vh;
+
+            color: #333;
+
+        }
+
+        
+
+        .header {
+
+            background: rgba(255, 255, 255, 0.95);
+
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+
+            padding: 20px 0;
+
+            position: sticky;
+
+            top: 0;
+
+            z-index: 1000;
+
+        }
+
+        
+
+        .header-content {
+
+            max-width: 1400px;
+
+            margin: 0 auto;
+
+            padding: 0 20px;
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+        }
+
+        
+
+        .logo {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 15px;
+
+        }
+
+        
+
+        .logo-icon {
+
+            width: 50px;
+
+            height: 50px;
+
+            background: linear-gradient(135deg, #667eea, #764ba2);
+
+            border-radius: 12px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            font-size: 24px;
+
+            color: white;
+
+        }
+
+        
+
+        .logo-text h1 {
+
+            font-size: 24px;
+
+            background: linear-gradient(135deg, #667eea, #764ba2);
+
+            -webkit-background-clip: text;
+
+            -webkit-text-fill-color: transparent;
+
+            margin-bottom: 2px;
+
+        }
+
+        
+
+        .logo-text p {
+
+            font-size: 12px;
+
+            color: #666;
+
+        }
+
+        
+
+        .header-actions {
+
+            display: flex;
+
+            gap: 10px;
+
+        }
+
+        
+
+        .btn {
+
+            padding: 8px 16px;
+
+            border: none;
+
+            border-radius: 8px;
+
+            cursor: pointer;
+
+            font-weight: 600;
+
+            transition: 0.3s;
+
+        }
+
+        
+
+        .btn-primary {
+
+            background: linear-gradient(135deg, #667eea, #764ba2);
+
+            color: white;
+
+        }
+
+        
+
+        .btn-secondary {
+
+            background: #e2e8f0;
+
+            color: #4a5568;
+
+        }
+
+        
+
+        .btn:hover {
+
+            transform: translateY(-2px);
+
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+
+        }
+
+        
+
+        .navigation {
+
+            background: white;
+
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+
+            margin: 20px auto;
+
+            max-width: 1400px;
+
+            border-radius: 10px;
+
+            padding: 10px;
+
+        }
+
+        
+
+        .tabs {
+
+            display: flex;
+
+            gap: 5px;
+
+            flex-wrap: wrap;
+
+        }
+
+        
+
+        .tab {
+
+            padding: 10px 20px;
+
+            background: transparent;
+
+            border: none;
+
+            border-radius: 8px;
+
+            cursor: pointer;
+
+            font-weight: 600;
+
+            color: #4a5568;
+
+            transition: 0.3s;
+
+        }
+
+        
+
+        .tab:hover {
+
+            background: #f7fafc;
+
+        }
+
+        
+
+        .tab.active {
+
+            background: linear-gradient(135deg, #667eea, #764ba2);
+
+            color: white;
+
+        }
+
+        
+
+        .content-area {
+
+            max-width: 1400px;
+
+            margin: 0 auto;
+
+            padding: 0 20px;
+
+        }
+
+        
+
+        .tab-content {
+
+            display: none;
+
+            background: white;
+
+            border-radius: 15px;
+
+            padding: 30px;
+
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+
+            animation: fadeIn 0.3s ease;
+
+        }
+
+        
+
+        .tab-content.active {
+
+            display: block;
+
+        }
+
+        
+
+        @keyframes fadeIn {
+
+            from { opacity: 0; transform: translateY(10px); }
+
+            to { opacity: 1; transform: translateY(0); }
+
+        }
+
+        
+
+        .stats-grid {
+
+            display: grid;
+
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+
+            gap: 20px;
+
+            margin-bottom: 30px;
+
+        }
+
+        
+
+        .stat-card {
+
+            background: linear-gradient(135deg, #667eea, #764ba2);
+
+            color: white;
+
+            padding: 25px;
+
+            border-radius: 12px;
+
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+
+        }
+
+        
+
+        .stat-card h3 {
+
+            font-size: 14px;
+
+            opacity: 0.9;
+
+            margin-bottom: 10px;
+
+        }
+
+        
+
+        .stat-card .value {
+
+            font-size: 36px;
+
+            font-weight: bold;
+
+            margin-bottom: 5px;
+
+        }
+
+        
+
+        .stat-card .change {
+
+            font-size: 14px;
+
+            opacity: 0.9;
+
+        }
+
+        
+
+        /*  */
+
+        .form-group {
+
+            margin-bottom: 20px;
+
+        }
+
+        
+
+        .form-group label {
+
+            display: block;
+
+            margin-bottom: 8px;
+
+            font-weight: 600;
+
+            color: #4a5568;
+
+        }
+
+        
+
+        .form-group input,
+
+        .form-group select,
+
+        .form-group textarea {
+
+            width: 100%;
+
+            padding: 12px;
+
+            border: 2px solid #e2e8f0;
+
+            border-radius: 8px;
+
+            font-size: 16px;
+
+            transition: 0.3s;
+
+        }
+
+        
+
+        .form-group input:focus,
+
+        .form-group select:focus,
+
+        .form-group textarea:focus {
+
+            outline: none;
+
+            border-color: #667eea;
+
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+
+        }
+
+        
+
+        .form-group.highlight {
+
+            background: #fff3cd;
+
+            border: 3px solid #ff6b6b;
+
+            border-radius: 10px;
+
+            padding: 20px;
+
+            margin-bottom: 30px;
+
+        }
+
+        
+
+        .form-group.highlight label {
+
+            color: #d32f2f;
+
+            font-size: 18px;
+
+            font-weight: bold;
+
+        }
+
+        
+
+        .form-group.highlight input {
+
+            font-size: 20px;
+
+            font-weight: bold;
+
+            border: 3px solid #ff6b6b;
+
+        }
+
+        
+
+        /*  */
+
+        table {
+
+            width: 100%;
+
+            border-collapse: collapse;
+
+            margin-top: 20px;
+
+        }
+
+        
+
+        th {
+
+            background: #f7fafc;
+
+            padding: 12px;
+
+            text-align: left;
+
+            font-weight: 600;
+
+            color: #4a5568;
+
+            border-bottom: 2px solid #e2e8f0;
+
+        }
+
+        
+
+        td {
+
+            padding: 12px;
+
+            border-bottom: 1px solid #e2e8f0;
+
+        }
+
+        
+
+        tr:hover {
+
+            background: #f7fafc;
+
+        }
+
+        
+
+        .status-badge {
+
+            display: inline-block;
+
+            padding: 4px 12px;
+
+            border-radius: 20px;
+
+            font-size: 12px;
+
+            font-weight: 600;
+
+        }
+
+        
+
+        .status-pending {
+
+            background: #fef3c7;
+
+            color: #92400e;
+
+        }
+
+        
+
+        .status-confirmed {
+
+            background: #d1fae5;
+
+            color: #065f46;
+
+        }
+
+        
+
+        .status-active {
+
+            background: #dbeafe;
+
+            color: #1e40af;
+
+        }
+
+        
+
+        /*  */
+
+        #map-container { height: 500px;
+
+            border-radius: 10px;
+
+            margin-top: 20px;
+
+        }
+
+        
+
+        .map-controls {
+
+            margin-top: 20px;
+
+            display: flex;
+
+            gap: 10px;
+
+            flex-wrap: wrap;
+
+        }
+
+        
+
+        /*   */
+
+        .modal {
+
+            display: none;
+
+            position: fixed;
+
+            z-index: 2000;
+
+            left: 0;
+
+            top: 0;
+
+            width: 100%;
+
+            height: 100%;
+
+            background: rgba(0,0,0,0.5);
+
+            animation: fadeIn 0.3s;
+
+        }
+
+        
+
+        .modal.active {
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+        }
+
+        
+
+        .modal-content {
+
+            background: white;
+
+            border-radius: 15px;
+
+            padding: 30px;
+
+            max-width: 600px;
+
+            width: 90%;
+
+            max-height: 80vh;
+
+            overflow-y: auto;
+
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+
+        }
+
+        
+
+        .modal-header {
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            margin-bottom: 20px;
+
+        }
+
+        
+
+        .modal-title {
+
+            font-size: 24px;
+
+            font-weight: bold;
+
+            color: #2d3748;
+
+        }
+
+        
+
+        .modal-close {
+
+            font-size: 30px;
+
+            color: #a0aec0;
+
+            cursor: pointer;
+
+            background: none;
+
+            border: none;
+
+        }
+
+        
+
+        .modal-close:hover {
+
+            color: #4a5568;
+
+        }
+
+        
+
+        /*  */
+
+        .notification {
+
+            position: fixed;
+
+            top: 20px;
+
+            right: 20px;
+
+            padding: 15px 20px;
+
+            border-radius: 8px;
+
+            color: white;
+
+            font-weight: 600;
+
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+
+            z-index: 3000;
+
+            animation: slideIn 0.3s;
+
+        }
+
+        
+
+        @keyframes slideIn {
+
+            from { transform: translateX(100%); }
+
+            to { transform: translateX(0); }
+
+        }
+
+        
+
+        .notification.success {
+
+            background: #48bb78;
+
+        }
+
+        
+
+        .notification.error {
+
+            background: #f56565;
+
+        }
+
+        
+
+        .notification.info {
+
+            background: #4299e1;
+
+        }
+
+        
+
+        /*  input    */
+
+        #excel-upload {
+
+            display: none;
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <div class="header">
+
+        <div class="header-content">
+
+            <div class="logo">
+
+                <div class="logo-icon"></div>
+
+                <div class="logo-text">
+
+                    <h1>  </h1>
+
+                    <p>   </p>
+
+                </div>
+
+            </div>
+
+            <div class="header-actions">
+
+                <button class="btn btn-primary" onclick="window.excelLoader.openFileDialog()">  Excel</button>
+
+                <button class="btn btn-secondary" onclick="window.emailSender.configureSMTP()">  Email</button>
+
+                <button class="btn btn-secondary" onclick="exportSettings()">  </button>
+
+                <button class="btn btn-secondary" onclick="importSettings()">  </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    
+
+    <div class="navigation">
+
+        <div class="tabs">
+
+            <button class="tab active" onclick="switchTab(event, \'dashboard\')"> </button>
+
+            <button class="tab" onclick="switchTab(event, \'new-request\')">  </button>
+
+            <button class="tab" onclick="switchTab(event, \'requests\')"> </button>
+
+            <button class="tab" onclick="switchTab(event, \'signals\')"> </button>
+
+            <button class="tab" onclick="switchTab(event, \'terminals\')"> </button>
+
+            <button class="tab" onclick="switchTab(event, \'map-container\')"> </button>
+
+            <button class="tab" onclick="switchTab(event, \'reports\')"> </button>
+
+        </div>
+
+    </div>
+
+    
+
+    <div class="content-area">
+
+        <!-- Главная -->
+
+        <div id="dashboard" class="tab-content active">
+
+            <div class="stats-grid">
+
+                <div class="stat-card">
+
+                    <h3> </h3>
+
+                    <div class="value" id="total-requests">0</div>
+
+                    <div class="change"> +2  </div>
+
+                </div>
+
+                <div class="stat-card">
+
+                    <h3> </h3>
+
+                    <div class="value" id="pending-requests">0</div>
+
+                    <div class="change"> </div>
+
+                </div>
+
+                <div class="stat-card">
+
+                    <h3></h3>
+
+                    <div class="value" id="confirmed-requests">0</div>
+
+                    <div class="change"> +5  </div>
+
+                </div>
+
+                <div class="stat-card">
+
+                    <h3> </h3>
+
+                    <div class="value" id="total-signals">0</div>
+
+                    <div class="change">  </div>
+
+                </div>
+
+            </div>
+
+            
+
+            <div style="background: #e6fffa; border: 2px solid #38b2ac; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+
+                <h3 style="color: #234e52; margin-bottom: 10px;"> </h3>
+
+                <p>: <strong id="auto-confirm-status"></strong></p>
+
+                <button class="btn btn-primary" onclick="toggleAutoConfirm()"> </button>
+
+            </div>
+
+            
+
+            <div class="map-controls">
+
+                <button class="btn btn-primary" onclick="processEmailQueue()">  email </button>
+
+                <button class="btn btn-primary" onclick="syncWithPoiskMore()">   -</button>
+
+                <button class="btn btn-secondary" onclick="generateTestДата()">   </button>
+
+                <button class="btn btn-secondary" onclick="systemHealthCheck()">  </button>
+
+            </div>
+
+        </div>
+
+        
+
+        <!-- Новая заявка -->
+
+        <div id="new-request" class="tab-content">
+
+            <h2>     </h2>
+
+            <form id="request-form">
+
+                <div class="form-group highlight">
+
+                    <label>    ( ) *</label>
+
+                    <input type="text" id="station-number" name="station-number" required pattern="[0-9]{9}" 
+
+                           placeholder="Например: 427309676" maxlength="9">
+
+                    <small style="color: #d32f2f;"> :    -    </small>
+
+                </div>
+
+                
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+
+                    <div class="form-group">
+
+                        <label>   *</label>
+
+                        <div>
+
+                            <label><input type="radio" name="satcom-type" value="INMARSAT" checked> </label>
+
+                            <label><input type="radio" name="satcom-type" value="IRIDIUM"> </label>
+
+                        </div>
+
+                    </div>
+
+                    
+
+                    <div class="form-group">
+
+                        <label>  *</label>
+
+                        <input type="text" id="vessel-name" name="vessel-name" required>
+
+                    </div>
+
+                    
+
+                    <div class="form-group">
+
+                        <label>MMSI *</label>
+
+                        <input type="text" id="mmsi" name="mmsi" required pattern="[0-9]{9}" maxlength="9">
+
+                    </div>
+
+                    
+
+                    <div class="form-group">
+
+                        <label>IMO</label>
+
+                        <input type="text" id="imo" name="imo" pattern="[0-9]{7}" maxlength="7">
+
+                    </div>
+
+                    
+
+                    <div class="form-group">
+
+                        <label> *</label>
+
+                        <input type="text" id="ship-owner" name="ship-owner" required>
+
+                    </div>
+
+                    
+
+                    <div class="form-group">
+
+                        <label>Email *</label>
+
+                        <input type="email" id="email" name="email" required>
+
+                    </div>
+
+                    
+
+                    <div class="form-group">
+
+                        <label>  *</label>
+
+                        <input type="date" id="test-date" name="test-date" required>
+
+                    </div>
+
+                    
+
+                    <div class="form-group">
+
+                        <label> </label>
+
+                        <input type="time" id="test-time" name="test-time">
+
+                    </div>
+
+                </div>
+
+                
+
+                <button type="submit" class="btn btn-primary" style="margin-top: 20px;"> </button>
+
+            </form>
+
+        </div>
+
+        
+
+        <!-- Заявки -->
+
+        <div id="requests" class="tab-content">
+
+            <h2>   </h2>
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                    <th>ID</th>
+
+                    <th> </th>
+
+                    <th></th>
+
+                    <th>MMSI</th>
+
+                    <th>IMO</th>
+
+                    <th> </th>
+
+                    <th></th>
+
+                    <th></th>
+
+                </tr>
+
+                </thead>
+
+                <tbody id="requests-tbody">
+
+                    <!-- Данные загружаются динамически -->
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        
+
+        <!-- Сигналы -->
+
+        <div id="signals" class="tab-content">
+
+            <h2>  </h2>
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                    <th>ID</th>
+
+                    <th> </th>
+
+                    <th></th>
+
+                    <th>MMSI</th>
+
+                    <th>IMO</th>
+
+                    <th></th>
+
+                    <th> </th>
+
+                    <th>/</th>
+
+                    <th></th>
+
+                </tr>
+
+                </thead>
+
+                <tbody id="signals-tbody">
+
+                    <!-- Данные загружаются динамически -->
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        
+
+        <!-- Терминалы -->
+
+        <div id="terminals" class="tab-content">
+
+            <h2>   </h2>
+
+            <div class="map-controls">
+
+                <button class="btn btn-primary" onclick="addNewTerminal()">  </button>
+
+                <button class="btn btn-secondary" onclick="app.vesselDB.exportToCSV()">   CSV</button>
+
+            </div>
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th> </th>
+
+                        <th></th>
+
+                        <th>MMSI</th>
+
+                        <th> </th>
+
+                        <th></th>
+
+                        <th> </th>
+
+                        <th> </th>
+
+                        <th></th>
+
+                        <th></th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody id="terminals-tbody">
+
+                    <!-- Данные загружаются динамически -->
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        
+
+        <!-- Карта -->
+
+        <div id="map-container" class="tab-content">
+
+            <h2>  </h2>
+
+            <div id="map"></div>
+
+            <div class="map-controls">
+
+                <button class="btn btn-primary" onclick="window.mapManager.zoomToSignals()">  </button>
+
+                <button class="btn btn-primary" onclick="window.mapManager.measureDistance()"> </button>
+
+                <button class="btn btn-secondary" onclick="window.mapManager.exportMapImage()"> </button>
+
+                <button class="btn btn-secondary" onclick="window.mapManager.clearMap()"> </button>
+
+            </div>
+
+        </div>
+
+        
+
+        <!-- Отчёты -->
+
+        <div id="reports" class="tab-content">
+
+            <h2> </h2>
+
+            <div class="form-group">
+
+                <label> </label>
+
+                <select id="report-type">
+
+                    <option value="daily"></option>
+
+                    <option value="weekly"></option>
+
+                    <option value="monthly"></option>
+
+                    <option value="custom"> </option>
+
+                </select>
+
+            </div>
+
+            <div class="map-controls">
+
+                <button class="btn btn-primary" onclick="generateDailyReport()">  </button>
+
+                <button class="btn btn-primary" onclick="generateWeeklyReport()">  </button>
+
+                <button class="btn btn-primary" onclick="generateMonthlyReport()">  </button>
+
+                <button class="btn btn-secondary" onclick="exportReportToPDF()">   PDF</button>
+
+            </div>
+
+            <div id="report-content" style="margin-top: 20px;">
+
+                <!-- Содержимое отчёта -->
+
+            </div>
+
+        </div>
+
+    </div>
+
+    
+
+    <!-- Скрытый input для загрузки Excel -->
+
+    <input type="file" id="excel-upload" accept=".xlsx,.xls,.csv">
+
+    
+
+    <!-- Модальные окна будут создаваться динамически -->
+
+    
+
+    <script>
+
+        // =====   =====
+
+        const app = {
+
+            autoConfirmManager: null,
+
+            emailProcessor: null,
+
+            poiskMoreIntegration: null,
+
+            vesselDB: null,
+
+            map: null,
+
+            markers: [],
+
+            currentTab: 'dashboard',
+
+            filters: {
+
+                dateFrom: null,
+
+                dateTo: null,
+
+                status: 'all',
+
+                vesselMMSI: null,
+
+                signalType: 'all'
+
+            }
+
+        };
+
+
+
+        // =====  VesselDB -    =====
+
+        class VesselDB {
+
+            constructor() {
+
+                this.vessels = JSON.parse(localStorage.getItem('vessels') || '[]');
+
+                this.initDefaultVessels();
+
+            }
+
+
+
+            initDefaultVessels() {
+
+                if (this.vessels.length === 0) {
+
+                    this.vessels = [
+
+                        {
+
+                            id: 'V001',
+
+                            name: ' ',
+
+                            mmsi: '273456789',
+
+                            imo: '9876543',
+
+                            callSign: 'UBXR',
+
+                            flag: 'RU',
+
+                            type: 'Research Vessel',
+
+                            stationNumbers: ['427309676', '427309677'],
+
+                            owner: '  ',
+
+                            operator: ' ',
+
+                            email: 'fleet@ras.ru',
+
+                            satcomType: 'INMARSAT',
+
+                            lastTest: '2025-01-15T10:00:00Z',
+
+                            nextTest: '2025-02-15T10:00:00Z',
+
+                            status: 'ACTIVE'
+
+                        },
+
+                        {
+
+                            id: 'V002',
+
+                            name: ' ',
+
+                            mmsi: '273456790',
+
+                            imo: '9876544',
+
+                            callSign: 'UBXS',
+
+                            flag: 'RU',
+
+                            type: 'Cargo',
+
+                            stationNumbers: ['427309678'],
+
+                            owner: '  ',
+
+                            operator: '',
+
+                            email: 'dispatch@smp.ru',
+
+                            satcomType: 'IRIDIUM',
+
+                            lastTest: '2025-01-20T14:00:00Z',
+
+                            nextTest: '2025-02-20T14:00:00Z',
+
+                            status: 'ACTIVE'
+
+                        }
+
+                    ];
+
+                    this.save();
+
+                }
+
+            }
+
+
+
+            save() {
+
+                localStorage.setItem('vessels', JSON.stringify(this.vessels));
+
+            }
+
+
+
+            findByStationNumber(stationNumber) {
+
+                return this.vessels.find(v => 
+
+                    v.stationNumbers && v.stationNumbers.includes(stationNumber)
+
+                );
+
+            }
+
+
+
+            findByMMSI(mmsi) {
+
+                return this.vessels.find(v => v.mmsi === mmsi);
+
+            }
+
+
+
+            addVessel(vessel) {
+
+                vessel.id = `V${Date.now()}`;
+
+                vessel.createdAt = new Date().toISOString();
+
+                vessel.status = vessel.status || 'ACTIVE';
+
+                this.vessels.push(vessel);
+
+                this.save();
+
+                return vessel;
+
+            }
+
+
+
+            exportToCSV() {
+
+                const headers = ['ID', '', 'MMSI', 'IMO', '', ' ', '', 'Email', ' ', ''];
+
+                const rows = this.vessels.map(v => [
+
+                    v.id,
+
+                    v.name,
+
+                    v.mmsi,
+
+                    v.imo || '',
+
+                    v.callSign || '',
+
+                    (v.stationNumbers || []).join(';'),
+
+                    v.owner || '',
+
+                    v.email || '',
+
+                    v.satcomType || '',
+
+                    v.status
+
+                ]);
+
+
+
+                const csvContent = [
+
+                    headers.join(','),
+
+                    ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+
+                ].join('\n');
+
+
+
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+
+                const url = URL.createObjectURL(blob);
+
+                const link = document.createElement('a');
+
+                link.href = url;
+
+                link.download = `vessels_${Date.now()}.csv`;
+
+                link.click();
+
+                URL.revokeObjectURL(url);
+
+            }
+
+
+
+            getActiveVessels() {
+
+                return this.vessels.filter(v => v.status === 'ACTIVE');
+
+            }
+
+        }
+
+
+
+        // =====  AutoConfirmationManager =====
+
+        class AutoConfirmationManager {
+
+            constructor() {
+
+                this.enabled = localStorage.getItem('autoConfirmEnabled') === 'true';
+
+                this.adminPassword = 'Admin@SSTO2025';
+
+            }
+
+
+
+            toggleAutoConfirmation(password, reason, userId) {
+
+                if (password !== this.adminPassword) {
+
+                    throw new Error('  ');
+
+                }
+
+
+
+                this.enabled = !this.enabled;
+
+                localStorage.setItem('autoConfirmEnabled', this.enabled.toString());
+
+
+
+                return {
+
+                    success: true,
+
+                    enabled: this.enabled,
+
+                    message: `  ${this.enabled ? '' : ''}`
+
+                };
+
+            }
+
+
+
+            processSignal(signal) {
+
+                if (!this.enabled) {
+
+                    return { processed: false, reason: ' ' };
+
+                }
+
+
+
+                const requests = JSON.parse(localStorage.getItem('testRequests') || '[]');
+
+                const matchingRequest = requests.find(req => 
+
+                    req.stationNumber === signal.stationNumber &&
+
+                    req.status === 'pending'
+
+                );
+
+
+
+                if (!matchingRequest) {
+
+                    return { processed: false, reason: '   ' };
+
+                }
+
+
+
+                matchingRequest.status = 'confirmed';
+
+                matchingRequest.confirmedAt = new Date().toISOString();
+
+                
+
+                localStorage.setItem('testRequests', JSON.stringify(requests));
+
+
+
+                return {
+
+                    processed: true,
+
+                    requestId: matchingRequest.id
+
+                };
+
+            }
+
+        }
+
+
+
+// =====  EmailProcessor     =====
+
+class EmailProcessor {
+
+    constructor() {
+
+        this.emailQueue = JSON.parse(localStorage.getItem('emailQueue') || '[]');
+
+        this.processedEmails = JSON.parse(localStorage.getItem('processedEmails') || '[]');
+
+        this.emailPatterns = {
+
+            //    
+
+            testSignal: /---TEST SSAS TEST---|TEST SSAS/i,
+
+            mobileTerminal: /Mobile Terminal No[:\s]*(\d{9})/i,
+
+            stationNumber: /Station Number[:\s]*(\d{9})|Mobile Terminal No[:\s]*(\d{9})/i,
+
+            position: /Position[:\s]*([\d.]+)[NS]\s*([\d.]+)[EW]/i,
+
+            coordinates: /(\d+\.?\d*)[NS]\s+(\d+\.?\d*)[EW]/i,
+
+            utcTime: /(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})/i,
+
+            mmsi: /MMSI[:\s]*(\d{9})|(\d{9})\s+\d{4}-\d{2}-\d{2}/i,
+
+            vesselName: /Vessel[:\s]*([A-Za-z--\s\-]+)/i
+
+        };
+
+    }
+
+
+
+    parseIncomingEmail(emailContent, emailFrom, emailSubject) {
+
+        console.log('  email:', emailSubject);
+
+        
+
+        const signal = {
+
+            id: `SIG-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+
+            receivedAt: new Date().toISOString(),
+
+            emailFrom: emailFrom,
+
+            emailSubject: emailSubject,
+
+            rawContent: emailContent,
+
+            isTest: false,
+
+            type: 'UNKNOWN',
+
+            stationNumber: null,
+
+            mmsi: null,
+
+            vesselName: null,
+
+            coordinates: null,
+
+            positionTime: null
+
+        };
+
+
+
+        //   
+
+        if (this.emailPatterns.testSignal.test(emailContent)) {
+
+            signal.isTest = true;
+
+            signal.type = 'TEST';
+
+        }
+
+
+
+        //   /
+
+        const stationMatch = emailContent.match(this.emailPatterns.stationNumber);
+
+        if (stationMatch) {
+
+            signal.stationNumber = stationMatch[1] || stationMatch[2];
+
+            console.log('  :', signal.stationNumber);
+
+        }
+
+
+
+        //  MMSI
+
+        const mmsiMatch = emailContent.match(this.emailPatterns.mmsi);
+
+        if (mmsiMatch) {
+
+            signal.mmsi = mmsiMatch[1] || mmsiMatch[2];
+
+        }
+
+
+
+        //  
+
+        const coordMatch = emailContent.match(this.emailPatterns.coordinates);
+
+        if (coordMatch) {
+
+            signal.coordinates = {
+
+                lat: parseFloat(coordMatch[1]),
+
+                lon: parseFloat(coordMatch[2])
+
+            };
+
+        }
+
+
+
+        //   UTC
+
+        const timeMatch = emailContent.match(this.emailPatterns.utcTime);
+
+        if (timeMatch) {
+
+            signal.positionTime = `${timeMatch[1]}T${timeMatch[2]}Z`;
+
+        }
+
+
+
+        //     
+
+        if (signal.stationNumber) {
+
+            const vessel = app.vesselDB.findByStationNumber(signal.stationNumber);
+
+            if (vessel) {
+
+                signal.vesselName = vessel.name;
+
+                signal.mmsi = signal.mmsi || vessel.mmsi;
+
+                signal.type = vessel.satcomType;
+
+            }
+
+        }
+
+
+
+        return signal;
+
+    }
+
+
+
+    processTestSignalEmail(emailContent) {
+
+        //        
+
+        const test = {
+
+            stationNumber: null,
+
+            position: null,
+
+            time: null,
+
+            mmsi: null
+
+        };
+
+
+
+        //   :
+
+        // Mobile Terminal No:427305964
+
+        // Position:41 28.83N 31 47.83'E
+
+        // Position updated:08:26 2025-03-18 UTC
+
+        
+
+        const lines = emailContent.split('\n');
+
+        lines.forEach(line => {
+
+            if (line.includes('Mobile Terminal No')) {
+
+                const match = line.match(/(\d{9})/);
+
+                if (match) test.stationNumber = match[1];
+
+            }
+
+            if (line.includes('Position:')) {
+
+                const match = line.match(/([\d.]+)\s*[NS]\s*([\d.]+)\s*[EW]/);
+
+                if (match) {
+
+                    test.position = {
+
+                        lat: parseFloat(match[1]),
+
+                        lon: parseFloat(match[2])
+
+                    };
+
+                }
+
+            }
+
+            if (line.includes('Position updated') || line.includes('UTC')) {
+
+                const match = line.match(/(\d{2}:\d{2})\s+(\d{4}-\d{2}-\d{2})/);
+
+                if (match) {
+
+                    test.time = `${match[2]}T${match[1]}:00Z`;
+
+                }
+
+            }
+
+            if (line.match(/^\d{9}\s+\d{4}-\d{2}-\d{2}/)) {
+
+                const match = line.match(/^(\d{9})/);
+
+                if (match) test.mmsi = match[1];
+
+            }
+
+        });
+
+
+
+        return test;
+
+    }
+
+
+
+    async simulateIncomingEmail() {
+
+        //   email   
+
+        const testEmail = `---TEST SSAS TEST---
+
+Mobile Terminal No:427305964
+
+Position:41 28.83N 31 47.83'E
+
+Position updated:08:26 2025-03-18 UTC
+
+---TEST SSAS TEST---
+
+009598830 2025-03-18 08:26:42
+
+41.28N 31.47E
+
+2025-03-18 08:26:42
+
+Coverage message setup:
+
+E-mail:od_gmrcc@morflot.ru
+
+E-mail:uvdp@volgaflot.com
+
+E-mail:sb-tech@volgaflot.com`;
+
+
+
+        const signal = this.parseIncomingEmail(
+
+            testEmail,
+
+            'ssas@inmarsat.com',
+
+            'TEST SSAS ALERT'
+
+        );
+
+
+
+        //  
+
+        const signals = JSON.parse(localStorage.getItem('signals') || '[]');
+
+        signals.push(signal);
+
+        localStorage.setItem('signals', JSON.stringify(signals));
+
+
+
+        //  
+
+        if (app.autoConfirmManager && app.autoConfirmManager.enabled) {
+
+            const result = app.autoConfirmManager.processSignal(signal);
+
+            if (result.processed) {
+
+                //   
+
+                await this.generateOfficialConfirmation(signal, result.requestId);
+
+            }
+
+        }
+
+
+
+        showNotification(`      ${signal.stationNumber}`, 'info');
+
+        loadSignals();
+
+        
+
+        return signal;
+
+    }
+
+
+
+    async generateOfficialConfirmation(signal, requestId) {
+
+        const request = JSON.parse(localStorage.getItem('testRequests') || '[]')
+
+            .find(r => r.id === requestId);
+
+        
+
+        if (!request) return;
+
+
+
+        const vessel = app.vesselDB.findByStationNumber(signal.stationNumber);
+
+        
+
+        //    
+
+        const confirmationHTML = `
+
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <style>
+
+        body { font-family: 'Times New Roman', serif; margin: 40px; }
+
+        .header { text-align: center; margin-bottom: 30px; }
+
+        .header h3 { margin: 5px 0; font-size: 14px; }
+
+        .doc-number { margin: 20px 0; }
+
+        .content { margin: 30px 0; line-height: 1.6; }
+
+        .signature { margin-top: 50px; }
+
+        .details { margin: 20px 0; background: #f0f0f0; padding: 15px; }
+
+        .details-line { margin: 5px 0; font-family: monospace; }
+
+    </style>
+
+</head>
+
+<body>
+
+    <div class="header">
+
+        <h3> </h3>
+
+        <h3></h3>
+
+        <h3>   </h3>
+
+        <h3>  </h3>
+
+        <h3>( )</h3>
+
+        <p style="font-size: 12px;">
+
+            .  . 3/6 . 2, . , 125993<br>
+
+            .: (495) 626-18-08<br>
+
+            info@morspas.ru, www.morspas.ru<br>
+
+             18685292,  1027739737321<br>
+
+            / 7707274249/770701001
+
+        </p>
+
+        <h3>  -  ()</h3>
+
+    </div>
+
+
+
+    <div class="doc-number">
+
+        <strong> -${request.id.replace('REQ-', '')}</strong><br>
+
+         ${new Date().toLocaleDateString('ru-RU')}
+
+    </div>
+
+
+
+    <div class="content">
+
+        <p><strong>    :</strong></p>
+
+        
+
+        <div class="details">
+
+            <div class="details-line">---TEST SSAS TEST---</div>
+
+            <div class="details-line">Mobile Terminal No:${signal.stationNumber}</div>
+
+            <div class="details-line">Position:${signal.coordinates ? 
+
+                signal.coordinates.lat + 'N ' + signal.coordinates.lon + 'E' : ' '}</div>
+
+            <div class="details-line">Position updated:${formatDate(signal.positionTime || signal.receivedAt)}</div>
+
+            <div class="details-line">---TEST SSAS TEST---</div>
+
+            <div class="details-line">${signal.mmsi || '000000000'} ${new Date().toISOString().split('T')[0]}</div>
+
+            <div class="details-line">Vessel: ${vessel ? vessel.name : ' '}</div>
+
+        </div>
+
+
+
+        <p>Coverage message setup:</p>
+
+        <p>E-mail: od_gmrcc@morflot.ru<br>
+
+           E-mail: ${request.email}<br>
+
+           ${vessel && vessel.operator ? `E-mail: ${vessel.operator}@volgaflot.com` : ''}
+
+        </p>
+
+    </div>
+
+
+
+    <div class="signature">
+
+        <p> </p>
+
+        <p><strong>.. </strong></p>
+
+        <p>  </p>
+
+        <p>${new Date().toLocaleDateString('ru-RU')}</p>
+
+        <br>
+
+        <p>  <br>
+
+        +7 (495) 626-10-52</p>
+
+    </div>
+
+</body>
+
+</html>
+
+        `;
+
+
+
+        //  
+
+        const confirmation = {
+
+            id: `CONF-${Date.now()}`,
+
+            requestId: requestId,
+
+            signalId: signal.id,
+
+            html: confirmationHTML,
+
+            createdAt: new Date().toISOString(),
+
+            documentNumber: `-${request.id.replace('REQ-', '')}`,
+
+            signedBy: '.. '
+
+        };
+
+
+
+        const confirmations = JSON.parse(localStorage.getItem('confirmations') || '[]');
+
+        confirmations.push(confirmation);
+
+        localStorage.setItem('confirmations', JSON.stringify(confirmations));
+
+
+
+        //   email  
+
+        if (window.emailSender && window.emailSender.enabled) {
+
+            await window.emailSender.sendOfficialConfirmation(confirmation, request, vessel);
+
+        }
+
+
+
+        return confirmation;
+
+    }
+
+}
+
+
+
+//      
+
+function viewConfirmation(requestId) {
+
+    const confirmations = JSON.parse(localStorage.getItem('confirmations') || '[]');
+
+    const confirmation = confirmations.find(c => c.requestId === requestId);
+
+    
+
+    if (!confirmation) {
+
+        showNotification('  ', 'error');
+
+        return;
+
+    }
+
+    
+
+    //    
+
+    const win = window.open('', '_blank');
+
+    win.document.write(confirmation.html);
+
+    win.document.close();
+
+}
+
+
+
+//      email  
+
+function addEmailTestButton() {
+
+    const dashboardActions = document.querySelector('#dashboard .map-controls');
+
+    if (dashboardActions) {
+
+        const button = document.createElement('button');
+
+        button.className = 'btn btn-primary';
+
+        button.innerHTML = '   ';
+
+        button.onclick = () => app.emailProcessor.simulateIncomingEmail();
+
+        dashboardActions.appendChild(button);
+
+    }
+
+}
+
+
+
+//   
+
+document.addEventListener('DOMContentLoaded', () => {
+
+    addEmailTestButton();
+
+});
+
+
+
+        // =====  PoiskMoreIntegration =====
+
+        class PoiskMoreIntegration {
+
+            constructor() {
+
+                this.syncEnabled = localStorage.getItem('poiskMoreSyncEnabled') === 'true';
+
+            }
+
+
+
+            async sendToPoiskMore(signal) {
+
+                //  
+
+                return {
+
+                    success: true,
+
+                    poiskMoreId: `PM-${Date.now()}`,
+
+                    message: '   -'
+
+                };
+
+            }
+
+
+
+            async syncBatch(signals) {
+
+                const results = [];
+
+                for (const signal of signals) {
+
+                    const result = await this.sendToPoiskMore(signal);
+
+                    results.push(result);
+
+                }
+
+                return results;
+
+            }
+
+        }
+
+
+
+        // =====  AdvancedMapManager =====
+
+        class AdvancedMapManager {
+
+            constructor() {
+
+                this.map = null;
+
+                this.vectorSource = null;
+
+            }
+
+
+
+            initAdvancedMap() {
+
+                if (!document.getElementById('map')) return;
+
+
+
+                this.map = new ol.Map({
+
+                    target: 'map',
+
+                    layers: [
+
+                        new ol.layer.Tile({
+
+                            source: new ol.source.OSM()
+
+                        })
+
+                    ],
+
+                    view: new ol.View({
+
+                        center: ol.proj.fromLonLat([37.6173, 55.7558]),
+
+                        zoom: 5
+
+                    })
+
+                });
+
+
+
+                this.vectorSource = new ol.source.Vector();
+
+                const vectorLayer = new ol.layer.Vector({
+
+                    source: this.vectorSource
+
+                });
+
+                this.map.addLayer(vectorLayer);
+
+
+
+                this.loadSignalsToMap();
+
+            }
+
+
+
+            loadSignalsToMap() {
+
+                const signals = JSON.parse(localStorage.getItem('signals') || '[]');
+
+                this.vectorSource.clear();
+
+                
+
+                signals.forEach(signal => {
+
+                    if (signal.coordinates) {
+
+                        const feature = new ol.Feature({
+
+                            geometry: new ol.geom.Point(
+
+                                ol.proj.fromLonLat([signal.coordinates.lon, signal.coordinates.lat])
+
+                            )
+
+                        });
+
+                        
+
+                        const iconStyle = new ol.style.Style({
+
+                            image: new ol.style.Circle({
+
+                                radius: 8,
+
+                                fill: new ol.style.Fill({
+
+                                    color: signal.isTest ? 'rgba(0, 255, 0, 0.6)' : 'rgba(255, 0, 0, 0.6)'
+
+                                }),
+
+                                stroke: new ol.style.Stroke({
+
+                                    color: signal.isTest ? 'green' : 'red',
+
+                                    width: 2
+
+                                })
+
+                            })
+
+                        });
+
+                        
+
+                        feature.setStyle(iconStyle);
+
+                        this.vectorSource.addFeature(feature);
+
+                    }
+
+                });
+
+            }
+
+
+
+            zoomToSignals() {
+
+                if (!this.vectorSource) return;
+
+                const extent = this.vectorSource.getExtent();
+
+                if (!ol.extent.isEmpty(extent)) {
+
+                    this.map.getView().fit(extent, {
+
+                        padding: [50, 50, 50, 50],
+
+                        duration: 1000
+
+                    });
+
+                }
+
+            }
+
+
+
+            measureDistance() {
+
+                alert('   ');
+
+            }
+
+
+
+            exportMapImage() {
+
+                alert('   ');
+
+            }
+
+
+
+            clearMap() {
+
+                if (this.vectorSource) {
+
+                    this.vectorSource.clear();
+
+                }
+
+            }
+
+        }
+
+
+
+        // =====  EmailAutoSender =====
+
+// =====  EmailAutoSender    =====
+
+class EmailAutoSender {
+
+    constructor() {
+
+        this.enabled = localStorage.getItem('emailAutoSendEnabled') === 'true';
+
+        this.smtp = {
+
+            host: localStorage.getItem('smtpHost') || 'smtp.gmail.com',
+
+            port: localStorage.getItem('smtpPort') || '587',
+
+            user: localStorage.getItem('smtpUser') || '',
+
+            pass: localStorage.getItem('smtpPass') || '',
+
+            from: localStorage.getItem('smtpFrom') || 'ssto@morflot.ru',
+
+            secure: localStorage.getItem('smtpSecure') === 'true'
+
+        };
+
+        this.templates = this.loadTemplates();
+
+        this.queue = JSON.parse(localStorage.getItem('emailQueue') || '[]');
+
+    }
+
+
+
+    loadTemplates() {
+
+        const saved = localStorage.getItem('emailTemplates');
+
+        if (saved) return JSON.parse(saved);
+
+        
+
+        return {
+
+            testConfirmation: {
+
+                subject: '     - {{vesselName}}',
+
+                body: `
+
+ 
+
+  - 
+
+
+
+      
+
+
+
+ :
+
+
+
+: {{vesselName}}
+
+MMSI: {{mmsi}}
+
+IMO: {{imo}}
+
+  : {{stationNumber}}
+
+ : {{satcomType}}
+
+/ : {{testDate}}
+
+/  : {{receivedAt}}
+
+
+
+
+
+:    
+
+
+
+        .
+
+
+
+ ,
+
+  
+
+: +7 (495) 626-10-52
+
+Email: gmskc@morflot.ru
+
+
+
+---
+
+     .
+
+                `
+
+            }
+
+        };
+
+    }
+
+
+
+    configureSMTP() {
+
+        //    
+
+        const modal = document.createElement('div');
+
+        modal.className = 'modal active';
+
+        modal.innerHTML = `
+
+            <div class="modal-content">
+
+                <div class="modal-header">
+
+                    <div class="modal-title">    Email</div>
+
+                    <button class="modal-close" onclick="this.closest('.modal').remove()"></button>
+
+                </div>
+
+                <div style="padding: 20px;">
+
+                    <div class="form-group">
+
+                        <label>
+
+                            <input type="checkbox" id="email-auto-send" ${this.enabled ? 'checked' : ''}>
+
+                               
+
+                        </label>
+
+                    </div>
+
+                    
+
+                    <h3> SMTP </h3>
+
+                    
+
+                    <div class="form-group">
+
+                        <label>SMTP </label>
+
+                        <input type="text" id="smtp-host" value="${this.smtp.host}" placeholder="smtp.gmail.com">
+
+                    </div>
+
+                    
+
+                    <div class="form-group">
+
+                        <label></label>
+
+                        <input type="text" id="smtp-port" value="${this.smtp.port}" placeholder="587">
+
+                    </div>
+
+                    
+
+                    <div class="form-group">
+
+                        <label>
+
+                            <input type="checkbox" id="smtp-secure" ${this.smtp.secure ? 'checked' : ''}>
+
+                             SSL/TLS
+
+                        </label>
+
+                    </div>
+
+                    
+
+                    <div class="form-group">
+
+                        <label>  (email)</label>
+
+                        <input type="email" id="smtp-user" value="${this.smtp.user}" placeholder="user@domain.ru">
+
+                    </div>
+
+                    
+
+                    <div class="form-group">
+
+                        <label></label>
+
+                        <input type="password" id="smtp-pass" value="${this.smtp.pass}" placeholder="••••••••">
+
+                    </div>
+
+                    
+
+                    <div class="form-group">
+
+                        <label>Email </label>
+
+                        <input type="email" id="smtp-from" value="${this.smtp.from}" placeholder="ssto@morflot.ru">
+
+                    </div>
+
+                    
+
+                    <h3> </h3>
+
+                    
+
+                    <div class="form-group">
+
+                        <label>   ()</label>
+
+                        <input type="number" id="email-delay" value="${localStorage.getItem('emailDelay') || '5'}" min="1" max="60">
+
+                    </div>
+
+                    
+
+                    <div class="form-group">
+
+                        <label>  email </label>
+
+                        <input type="email" id="email-cc" value="${localStorage.getItem('emailCC') || 'gmskc@morflot.ru'}">
+
+                    </div>
+
+                    
+
+                    <div style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 15px; margin: 20px 0;">
+
+                        <strong> :</strong><br>
+
+                           email  backend .<br>
+
+                         -      .
+
+                    </div>
+
+                    
+
+                    <div class="map-controls">
+
+                        <button class="btn btn-primary" onclick="window.emailSender.saveSettings()">  </button>
+
+                        <button class="btn btn-secondary" onclick="window.emailSender.testConnection()">  </button>
+
+                        <button class="btn btn-secondary" onclick="window.emailSender.viewQueue()">  (${this.queue.length})</button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        `;
+
+        document.body.appendChild(modal);
+
+    }
+
+
+
+    saveSettings() {
+
+        this.enabled = document.getElementById('email-auto-send').checked;
+
+        this.smtp.host = document.getElementById('smtp-host').value;
+
+        this.smtp.port = document.getElementById('smtp-port').value;
+
+        this.smtp.secure = document.getElementById('smtp-secure').checked;
+
+        this.smtp.user = document.getElementById('smtp-user').value;
+
+        this.smtp.pass = document.getElementById('smtp-pass').value;
+
+        this.smtp.from = document.getElementById('smtp-from').value;
+
+        
+
+        localStorage.setItem('emailAutoSendEnabled', this.enabled);
+
+        localStorage.setItem('smtpHost', this.smtp.host);
+
+        localStorage.setItem('smtpPort', this.smtp.port);
+
+        localStorage.setItem('smtpSecure', this.smtp.secure);
+
+        localStorage.setItem('smtpUser', this.smtp.user);
+
+        localStorage.setItem('smtpPass', this.smtp.pass);
+
+        localStorage.setItem('smtpFrom', this.smtp.from);
+
+        localStorage.setItem('emailDelay', document.getElementById('email-delay').value);
+
+        localStorage.setItem('emailCC', document.getElementById('email-cc').value);
+
+        
+
+        showNotification(' email ', 'success');
+
+        document.querySelector('.modal').remove();
+
+    }
+
+
+
+    testConnection() {
+
+        if (!this.smtp.host || !this.smtp.user || !this.smtp.pass) {
+
+            showNotification('  SMTP', 'error');
+
+            return;
+
+        }
+
+        
+
+        //        backend
+
+        showNotification('-:  ', 'info');
+
+    }
+
+
+
+    viewQueue() {
+
+        const modal = document.createElement('div');
+
+        modal.className = 'modal active';
+
+        modal.innerHTML = `
+
+            <div class="modal-content">
+
+                <div class="modal-header">
+
+                    <div class="modal-title">   Email</div>
+
+                    <button class="modal-close" onclick="this.closest('.modal').remove()"></button>
+
+                </div>
+
+                <div style="padding: 20px;">
+
+                    <table style="width: 100%;">
+
+                        <thead>
+
+                            <tr>
+
+                                <th></th>
+
+                                <th></th>
+
+                                <th></th>
+
+                                <th></th>
+
+                                <th></th>
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                            ${this.queue.map(email => `
+
+                                <tr>
+
+                                    <td>${new Date(email.createdAt).toLocaleString('ru-RU')}</td>
+
+                                    <td>${email.to}</td>
+
+                                    <td>${email.subject}</td>
+
+                                    <td><span class="status-badge status-${email.status}">${email.status}</span></td>
+
+                                    <td>
+
+                                        <button onclick="window.emailSender.resendEmail('${email.id}')" class="btn btn-secondary"></button>
+
+                                        <button onclick="window.emailSender.removeFromQueue('${email.id}')" class="btn btn-secondary"></button>
+
+                                    </td>
+
+                                </tr>
+
+                            `).join('') || '<tr><td colspan="5"> </td></tr>'}
+
+                        </tbody>
+
+                    </table>
+
+                    <div class="map-controls" style="margin-top: 20px;">
+
+                        <button class="btn btn-primary" onclick="window.emailSender.processQueue()">  </button>
+
+                        <button class="btn btn-secondary" onclick="window.emailSender.clearQueue()">  </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        `;
+
+        document.body.appendChild(modal);
+
+    }
+
+
+
+    async sendConfirmation(request, signal) {
+
+        if (!this.enabled) {
+
+            console.log(' email ');
+
+            return { success: false, reason: ' ' };
+
+        }
+
+
+
+        const vessel = app.vesselDB.findByStationNumber(signal.stationNumber);
+
+        if (!vessel || !vessel.email) {
+
+            return { success: false, reason: 'Email   ' };
+
+        }
+
+
+
+        //    
+
+        const template = {
+
+            vesselName: vessel.name,
+
+            mmsi: vessel.mmsi,
+
+            imo: vessel.imo || ' ',
+
+            stationNumber: signal.stationNumber,
+
+            satcomType: vessel.satcomType,
+
+            testDate: formatDate(request.testDate),
+
+            receivedAt: formatDate(signal.receivedAt)
+
+        };
+
+
+
+        //  
+
+        let subject = this.templates.testConfirmation.subject;
+
+        let body = this.templates.testConfirmation.body;
+
+        
+
+        for (const [key, value] of Object.entries(template)) {
+
+            const regex = new RegExp(`{{${key}}}`, 'g');
+
+            subject = subject.replace(regex, value);
+
+            body = body.replace(regex, value);
+
+        }
+
+
+
+        //  
+
+        const email = {
+
+            id: `EMAIL-${Date.now()}`,
+
+            to: vessel.email,
+
+            cc: localStorage.getItem('emailCC') || 'gmskc@morflot.ru',
+
+            subject: subject,
+
+            body: body,
+
+            attachments: [],
+
+            createdAt: new Date().toISOString(),
+
+            status: 'pending',
+
+            requestId: request.id,
+
+            signalId: signal.id
+
+        };
+
+
+
+        //   
+
+        this.queue.push(email);
+
+        localStorage.setItem('emailQueue', JSON.stringify(this.queue));
+
+
+
+        //  
+
+        await this.processQueue();
+
+
+
+        return {
+
+            success: true,
+
+            emailId: email.id,
+
+            message: `Email      ${vessel.email}`
+
+        };
+
+    }
+
+
+
+    async processQueue() {
+
+        const pending = this.queue.filter(e => e.status === 'pending');
+
+        const delay = parseInt(localStorage.getItem('emailDelay') || '5') * 1000;
+
+        
+
+        for (const email of pending) {
+
+            //  -   
+
+            email.status = 'sent';
+
+            email.sentAt = new Date().toISOString();
+
+            
+
+            showNotification(` Email   ${email.to}`, 'success');
+
+            
+
+            //   
+
+            await new Promise(resolve => setTimeout(resolve, delay));
+
+        }
+
+        
+
+        localStorage.setItem('emailQueue', JSON.stringify(this.queue));
+
+        return { processed: pending.length };
+
+    }
+
+
+
+    resendEmail(emailId) {
+
+        const email = this.queue.find(e => e.id === emailId);
+
+        if (email) {
+
+            email.status = 'pending';
+
+            localStorage.setItem('emailQueue', JSON.stringify(this.queue));
+
+            this.processQueue();
+
+        }
+
+    }
+
+
+
+    removeFromQueue(emailId) {
+
+        this.queue = this.queue.filter(e => e.id !== emailId);
+
+        localStorage.setItem('emailQueue', JSON.stringify(this.queue));
+
+        this.viewQueue(); //   
+
+    }
+
+
+
+    clearQueue() {
+
+        if (confirm('    ?')) {
+
+            this.queue = [];
+
+            localStorage.setItem('emailQueue', JSON.stringify(this.queue));
+
+            document.querySelector('.modal').remove();
+
+            showNotification(' ', 'success');
+
+        }
+
+    }
+
+}
+
+
+
+                        // =====  ExcelLoader     =====
+
+        class ExcelLoader {
+
+            constructor() {
+
+                this.setupHandlers();
+
+                this.lastLoadedFile = null;
+
+                this.lastLoadedHash = null;
+
+            }
+
+
+
+            setupHandlers() {
+
+                const input = document.getElementById('excel-upload');
+
+                if (input) {
+
+                    input.addEventListener('change', (e) => {
+
+                        const file = e.target.files[0];
+
+                        if (file) {
+
+                            this.loadExcelFile(file);
+
+                        }
+
+                    });
+
+                }
+
+            }
+
+
+
+            //      MMSI  IMO
+
+            parseVesselInfo(value) {
+
+                if (!value) return { name: '', mmsi: '', imo: '' };
+
+                
+
+                const str = String(value).trim();
+
+                let name = str;
+
+                let mmsi = '';
+
+                let imo = '';
+
+                
+
+                //    
+
+                // : "  MMSI:123456789"  " (MMSI 123456789)"
+
+                const mmsiPatterns = [
+
+                    /MMSI[\s:]*(\d{9})/i,
+
+                    /\(MMSI[\s:]*(\d{9})\)/i,
+
+                    /[\s,;](\d{9})(?:\s|$)/,  // 9  
+
+                    /MMSI[\s:]*(\d{8,9})/i     //  8 
+
+                ];
+
+                
+
+                for (const pattern of mmsiPatterns) {
+
+                    const match = str.match(pattern);
+
+                    if (match) {
+
+                        mmsi = match[1].padStart(9, '0'); //    
+
+                        name = str.replace(match[0], '').trim();
+
+                        break;
+
+                    }
+
+                }
+
+                
+
+                //  IMO
+
+                const imoPatterns = [
+
+                    /IMO[\s:]*(\d{7})/i,
+
+                    /\(IMO[\s:]*(\d{7})\)/i,
+
+                    /IMO[\s:]*([0-9]{7})/i,
+
+                    /(?:^|\s)(\d{7})(?:\s|$)/  // 7  
+
+                ];
+
+                
+
+                for (const pattern of imoPatterns) {
+
+                    const match = str.match(pattern);
+
+                    if (match) {
+
+                        imo = match[1];
+
+                        name = str.replace(match[0], '').trim();
+
+                        break;
+
+                    }
+
+                }
+
+                
+
+                //     
+
+                name = name.replace(/[,;:\-\(\)]+$/, '').trim();
+
+                name = name.replace(/^\[|\]$/g, '').trim();
+
+                
+
+                return { name, mmsi, imo };
+
+            }
+
+
+
+            async calculateFileHash(content) {
+
+                let hash = 0;
+
+                for (let i = 0; i < content.length; i++) {
+
+                    const char = content.charCodeAt(i);
+
+                    hash = ((hash << 5) - hash) + char;
+
+                    hash = hash & hash;
+
+                }
+
+                return hash.toString(36);
+
+            }
+
+
+
+            // Показываем диалог с тремя опциями
+
+            async showLoadDialog(existingДата) {
+
+                return new Promise((resolve) => {
+
+                    const modal = document.createElement('div');
+
+                    modal.className = 'modal';
+
+                    modal.style.cssText = `
+
+                        position: fixed;
+
+                        top: 0;
+
+                        left: 0;
+
+                        right: 0;
+
+                        bottom: 0;
+
+                        background: rgba(0,0,0,0.7);
+
+                        display: flex;
+
+                        align-items: center;
+
+                        justify-content: center;
+
+                        z-index: 10000;
+
+                    `;
+
+                    
+
+                    const dialog = document.createElement('div');
+
+                    dialog.style.cssText = `
+
+                        background: white;
+
+                        border-radius: 8px;
+
+                        padding: 30px;
+
+                        max-width: 500px;
+
+                        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+
+                    `;
+
+                    
+
+                    dialog.innerHTML = `
+
+                        <h2 style="margin-top: 0; color: #333;">  Excel</h2>
+
+                        <p style="color: #666; line-height: 1.6;">
+
+                                :<br>
+
+                             : <strong>${existing.terminals}</strong><br>
+
+                             : <strong>${existing.vessels}</strong><br>
+
+                             : <strong>${existing.requests}</strong>
+
+                        </p>
+
+                        <p style="color: #444; margin-top: 20px;">
+
+                            <strong> :</strong>
+
+                        </p>
+
+                        <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: space-between;">
+
+                            <button id="btn-replace" style="
+
+                                padding: 10px 20px;
+
+                                background: #dc3545;
+
+                                color: white;
+
+                                border: none;
+
+                                border-radius: 4px;
+
+                                cursor: pointer;
+
+                                font-size: 14px;
+
+                            "> -  </button>
+
+                            
+
+                            <button id="btn-append" style="
+
+                                padding: 10px 20px;
+
+                                background: #28a745;
+
+                                color: white;
+
+                                border: none;
+
+                                border-radius: 4px;
+
+                                cursor: pointer;
+
+                                font-size: 14px;
+
+                            "> -   </button>
+
+                            
+
+                            <button id="btn-cancel" style="
+
+                                padding: 10px 20px;
+
+                                background: #6c757d;
+
+                                color: white;
+
+                                border: none;
+
+                                border-radius: 4px;
+
+                                cursor: pointer;
+
+                                font-size: 14px;
+
+                            "></button>
+
+                        </div>
+
+                        <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 4px;">
+
+                            <small style="color: #666;">
+
+                                <strong></strong> -    <br>
+
+                                <strong></strong> -     <br>
+
+                                <strong></strong> -   
+
+                            </small>
+
+                        </div>
+
+                    `;
+
+                    
+
+                    modal.appendChild(dialog);
+
+                    document.body.appendChild(modal);
+
+                    
+
+                    //  
+
+                    document.getElementById('btn-replace').onclick = () => {
+
+                        modal.remove();
+
+                        resolve('replace');
+
+                    };
+
+                    
+
+                    document.getElementById('btn-append').onclick = () => {
+
+                        modal.remove();
+
+                        resolve('append');
+
+                    };
+
+                    
+
+                    document.getElementById('btn-cancel').onclick = () => {
+
+                        modal.remove();
+
+                        resolve('cancel');
+
+                    };
+
+                });
+
+            }
+
+
+
+            async loadExcelFile(file) {
+
+                showNotification('  Excel...', 'info');
+
+
+
+                const reader = new FileReader();
+
+                reader.onload = async (e) => {
+
+                    try {
+
+                        const data = e.target.result;
+
+                        const fileHash = await this.calculateFileHash(data);
+
+                        
+
+                        // ,      
+
+                        if (this.lastLoadedHash === fileHash) {
+
+                            if (!confirm('    . ?')) {
+
+                                showNotification(' ', 'warning');
+
+                                return;
+
+                            }
+
+                        }
+
+                        
+
+                        //  Excel
+
+                        const workbook = XLSX.read(data, { type: 'binary' });
+
+                        
+
+                        //   
+
+                        const existing = {
+
+                            terminals: JSON.parse(localStorage.getItem('ssasTerminals') || '[]').length,
+
+                            vessels: app.vesselDB ? app.vesselDB.vessels.length : 0,
+
+                            requests: JSON.parse(localStorage.getItem('testRequests') || '[]').length
+
+                        };
+
+                        
+
+                        //   ,  
+
+                        let action = 'replace'; //  
+
+                        if (existing.terminals > 0 || existing.vessels > 0 || existing.requests > 0) {
+
+                            action = await this.showLoadDialog(existing);
+
+                        }
+
+                        
+
+                        if (action === 'cancel') {
+
+                            showNotification(' ', 'warning');
+
+                            return;
+
+                        }
+
+                        
+
+                        //     
+
+                        if (action === 'replace') {
+
+                            this.clearAll();
+
+                        }
+
+                        
+
+                        //   
+
+                        const results = {
+
+                            terminals: { added: 0, updated: 0, skipped: 0 },
+
+                            vessels: { added: 0, updated: 0, skipped: 0 },
+
+                            requests: { added: 0, updated: 0, skipped: 0 }
+
+                        };
+
+                        
+
+                        //   
+
+                        for (const sheetName of workbook.SheetNames) {
+
+                            const worksheet = workbook.Sheets[sheetName];
+
+                            const json = XLSX.utils.sheet_to_json(worksheet);
+
+                            
+
+                            console.log(` : ${sheetName}, : ${json.length}`);
+
+                            
+
+                            //        
+
+                            const sheetNameLower = sheetName.toLowerCase();
+
+                            
+
+                            if (sheetNameLower.includes('') || sheetNameLower.includes('terminal') || 
+
+                                sheetNameLower.includes('') || this.isTerminal(json)) {
+
+                                //   
+
+                                const result = this.processTerminals(json, action === 'append');
+
+                                results.terminals.added += result.added;
+
+                                results.terminals.updated += result.updated;
+
+                                results.terminals.skipped += result.skipped;
+
+                                
+
+                            } else if (sheetNameLower.includes('') || sheetNameLower.includes('vessel') || 
+
+                                      sheetNameLower.includes('ship') || this.isVessel(json)) {
+
+                                //   
+
+                                const result = this.processVessels(json, action === 'append');
+
+                                results.vessels.added += result.added;
+
+                                results.vessels.updated += result.updated;
+
+                                results.vessels.skipped += result.skipped;
+
+                                
+
+                            } else if (sheetNameLower.includes('') || sheetNameLower.includes('request') || 
+
+                                      sheetNameLower.includes('') || this.isRequest(json)) {
+
+                                //   
+
+                                const result = this.processRequests(json, action === 'append');
+
+                                results.requests.added += result.added;
+
+                                results.requests.updated += result.updated;
+
+                                results.requests.skipped += result.skipped;
+
+                                
+
+                            } else {
+
+                                //    
+
+                                if (this.isTerminal(json)) {
+
+                                    const result = this.processTerminals(json, action === 'append');
+
+                                    results.terminals.added += result.added;
+
+                                    results.terminals.updated += result.updated;
+
+                                    results.terminals.skipped += result.skipped;
+
+                                }
+
+                            }
+
+                        }
+
+                        
+
+                        //    
+
+                        this.lastLoadedFile = file.name;
+
+                        this.lastLoadedHash = fileHash;
+
+                        localStorage.setItem('lastExcelFile', file.name);
+
+                        localStorage.setItem('lastExcelHash', fileHash);
+
+                        localStorage.setItem('lastExcelDate', new Date().toISOString());
+
+                        
+
+                        //  
+
+                        loadTerminals();
+
+                        loadRequests();
+
+                        loadDashboard();
+
+                        
+
+                        //  
+
+                        let message = ' :\n\n';
+
+                        if (results.terminals.added + results.terminals.updated > 0) {
+
+                            message += `: ${results.terminals.added} , ${results.terminals.updated} \n`;
+
+                        }
+
+                        if (results.vessels.added + results.vessels.updated > 0) {
+
+                            message += `: ${results.vessels.added} , ${results.vessels.updated} \n`;
+
+                        }
+
+                        if (results.requests.added + results.requests.updated > 0) {
+
+                            message += `: ${results.requests.added} , ${results.requests.updated} \n`;
+
+                        }
+
+                        
+
+                        showNotification(message, 'success');
+
+
+
+                        //     
+
+                        setTimeout(() => {
+
+                            loadTerminals();
+
+                            loadRequests();
+
+                            loadSignals();
+
+                            loadDashboard();
+
+                            
+
+                            //    ,  
+
+                            const activeTab = document.querySelector('.tab.active');
+
+                            if (activeTab) {
+
+                                const tabName = activeTab.textContent;
+
+                                if (tabName.includes('')) loadRequests();
+
+                                if (tabName.includes('')) loadSignals();
+
+                                if (tabName.includes('')) loadTerminals();
+
+                            }
+
+                        }, 100);
+
+                        
+
+                    } catch (error) {
+
+                        console.error(' :', error);
+
+                        showNotification('  : ' + error.message, 'error');
+
+                    }
+
+                };
+
+                reader.readAsBinaryString(file);
+
+            }
+
+
+
+            //     
+
+            isTerminal(data) {
+
+                if (!data || data.length === 0) return false;
+
+                const firstRow = data[0];
+
+                return firstRow.hasOwnProperty(' ') || 
+
+                       firstRow.hasOwnProperty('terminal_number') ||
+
+                       firstRow.hasOwnProperty('Terminal Number') ||
+
+                       firstRow.hasOwnProperty('Station Number');
+
+            }
+
+
+
+            isVessel(data) {
+
+                if (!data || data.length === 0) return false;
+
+                const firstRow = data[0];
+
+                return (firstRow.hasOwnProperty('') || firstRow.hasOwnProperty('Vessel Name')) &&
+
+                       !firstRow.hasOwnProperty(' ');
+
+            }
+
+
+
+            isRequest(data) {
+
+                if (!data || data.length === 0) return false;
+
+                const firstRow = data[0];
+
+                return firstRow.hasOwnProperty(' ') || 
+
+                       firstRow.hasOwnProperty('Test Date') ||
+
+                       firstRow.hasOwnProperty(' ') ||
+
+                       firstRow.hasOwnProperty(' ');
+
+            }
+
+
+
+            //   
+
+            clearAll() {
+
+                //  
+
+                localStorage.setItem('ssasTerminals', JSON.stringify([]));
+
+                
+
+                //  
+
+                if (app.vesselDB) {
+
+                    app.vesselDB.vessels = [];
+
+                    app.vesselDB.save();
+
+                }
+
+                
+
+                //    
+
+                localStorage.setItem('testRequests', JSON.stringify([]));
+
+                localStorage.setItem('testSignals', JSON.stringify([]));
+
+                localStorage.setItem('confirmations', JSON.stringify([]));
+
+                
+
+                console.log('  ');
+
+            }
+
+
+
+            //  
+
+            processTerminals(data, isAppend) {
+
+                const result = { added: 0, updated: 0, skipped: 0 };
+
+                
+
+                const existingTerminals = isAppend ? 
+
+                    JSON.parse(localStorage.getItem('ssasTerminals') || '[]') : [];
+
+                const terminalMap = new Map();
+
+                
+
+                existingTerminals.forEach(t => {
+
+                    terminalMap.set(t.terminal_number, t);
+
+                });
+
+                
+
+                data.forEach(row => {
+
+                    const stationNumber = String(row[' '] || row['terminal_number'] || '').trim();
+
+                    const vesselInfo = this.parseVesselInfo(row[''] || row['Vessel Name'] || '');
+
+                    
+
+                    if (!stationNumber) {
+
+                        result.skipped++;
+
+                        return;
+
+                    }
+
+                    
+
+                    const existing = terminalMap.get(stationNumber);
+
+                    
+
+                    if (existing && isAppend) {
+
+                        //  
+
+                        existing.current_vessel_name = vesselInfo.name;
+
+                        existing.current_mmsi = vesselInfo.mmsi || row['MMSI'] || '';
+
+                        existing.current_imo = vesselInfo.imo || row['IMO'] || '';
+
+                        existing.owner = row[''] || row['Owner'] || existing.owner;
+
+                        existing.contact_email = row['Email'] || row['Contact Email'] || existing.contact_email;
+
+                        existing.terminal_type = row[' '] || row['Terminal Type'] || existing.terminal_type;
+
+                        existing.updated_at = new Date().toISOString();
+
+                        result.updated++;
+
+                    } else {
+
+                        //  
+
+                        const newTerminal = {
+
+                            id: 'T' + Date.now() + Math.random().toString(36).substr(2, 9),
+
+                            terminal_number: stationNumber,
+
+                            terminal_type: row[' '] || row['Terminal Type'] || 'INMARSAT',
+
+                            current_vessel_name: vesselInfo.name,
+
+                            current_mmsi: vesselInfo.mmsi || row['MMSI'] || '',
+
+                            current_imo: vesselInfo.imo || row['IMO'] || '',
+
+                            owner: row[''] || row['Owner'] || '',
+
+                            contact_email: row['Email'] || row['Contact Email'] || '',
+
+                            is_active: true,
+
+                            created_at: new Date().toISOString(),
+
+                            updated_at: new Date().toISOString()
+
+                        };
+
+                        terminalMap.set(stationNumber, newTerminal);
+
+                        result.added++;
+
+                    }
+
+                });
+
+                
+
+                // 
+
+                const terminals = Array.from(terminalMap.values());
+
+                localStorage.setItem('ssasTerminals', JSON.stringify(terminals));
+
+                
+
+                return result;
+
+            }
+
+
+
+            //  
+
+            processVessels(data, isAppend) {
+
+                const result = { added: 0, updated: 0, skipped: 0 };
+
+                
+
+                if (!app.vesselDB) {
+
+                    app.vesselDB = new VesselDB();
+
+                }
+
+                
+
+                if (!isAppend) {
+
+                    app.vesselDB.vessels = [];
+
+                }
+
+                
+
+                data.forEach(row => {
+
+                    const vesselInfo = this.parseVesselInfo(row[''] || row['Vessel Name'] || '');
+
+                    
+
+                    if (!vesselInfo.name) {
+
+                        result.skipped++;
+
+                        return;
+
+                    }
+
+                    
+
+                    const vessel = {
+
+                        name: vesselInfo.name,
+
+                        mmsi: vesselInfo.mmsi || row['MMSI'] || '',
+
+                        imo: vesselInfo.imo || row['IMO'] || '',
+
+                        callSign: row[''] || row['Call Sign'] || '',
+
+                        stationNumbers: row[' '] ? [String(row[' '])] : [],
+
+                        owner: row[''] || row['Owner'] || '',
+
+                        email: row['Email'] || row['Contact Email'] || '',
+
+                        satcomType: row[' '] || row['Terminal Type'] || 'INMARSAT',
+
+                        flag: row[''] || row['Flag'] || '',
+
+                        type: row[' '] || row['Vessel Type'] || ''
+
+                    };
+
+                    
+
+                    //  
+
+                    const existing = app.vesselDB.vessels.find(v => 
+
+                        (vessel.mmsi && v.mmsi === vessel.mmsi) ||
+
+                        (vessel.imo && v.imo === vessel.imo) ||
+
+                        (v.name === vessel.name)
+
+                    );
+
+                    
+
+                    if (existing && isAppend) {
+
+                        // 
+
+                        Object.assign(existing, vessel);
+
+                        existing.updated_at = new Date().toISOString();
+
+                        result.updated++;
+
+                    } else if (!existing) {
+
+                        //  
+
+                        app.vesselDB.addVessel(vessel);
+
+                        result.added++;
+
+                    } else {
+
+                        result.skipped++;
+
+                    }
+
+                });
+
+                
+
+                app.vesselDB.save();
+
+                return result;
+
+            }
+
+
+
+            //  
+
+            processRequests(data, isAppend) {
+
+                const result = { added: 0, updated: 0, skipped: 0 };
+
+                
+
+                const existingRequests = isAppend ? 
+
+                    JSON.parse(localStorage.getItem('testRequests') || '[]') : [];
+
+                
+
+                data.forEach(row => {
+
+                    const vesselInfo = this.parseVesselInfo(row[''] || row['Vessel Name'] || '');
+
+                    
+
+                    if (!vesselInfo.name && !row[' ']) {
+
+                        result.skipped++;
+
+                        return;
+
+                    }
+
+                    
+
+                    const request = {
+
+                        id: 'REQ' + Date.now() + Math.random().toString(36).substr(2, 5),
+
+                        vesselName: vesselInfo.name,
+
+                        mmsi: vesselInfo.mmsi || row['MMSI'] || '',
+
+                        imo: vesselInfo.imo || row['IMO'] || '',
+
+                        stationNumber: String(row[' '] || row['Station Number'] || ''),
+
+                        testDate: row[' '] || row['Test Date'] || new Date().toISOString().split('T')[0],
+
+                        startTime: row[' '] || row['Start Time'] || '10:00',
+
+                        endTime: row[' '] || row['End Time'] || '11:00',
+
+                        contactPerson: row[' '] || row['Contact Person'] || '',
+
+                        contactPhone: row[''] || row['Phone'] || '',
+
+                        email: row['Email'] || '',
+
+                        organization: row[''] || row['Organization'] || '',
+
+                        notes: row[''] || row['Notes'] || '',
+
+                        status: row[''] || 'pending',
+
+                        createdAt: new Date().toISOString()
+
+                    };
+
+                    
+
+                    //  
+
+                    const existing = existingRequests.find(r => 
+
+                        r.stationNumber === request.stationNumber &&
+
+                        r.testDate === request.testDate
+
+                    );
+
+                    
+
+                    if (!existing) {
+
+                        existingRequests.push(request);
+
+                        result.added++;
+
+                    } else {
+
+                        result.skipped++;
+
+                    }
+
+                });
+
+                
+
+                localStorage.setItem('testRequests', JSON.stringify(existingRequests));
+
+                return result;
+
+            }
+
+
+
+            openFileDialog() {
+
+                const lastFile = localStorage.getItem('lastExcelFile');
+
+                const lastDate = localStorage.getItem('lastExcelDate');
+
+                
+
+                if (lastFile && lastDate) {
+
+                    const date = new Date(lastDate);
+
+                    const dateStr = date.toLocaleDateString('ru-RU') + ' ' + date.toLocaleTimeString('ru-RU');
+
+                    console.log(` : ${lastFile} (${dateStr})`);
+
+                }
+
+                
+
+                document.getElementById('excel-upload').click();
+
+            }
+
+        }
+
+
+
+        // =====   =====
+
+        
+
+        function initializeApp() {
+
+            console.log('    ...');
+
+            
+
+            app.autoConfirmManager = new AutoConfirmationManager();
+
+            app.emailProcessor = new EmailProcessor();
+
+            app.poiskMoreIntegration = new PoiskMoreIntegration();
+
+            app.vesselDB = new VesselDB();
+
+            
+
+            loadDashboard();
+
+            loadRequests();
+
+            loadSignals();
+
+            loadTerminals();
+
+            
+
+            updateAutoConfirm();
+
+            
+
+            console.log('   ');
+
+        }
+
+
+
+        function switchTab(event, tabName) {
+
+            document.querySelectorAll('.tab-content').forEach(tab => {
+
+                tab.classList.remove('active');
+
+            });
+
+            
+
+            document.querySelectorAll('.tab').forEach(btn => {
+
+                btn.classList.remove('active');
+
+            });
+
+            
+
+            const selectedTab = document.getElementById(tabName);
+
+            if (selectedTab) {
+
+                selectedTab.classList.add('active');
+
+            }
+
+            
+
+            (event && event.currentTarget ? event.currentTarget : event.target).classList.add('active');
+
+            app.currentTab = tabName;
+
+            
+
+            if (tabName === 'map-container' && !app.map) {
+
+                setTimeout(() => {
+
+                    window.mapManager.initAdvancedMap();
+
+                }, 100);
+
+            }
+
+        }
+
+
+
+        function loadDashboard() {
+
+            const requests = JSON.parse(localStorage.getItem('testRequests') || '[]');
+
+            const signals = JSON.parse(localStorage.getItem('signals') || '[]');
+
+            
+
+            document.getElementById('total-requests').textContent = requests.length;
+
+            document.getElementById('pending-requests').textContent = 
+
+                requests.filter(r => r.status === 'pending').length;
+
+            document.getElementById('confirmed-requests').textContent = 
+
+                requests.filter(r => r.status === 'confirmed').length;
+
+            document.getElementById('total-signals').textContent = signals.length;
+
+        }
+
+
+
+        function loadRequests() {
+
+        const requests = JSON.parse(localStorage.getItem('testRequests') || '[]');
+
+        const tbody = document.querySelector('#requests table tbody');
+
+        
+
+        if (!tbody) return;
+
+        
+
+        tbody.innerHTML = '';
+
+        
+
+        if (requests.length === 0) {
+
+            tbody.innerHTML = `
+
+                <tr>
+
+                    <td colspan="7" style="text-align: center; padding: 20px; color: #888;">
+
+                          
+
+                    </td>
+
+                </tr>
+
+            `;
+
+            return;
+
+        }
+
+        
+
+        requests.forEach(request => {
+
+            const statusBadge = request.status === 'confirmed' ? 
+
+                '<span class="badge badge-success"></span>' :
+
+                request.status === 'pending' ?
+
+                '<span class="badge badge-warning"></span>' :
+
+                '<span class="badge badge-secondary"></span>';
+
+            
+
+            const row = document.createElement('tr');
+
+            row.innerHTML = `
+
+                <td>${request.id || '-'}</td>
+
+                <td><strong>${request.stationNumber || '-'}</strong></td>
+
+                <td>${request.vesselName || '-'}</td>
+
+                <td>${request.mmsi || '-'}</td>
+
+                <td>${request.imo || '-'}</td>
+
+                <td>${request.testDate ? new Date(request.testDate).toLocaleDateString('ru-RU') : '-'}</td>
+
+                <td>${statusBadge}</td>
+
+                <td>
+
+                    <button class="btn btn-sm btn-primary" onclick="viewRequest('${request.id}')">
+
+                        
+
+                    </button>
+
+                    ${request.status === 'pending' ? 
+
+                        `<button class="btn btn-sm btn-success" onclick="confirmRequest('${request.id}')">
+
+                            
+
+                        </button>` : ''}
+
+                </td>
+
+            `;
+
+            tbody.appendChild(row);
+
+        });
+
+        
+
+        //  
+
+        loadDashboard();
+
+    }
+
+
+
+        function loadSignals() {
+
+        const signals = JSON.parse(localStorage.getItem('testSignals') || '[]');
+
+        const tbody = document.querySelector('#signals table tbody');
+
+        
+
+        if (!tbody) return;
+
+        
+
+        tbody.innerHTML = '';
+
+        
+
+        if (signals.length === 0) {
+
+            tbody.innerHTML = `
+
+                <tr>
+
+                    <td colspan="8" style="text-align: center; padding: 20px; color: #888;">
+
+                          
+
+                    </td>
+
+                </tr>
+
+            `;
+
+            return;
+
+        }
+
+        
+
+        signals.forEach(signal => {
+
+            //      IMO
+
+            let terminalType = signal.terminalType || 'INMARSAT';
+
+            let realIMO = signal.imo || '';
+
+            
+
+            // ,       IMO
+
+            if (signal.imo) {
+
+                const upperIMO = String(signal.imo).toUpperCase();
+
+                if (upperIMO === 'INMARSAT' || upperIMO === 'IRIDIUM' || upperIMO === 'TEST') {
+
+                    terminalType = upperIMO;
+
+                    realIMO = ''; //  IMO,     
+
+                } else if (/^\d{7}$/.test(signal.imo)) {
+
+                    //   IMO (7 )
+
+                    realIMO = signal.imo;
+
+                }
+
+            }
+
+            
+
+            const row = document.createElement('tr');
+
+            row.innerHTML = `
+
+                <td>${signal.id || '-'}</td>
+
+                <td><strong>${signal.stationNumber || '-'}</strong></td>
+
+                <td>${signal.vesselName || ''}</td>
+
+                <td>${signal.mmsi || '-'}</td>
+
+                <td>${realIMO || '-'}</td>
+
+                <td><span class="badge badge-info">${terminalType}</span></td>
+
+                <td>${signal.receivedAt ? new Date(signal.receivedAt).toLocaleString('ru-RU') : '-'}</td>
+
+                <td>
+
+                    ${signal.status === 'confirmed' ? 
+
+                        '<span class="badge badge-success"> </span>' : 
+
+                        '<span class="badge badge-warning"></span>'}
+
+                </td>
+
+                <td>
+
+                    <button class="btn btn-sm btn-primary" onclick="viewSignalDetails('${signal.id}')">
+
+                        
+
+                    </button>
+
+                </td>
+
+            `;
+
+            tbody.appendChild(row);
+
+        });
+
+    }
+
+
+
+        function loadTerminals() {
+
+        const terminals = JSON.parse(localStorage.getItem('ssasTerminals') || '[]');
+
+        const tbody = document.querySelector('#terminals table tbody');
+
+        
+
+        if (!tbody) return;
+
+        
+
+        tbody.innerHTML = '';
+
+        
+
+        if (terminals.length === 0) {
+
+            tbody.innerHTML = `
+
+                <tr>
+
+                    <td colspan="9" style="text-align: center; padding: 20px; color: #888;">
+
+                          .    Excel.
+
+                    </td>
+
+                </tr>
+
+            `;
+
+            return;
+
+        }
+
+        
+
+        terminals.forEach(terminal => {
+
+            const row = document.createElement('tr');
+
+            row.innerHTML = `
+
+                <td><strong>${terminal.terminal_number || '-'}</strong></td>
+
+                <td>${terminal.current_vessel_name || '-'}</td>
+
+                <td>${terminal.current_mmsi || '-'}</td>
+
+                <td><span class="badge badge-info">${terminal.terminal_type || 'INMARSAT'}</span></td>
+
+                <td>${terminal.owner || '-'}</td>
+
+                <td>${terminal.last_test_date ? new Date(terminal.last_test_date).toLocaleDateString('ru-RU') : '-'}</td>
+
+                <td>${terminal.next_test_date ? new Date(terminal.next_test_date).toLocaleDateString('ru-RU') : '-'}</td>
+
+                <td>
+
+                    <span class="badge ${terminal.is_active ? 'badge-success' : 'badge-secondary'}">
+
+                        ${terminal.is_active ? '' : ''}
+
+                    </span>
+
+                </td>
+
+                <td>
+
+                    <button class="btn btn-sm btn-primary" onclick="editTerminal('${terminal.id}')">
+
+                        
+
+                    </button>
+
+                    <button class="btn btn-sm btn-info" onclick="createTestRequest('${terminal.terminal_number}')">
+
+                        
+
+                    </button>
+
+                </td>
+
+            `;
+
+            tbody.appendChild(row);
+
+        });
+
+    }
+
+
+
+        function submitRequest() {
+
+            const stationNumber = document.getElementById('station-number').value;
+
+            const vesselName = document.getElementById('vessel-name').value;
+
+            const mmsi = document.getElementById('mmsi').value;
+
+            const imo = document.getElementById('imo').value;
+
+            const shipOwner = document.getElementById('ship-owner').value;
+
+            const email = document.getElementById('email').value;
+
+            const testDate = document.getElementById('test-date').value;
+
+            const testTime = document.getElementById('test-time').value;
+
+            const satcomType = document.querySelector('input[name="satcom-type"]:checked')?.value;
+
+            
+
+            if (!stationNumber || !vesselName || !mmsi || !testDate || !satcomType) {
+
+                showNotification('   ', 'error');
+
+                return;
+
+            }
+
+            
+
+            const request = {
+
+                id: `REQ-${Date.now()}`,
+
+                stationNumber: stationNumber,
+
+                vesselName: vesselName,
+
+                mmsi: mmsi,
+
+                imo: imo,
+
+                shipOwner: shipOwner,
+
+                email: email,
+
+                testDate: testDate,
+
+                testTime: testTime,
+
+                satcomType: satcomType,
+
+                status: 'pending',
+
+                createdAt: new Date().toISOString()
+
+            };
+
+            
+
+            const requests = JSON.parse(localStorage.getItem('testRequests') || '[]');
+
+            requests.push(request);
+
+            localStorage.setItem('testRequests', JSON.stringify(requests));
+
+            
+
+            document.getElementById('request-form').reset();
+
+            showNotification(` ${request.id} `, 'success');
+
+            
+
+            loadRequests();
+
+            loadDashboard();
+
+            switchTab('requests');
+
+        }
+
+
+
+        function confirmRequest(requestId) {
+
+            const requests = JSON.parse(localStorage.getItem('testRequests') || '[]');
+
+            const request = requests.find(r => r.id === requestId);
+
+            
+
+            if (!request) return;
+
+            
+
+            request.status = 'confirmed';
+
+            request.confirmedAt = new Date().toISOString();
+
+            
+
+            localStorage.setItem('testRequests', JSON.stringify(requests));
+
+            
+
+            showNotification(` ${requestId} `, 'success');
+
+            loadRequests();
+
+            loadDashboard();
+
+        }
+
+
+
+        
+
+        function generateConfirmationPDF(requestId) {
+
+            const request = JSON.parse(localStorage.getItem('testRequests') || '[]')
+
+                .find(r => r.id === requestId);
+
+            
+
+            if (!request) return;
+
+            
+
+            const { jsPDF } = window.jspdf;
+
+            const doc = new jsPDF();
+
+            
+
+            //  
+
+            doc.setFontSize(12);
+
+            doc.text(' ', 105, 15, { align: 'center' });
+
+            doc.text('', 105, 22, { align: 'center' });
+
+            doc.text(' ""', 105, 29, { align: 'center' });
+
+            doc.text('  - ', 105, 36, { align: 'center' });
+
+            
+
+            // 
+
+            doc.setFontSize(14);
+
+            doc.text('', 105, 50, { align: 'center' });
+
+            doc.text('   ', 105, 58, { align: 'center' });
+
+            
+
+            //  
+
+            doc.setFontSize(11);
+
+            const confirmDate = new Date(request.confirmedAt || Date.now());
+
+            const dateStr = confirmDate.toLocaleDateString('ru-RU', {
+
+                year: 'numeric',
+
+                month: 'long',
+
+                day: 'numeric',
+
+                hour: '2-digit',
+
+                minute: '2-digit'
+
+            });
+
+            
+
+            doc.text(` : ${request.id}`, 20, 75);
+
+            doc.text(` : ${dateStr}`, 20, 85);
+
+            
+
+            doc.text(` : ${request.vesselName || ' '}`, 20, 100);
+
+            doc.text(` : ${request.imo || ' '}`, 20, 110);
+
+            doc.text(`MMSI: ${request.mmsi || ' '}`, 20, 120);
+
+            doc.text(` : ${request.inmarsat || ' '}`, 20, 130);
+
+            
+
+            doc.text(`: ${request.latitude || '0'} ${request.longitude || '0'}`, 20, 145);
+
+            doc.text(` : ${request.terminalType || ' '}`, 20, 155);
+
+            
+
+            doc.text(` : ${request.contactPerson || ' '}`, 20, 170);
+
+            doc.text(`Email: ${request.email || ' '}`, 20, 180);
+
+            doc.text(`: ${request.phone || ' '}`, 20, 190);
+
+            
+
+            // 
+
+            doc.setFontSize(10);
+
+            doc.text('   ', 20, 210);
+
+            doc.text(' : ___________________', 20, 225);
+
+            doc.text(`: ${new Date().toLocaleDateString('ru-RU')}`, 20, 235);
+
+            doc.text('..', 150, 245);
+
+            
+
+            // 
+
+            const fileName = `_${request.id}_${request.vesselName || ''}.pdf`;
+
+            doc.save(fileName);
+
+            
+
+            showNotification(`   ${request.id} `, 'success');
+
+        } = window.jspdf;
+
+            const doc = new jsPDF();
+
+            
+
+            //  
+
+            doc.setFontSize(16);
+
+            addTextToPDF(doc, ' ', 105, 20, { align: 'center' });
+
+            doc.setFontSize(14);
+
+            addTextToPDF(doc, '  - ', 105, 30, { align: 'center' });
+
+            
+
+            doc.setFontSize(12);
+
+            addTextToPDF(doc, '    ', 105, 50, { align: 'center' });
+
+            
+
+            //  
+
+            doc.setFontSize(10);
+
+            addTextToPDF(doc, `: ${new Date().toLocaleDateString('ru-RU')}`, 20, 70);
+
+            addTextToPDF(doc, ` : ${request.id}`, 20, 80);
+
+            addTextToPDF(doc, `  : ${request.stationNumber}`, 20, 90);
+
+            addTextToPDF(doc, `: ${request.vesselName}`, 20, 100);
+
+            addTextToPDF(doc, `MMSI: ${request.mmsi}`, 20, 110);
+
+            addTextToPDF(doc, `IMO: ${request.imo || ' '}`, 20, 120);
+
+            addTextToPDF(doc, `: ${request.shipOwner}`, 20, 130);
+
+            addTextToPDF(doc, `/ : ${formatDate(request.testDate)} ${request.testTime || ''}`, 20, 140);
+
+            
+
+            addTextToPDF(doc, ':   ', 20, 160);
+
+            
+
+            addTextToPDF(doc, '  ', 20, 200);
+
+            addTextToPDF(doc, '_______________________', 20, 210);
+
+            
+
+            doc.save(`_${request.id}.pdf`);
+
+            showNotification('PDF  ', 'success');
+
+        }
+
+
+
+        async function sendToPoiskMore(signalId) {
+
+            const signals = JSON.parse(localStorage.getItem('signals') || '[]');
+
+            const signal = signals.find(s => s.id === signalId);
+
+            
+
+            if (!signal) return;
+
+            
+
+            const result = await app.poiskMoreIntegration.sendToPoiskMore(signal);
+
+            
+
+            if (result.success) {
+
+                signal.poiskMoreId = result.poiskMoreId;
+
+                signal.sentToPoiskMore = true;
+
+                localStorage.setItem('signals', JSON.stringify(signals));
+
+                showNotification(result.message, 'success');
+
+                loadSignals();
+
+            }
+
+        }
+
+
+
+        function processEmailQueue() {
+
+            const queue = app.emailProcessor.emailQueue;
+
+            showNotification(` ${queue.length} `, 'info');
+
+        }
+
+
+
+        async function syncWithPoiskMore() {
+
+            const signals = JSON.parse(localStorage.getItem('signals') || '[]');
+
+            const unsynced = signals.filter(s => !s.sentToPoiskMore && !s.isTest);
+
+            
+
+            if (unsynced.length === 0) {
+
+                showNotification('   ', 'info');
+
+                return;
+
+            }
+
+            
+
+            const results = await app.poiskMoreIntegration.syncBatch(unsynced);
+
+            showNotification(` ${results.length} `, 'success');
+
+        }
+
+
+
+        function generateTest() {
+
+            const testSignal = {
+
+                id: `SIG-TEST-${Date.now()}`,
+
+                stationNumber: '427309676',
+
+                mmsi: '273456789',
+
+                type: 'INMARSAT',
+
+                coordinates: {
+
+                    lat: 55.7558 + (Math.random() - 0.5) * 10,
+
+                    lon: 37.6173 + (Math.random() - 0.5) * 10
+
+                },
+
+                receivedAt: new Date().toISOString(),
+
+                isTest: true
+
+            };
+
+            
+
+            const signals = JSON.parse(localStorage.getItem('signals') || '[]');
+
+            signals.push(testSignal);
+
+            localStorage.setItem('signals', JSON.stringify(signals));
+
+            
+
+            showNotification('  ', 'success');
+
+            loadSignals();
+
+            loadDashboard();
+
+            
+
+            if (window.mapManager && window.mapManager.map) {
+
+                window.mapManager.loadSignalsToMap();
+
+            }
+
+        }
+
+
+
+        function systemHealthCheck() {
+
+            const checks = {
+
+                localStorage: true,
+
+                vessels: app.vesselDB.vessels.length > 0,
+
+                autoConfirm: app.autoConfirmManager !== null,
+
+                poiskMore: app.poiskMoreIntegration !== null
+
+            };
+
+            
+
+            const allOk = Object.values(checks).every(v => v === true);
+
+            showNotification(allOk ? '   ' : '  ', 
+
+                           allOk ? 'success' : 'error');
+
+        }
+
+
+
+        function updateAutoConfirm() {
+
+            const statusElement = document.getElementById('auto-confirm-status');
+
+            if (statusElement) {
+
+                statusElement.textContent = app.autoConfirmManager.enabled ? '' : '';
+
+                statusElement.style.color = app.autoConfirmManager.enabled ? '#065f46' : '#991b1b';
+
+            }
+
+        }
+
+
+
+        function toggleAutoConfirm() {
+
+            const password = prompt('  :');
+
+            if (!password) return;
+
+            
+
+            const reason = prompt('  :');
+
+            if (!reason) return;
+
+            
+
+            try {
+
+                const result = app.autoConfirmManager.toggleAutoConfirmation(password, reason, 'ADMIN');
+
+                showNotification(result.message, 'success');
+
+                updateAutoConfirm();
+
+            } catch (error) {
+
+                showNotification(error.message, 'error');
+
+            }
+
+        }
+
+
+
+        function exportSettings() {
+
+            const settings = {
+
+                version: '1.0.0',
+
+                exportDate: new Date().toISOString(),
+
+                vessels: app.vesselDB.vessels,
+
+                requests: JSON.parse(localStorage.getItem('testRequests') || '[]'),
+
+                signals: JSON.parse(localStorage.getItem('signals') || '[]'),
+
+                autoConfirmEnabled: app.autoConfirmManager.enabled
+
+            };
+
+            
+
+            const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' });
+
+            const url = URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+
+            link.href = url;
+
+            link.download = `ssto-settings-${Date.now()}.json`;
+
+            link.click();
+
+            URL.revokeObjectURL(url);
+
+            
+
+            showNotification(' ', 'success');
+
+        }
+
+
+
+        function importSettings() {
+
+            const input = document.createElement('input');
+
+            input.type = 'file';
+
+            input.accept = '.json';
+
+            
+
+            input.onchange = (e) => {
+
+                const file = e.target.files[0];
+
+                if (!file) return;
+
+                
+
+                const reader = new FileReader();
+
+                reader.onload = (event) => {
+
+                    try {
+
+                        const settings = JSON.parse((event && event.currentTarget ? event.currentTarget : event.target).result);
+
+                        
+
+                        if (settings.vessels) {
+
+                            localStorage.setItem('vessels', JSON.stringify(settings.vessels));
+
+                        }
+
+                        if (settings.requests) {
+
+                            localStorage.setItem('testRequests', JSON.stringify(settings.requests));
+
+                        }
+
+                        if (settings.signals) {
+
+                            localStorage.setItem('signals', JSON.stringify(settings.signals));
+
+                        }
+
+                        
+
+                        initializeApp();
+
+                        showNotification(' ', 'success');
+
+                    } catch (error) {
+
+                        showNotification(' ', 'error');
+
+                    }
+
+                };
+
+                
+
+                reader.readAsText(file);
+
+            };
+
+            
+
+            input.click();
+
+        }
+
+
+
+        function formatDate(dateString) {
+
+            if (!dateString) return '-';
+
+            const date = new Date(dateString);
+
+            return date.toLocaleString('ru-RU', {
+
+                day: '2-digit',
+
+                month: '2-digit',
+
+                year: 'numeric',
+
+                hour: '2-digit',
+
+                minute: '2-digit'
+
+            });
+
+        }
+
+
+
+        function showNotification(message, type = 'info') {
+
+            const notification = document.createElement('div');
+
+            notification.className = `notification ${type}`;
+
+            notification.textContent = message;
+
+            
+
+            document.body.appendChild(notification);
+
+            
+
+            setTimeout(() => {
+
+                notification.remove();
+
+            }, 3000);
+
+        }
+
+
+
+        function viewRequest(requestId) {
+
+            const request = JSON.parse(localStorage.getItem('testRequests') || '[]')
+
+                .find(r => r.id === requestId);
+
+            if (!request) return;
+
+            
+
+            alert(`: ${request.id}\n: ${request.stationNumber}\n: ${request.vesselName}\nSI: ${request.mmsi}\n : ${formatDate(request.testDate)}`);
+
+        }
+
+
+
+        function viewSignal(signalId) {
+
+            const signal = JSON.parse(localStorage.getItem('signals') || '[]')
+
+                .find(s => s.id === signalId);
+
+            if (!signal) return;
+
+            
+
+            alert(`: ${signal.id}\n: ${signal.stationNumber}\n: ${signal.type}\n: ${formatDate(signal.receivedAt)}`);
+
+        }
+
+
+
+        function editTerminal(stationNumber) {
+
+            const vessel = app.vesselDB.findByStationNumber(stationNumber);
+
+            if (!vessel) return;
+
+            
+
+            const newName = prompt(' :', vessel.name);
+
+            if (newName && newName !== vessel.name) {
+
+                vessel.name = newName;
+
+                app.vesselDB.save();
+
+                loadTerminals();
+
+                showNotification(' ', 'success');
+
+            }
+
+        }
+
+
+
+        function testTerminal(stationNumber) {
+
+            const vessel = app.vesselDB.findByStationNumber(stationNumber);
+
+            if (!vessel) return;
+
+            
+
+            const testSignal = {
+
+                id: `SIG-TEST-${Date.now()}`,
+
+                stationNumber: stationNumber,
+
+                mmsi: vessel.mmsi,
+
+                type: vessel.satcomType,
+
+                coordinates: {
+
+                    lat: 55.7558 + (Math.random() - 0.5) * 10,
+
+                    lon: 37.6173 + (Math.random() - 0.5) * 10
+
+                },
+
+                receivedAt: new Date().toISOString(),
+
+                isTest: true
+
+            };
+
+            
+
+            const signals = JSON.parse(localStorage.getItem('signals') || '[]');
+
+            signals.push(testSignal);
+
+            localStorage.setItem('signals', JSON.stringify(signals));
+
+            
+
+            showNotification(`   ${stationNumber} `, 'success');
+
+            loadSignals();
+
+        }
+
+
+
+        function addNewTerminal() {
+
+            const stationNumber = prompt('  (9 ):');
+
+            if (!stationNumber || !/^\d{9}$/.test(stationNumber)) {
+
+                showNotification('   ', 'error');
+
+                return;
+
+            }
+
+            
+
+            const vesselName = prompt(' :');
+
+            const mmsi = prompt('MMSI (9 ):');
+
+            
+
+            if (!vesselName || !mmsi) return;
+
+            
+
+            const vessel = {
+
+                name: vesselName,
+
+                mmsi: mmsi,
+
+                stationNumbers: [stationNumber],
+
+                satcomType: 'INMARSAT',
+
+                owner: ' ',
+
+                email: 'test@example.com'
+
+            };
+
+            
+
+            app.vesselDB.addVessel(vessel);
+
+            loadTerminals();
+
+            showNotification(' ', 'success');
+
+        }
+
+
+
+        function generateDailyReport() {
+
+            const report = generateReportHTML('daily');
+
+            document.getElementById('report-content').innerHTML = report;
+
+        }
+
+
+
+        function generateWeeklyReport() {
+
+            const report = generateReportHTML('weekly');
+
+            document.getElementById('report-content').innerHTML = report;
+
+        }
+
+
+
+        function generateMonthlyReport() {
+
+            const report = generateReportHTML('monthly');
+
+            document.getElementById('report-content').innerHTML = report;
+
+        }
+
+
+
+        function generateReportHTML(type) {
+
+            const requests = JSON.parse(localStorage.getItem('testRequests') || '[]');
+
+            const signals = JSON.parse(localStorage.getItem('signals') || '[]');
+
+            
+
+            return `
+
+                <h3>: ${type === 'daily' ? '' : type === 'weekly' ? '' : ''}</h3>
+
+                <div class="stats-grid">
+
+                    <div class="stat-card">
+
+                        <h3></h3>
+
+                        <div class="value">${requests.length}</div>
+
+                    </div>
+
+                    <div class="stat-card">
+
+                        <h3></h3>
+
+                        <div class="value">${requests.filter(r => r.status === 'confirmed').length}</div>
+
+                    </div>
+
+                    <div class="stat-card">
+
+                        <h3></h3>
+
+                        <div class="value">${signals.length}</div>
+
+                    </div>
+
+                    <div class="stat-card">
+
+                        <h3></h3>
+
+                        <div class="value">${signals.filter(s => !s.isTest).length}</div>
+
+                    </div>
+
+                </div><div onclick="switchTab(\'new-request\')">
+
+            `;
+
+        }
+
+
+
+        
+
+        function exportReportToPDF() {
+
+            const { jsPDF } = window.jspdf;
+
+            const doc = new jsPDF();
+
+            
+
+            //  
+
+            doc.setFontSize(14);
+
+            doc.text(' ', 105, 20, { align: 'center' });
+
+            doc.text('', 105, 30, { align: 'center' });
+
+            doc.text(' ""', 105, 40, { align: 'center' });
+
+            doc.text('  - ', 105, 50, { align: 'center' });
+
+            
+
+            doc.setFontSize(16);
+
+            doc.text('  ', 105, 70, { align: 'center' });
+
+            
+
+            doc.setFontSize(10);
+
+            const currentDate = new Date().toLocaleDateString('ru-RU', {
+
+                year: 'numeric',
+
+                month: 'long',
+
+                day: 'numeric'
+
+            });
+
+            doc.text(` : ${currentDate}`, 20, 90);
+
+            
+
+            //  
+
+            const requests = JSON.parse(localStorage.getItem('testRequests') || '[]');
+
+            const signals = JSON.parse(localStorage.getItem('signals') || '[]');
+
+            const terminals = JSON.parse(localStorage.getItem('terminals') || '[]');
+
+            
+
+            // 
+
+            doc.setFontSize(12);
+
+            doc.text(':', 20, 110);
+
+            doc.setFontSize(10);
+
+            doc.text(` : ${requests.length}`, 30, 120);
+
+            doc.text(`: ${requests.filter(r => r.status === 'confirmed').length}`, 30, 130);
+
+            doc.text(` : ${requests.filter(r => r.status === 'pending').length}`, 30, 140);
+
+            doc.text(` : ${signals.length}`, 30, 150);
+
+            doc.text(` : ${signals.filter(s => s.isTest).length}`, 30, 160);
+
+            doc.text(` : ${signals.filter(s => !s.isTest).length}`, 30, 170);
+
+            doc.text(` : ${terminals.length}`, 30, 180);
+
+            
+
+            // 
+
+            doc.setFontSize(10);
+
+            doc.text(' : ___________________', 20, 220);
+
+            doc.text(`: ${currentDate}`, 20, 230);
+
+            doc.text('..', 150, 240);
+
+            
+
+            //  
+
+            const fileName = `__${new Date().toISOString().slice(0,10)}.pdf`;
+
+            doc.save(fileName);
+
+            
+
+            showNotification('PDF  ', 'success');
+
+        } = window.jspdf;
+
+            const doc = new jsPDF();
+
+            
+
+            doc.setFontSize(16);
+
+            addTextToPDF(doc, '  ', 105, 20, { align: 'center' });
+
+            
+
+            doc.setFontSize(10);
+
+
+
+            addTextToPDF(doc, ` : ${new Date().toLocaleDateString('ru-RU')}`, 20, 40);
+
+            
+
+            const requests = JSON.parse(localStorage.getItem('testRequests') || '[]');
+
+            const signals = JSON.parse(localStorage.getItem('signals') || '[]');
+
+            
+
+            addTextToPDF(doc, ` : ${requests.length}`, 20, 60);
+
+            addTextToPDF(doc, `: ${requests.filter(r => r.status === 'confirmed').length}`, 20, 70);
+
+            addTextToPDF(doc, ` : ${requests.filter(r => r.status === 'pending').length}`, 20, 80);
+
+            addTextToPDF(doc, ` : ${signals.length}`, 20, 90);
+
+            
+
+            doc.save(`__${Date.now()}.pdf`);
+
+            showNotification('PDF  ', 'success');
+
+        }
+
+
+
+        // =====    =====
+
+        window.mapManager = new AdvancedMapManager();
+
+        window.emailSender = new EmailAutoSender();
+
+        window.excelLoader = new ExcelLoader();
+
+
+
+        // =====    =====
+
+        
+
+            }
+
+            
+
+            //     
+
+            const satcomRadios = document.querySelectorAll('input[name="satcom-type"]');
+
+            satcomRadios.forEach(radio => {
+
+                radio.addEventListener('change', (e) => {
+
+                    const stationLabel = document.querySelector('label[for="station-number"]');
+
+                    if (stationLabel) {
+
+                        if (e.target.value === 'INMARSAT') {
+
+                            stationLabel.textContent = '  :';
+
+                        } else {
+
+                            stationLabel.textContent = '  :';
+
+                        }
+
+                    }
+
+                });
+
+            });
+
+            
+
+            //   
+
+            setInterval(() => {
+
+                if (app.currentTab === 'dashboard') {
+
+                    loadDashboard();
+
+                }
+
+            }, 30000);
+
+            
+
+            //  
+
+            document.addEventListener('keydown', (e) => {
+
+                // Alt+N -  
+
+                if (e.altKey && e.key === 'n') {
+
+                    e.preventDefault();
+
+                    switchTab('new-request');
+
+                }
+
+                
+
+                // Alt+R - 
+
+                if (e.altKey && e.key === 'r') {
+
+                    e.preventDefault();
+
+                    location.reload();
+
+                }
+
+                
+
+                // Alt+H - 
+
+                if (e.altKey && e.key === 'h') {
+
+                    e.preventDefault();
+
+                    showHelp();
+
+                }
+
+                
+
+                // Alt+E - 
+
+                if (e.altKey && e.key === 'e') {
+
+                    e.preventDefault();
+
+                    exportSettings();
+
+                }
+
+                
+
+                // Alt+I - 
+
+                if (e.altKey && e.key === 'i') {
+
+                    e.preventDefault();
+
+                    importSettings();
+
+                }
+
+            });
+
+            
+
+            //    
+
+            console.log('%c   v1.0.0', 'color: #667eea; font-size: 20px; font-weight: bold;');
+
+            console.log('Build: 2025.01.09');
+
+            console.log(' 2025  ');
+
+        });
+
+
+
+        //   
+
+        function showHelp() {
+
+            const helpText = `
+
+                   v1.0.0
+
+                =====================================
+
+                
+
+                 :
+
+                     
+
+                     
+
+                   ( )
+
+                    -
+
+                    PDF 
+
+                    Excel
+
+                
+
+                 :
+
+                 Alt+N -  
+
+                 Alt+R -  
+
+                 Alt+H - 
+
+                 Alt+E -  
+
+                 Alt+I -  
+
+                
+
+                :
+
+                   -  !
+
+                
+
+                : support@morflot.ru
+
+            `;
+
+            
+
+            alert(helpText);
+
+        }
+
+
+
+        //   
+
+        window.addEventListener('beforeunload', (e) => {
+
+            //   
+
+            const pendingRequests = JSON.parse(localStorage.getItem('testRequests') || '[]')
+
+                .filter(r => r.status === 'pending');
+
+            
+
+            if (pendingRequests.length > 0) {
+
+                e.preventDefault();
+
+                e.returnValue = '  .  ,   ?';
+
+            }
+
+        });
+
+
+
+        //  
+
+        window.addEventListener('error', (e) => {
+
+            console.error('  :', e.error);
+
+        });
+
+
+
+        console.log('      ');
+
+    
+
+        function importFromExcel(file, type) {
+
+            if (!file) {
+
+                showNotification('  ', 'error');
+
+                return;
+
+            }
+
+            
+
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+
+                try {
+
+                    const data = new Uint8Array(e.target.result);
+
+                    const workbook = XLSX.read(data, {type: 'array'});
+
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+
+                    const json = XLSX.utils.sheet_to_json(firstSheet);
+
+                    
+
+                    if (json.length === 0) {
+
+                        showNotification('Excel  ', 'warning');
+
+                        return;
+
+                    }
+
+                    
+
+                    //     
+
+                    let storageKey = '';
+
+                    let successMessage = '';
+
+                    
+
+                    switch(type) {
+
+                        case 'requests':
+
+                            storageKey = 'testRequests';
+
+                            successMessage = ` : ${json.length}`;
+
+                            break;
+
+                        case 'signals':
+
+                            storageKey = 'signals';
+
+                            successMessage = ` : ${json.length}`;
+
+                            break;
+
+                        case 'terminals':
+
+                            storageKey = 'terminals';
+
+                            successMessage = ` : ${json.length}`;
+
+                            break;
+
+                        default:
+
+                            //    
+
+                            if (json[0].hasOwnProperty('vesselName') || json[0].hasOwnProperty('vessel_name')) {
+
+                                storageKey = 'testRequests';
+
+                                successMessage = ` : ${json.length}`;
+
+                            } else if (json[0].hasOwnProperty('signalType') || json[0].hasOwnProperty('signal_type')) {
+
+                                storageKey = 'signals';
+
+                                successMessage = ` : ${json.length}`;
+
+                            } else {
+
+                                storageKey = 'terminals';
+
+                                successMessage = ` : ${json.length}`;
+
+                            }
+
+                    }
+
+                    
+
+                    //  
+
+                    const existing = JSON.parse(localStorage.getItem(storageKey) || '[]');
+
+                    let final = json;
+
+                    
+
+                    if (existing.length > 0) {
+
+                        const confirmReplace = confirm(
+
+                            `    ${existing.length} .\n` +
+
+                            `   ${json.length}   ?\n\n` +
+
+                            ` - \n -   \n -  `
+
+                        );
+
+                        
+
+                        if (confirmReplace === null) {
+
+                            // 
+
+                            showNotification(' ', 'info');
+
+                            return;
+
+                        } else if (confirmReplace === false) {
+
+                            //   
+
+                            final = [...existing, ...json];
+
+                            successMessage = ` : ${json.length}. : ${final.length}`;
+
+                        }
+
+                    }
+
+                    
+
+                    //  
+
+                    localStorage.setItem(storageKey, JSON.stringify(final));
+
+                    
+
+                    //  
+
+                    if (typeof loadRequests === 'function' && storageKey === 'testRequests') {
+
+                        loadRequests();
+
+                    }
+
+                    if (typeof loadSignals === 'function' && storageKey === 'signals') {
+
+                        loadSignals();
+
+                    }
+
+                    if (typeof loadTerminals === 'function' && storageKey === 'terminals') {
+
+                        loadTerminals();
+
+                    }
+
+                    
+
+                    //  
+
+                    if (typeof loadDashboard === 'function') {
+
+                        loadDashboard();
+
+                    } else if (typeof updateDashboard === 'function') {
+
+                        updateDashboard();
+
+                    }
+
+                    
+
+                    showNotification(successMessage, 'success');
+
+                    
+
+                } catch (error) {
+
+                    console.error('  :', error);
+
+                    showNotification('   Excel : ' + error.message, 'error');
+
+                }
+
+            };
+
+            
+
+            reader.onerror = function() {
+
+                showNotification('   ', 'error');
+
+            };
+
+            
+
+            reader.readAsArrayBuffer(file);
+
+        }
+
+</script>
+
+
+
+    <script "switchTab(\'requests\')">
+
+        //    
+
+        
+
+        //  Excel
+
+        function handleExcelUpload(inputElement, type) {
+
+            if (inputElement.files && inputElement.files[0]) {
+
+                importFromExcel(inputElement.files[0], type);
+
+                inputElement.value = ''; //  input   
+
+            }
+
+        }
+
+        
+
+        //   Excel
+
+        function exportToExcel(type) {
+
+            console.log('  Excel:', type);
+
+            
+
+            let data = [];
+
+            let fileName = '';
+
+            
+
+            switch(type) {
+
+                case 'requests':
+
+                    data = JSON.parse(localStorage.getItem('testRequests') || '[]');
+
+                    fileName = '_.xlsx';
+
+                    break;
+
+                case 'signals':
+
+                    data = JSON.parse(localStorage.getItem('signals') || '[]');
+
+                    fileName = '_.xlsx';
+
+                    break;
+
+                case 'terminals':
+
+                    data = JSON.parse(localStorage.getItem('terminals') || '[]');
+
+                    fileName = '_.xlsx';
+
+                    break;
+
+                default:
+
+                    data = {
+
+                        requests: JSON.parse(localStorage.getItem('testRequests') || '[]'),
+
+                        signals: JSON.parse(localStorage.getItem('signals') || '[]'),
+
+                        terminals: JSON.parse(localStorage.getItem('terminals') || '[]')
+
+                    };
+
+                    fileName = '_.xlsx';
+
+            }
+
+            
+
+            if (data.length === 0 && !data.requests) {
+
+                showNotification('   ', 'warning');
+
+                return;
+
+            }
+
+            
+
+            //   Excel
+
+            const wb = XLSX.utils.book_new();
+
+            
+
+            if (data.requests) {
+
+                //  
+
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.requests), '');
+
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.signals), '');
+
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.terminals), '');
+
+            } else {
+
+                //  
+
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), '');
+
+            }
+
+            
+
+            //  
+
+            XLSX.writeFile(wb, fileName);
+
+            showNotification('   Excel', 'success');
+
+        }
+
+        
+
+        //  email 
+
+        , 2000);
+
+        }
+
+        
+
+        //   -
+
+        , 3000);
+
+        }
+
+        
+
+        //   
+
+        
+
+                ];
+
+                
+
+                //   
+
+                const testSignals = [
+
+                    {
+
+                        id: 'SIG-' + Date.now(),
+
+                        vesselName: '  1',
+
+                        signalType: 'TEST',
+
+                        isTest: true,
+
+                        receivedAt: new Date().toISOString(),
+
+                        latitude: 59.9311,
+
+                        longitude: 30.3609,
+
+                        status: 'processed'
+
+                    }
+
+                ];
+
+                
+
+                //    
+
+                const existingRequests = JSON.parse(localStorage.getItem('testRequests') || '[]');
+
+                const existingSignals = JSON.parse(localStorage.getItem('signals') || '[]');
+
+                
+
+                localStorage.setItem('testRequests', JSON.stringify([...existingRequests, ...testRequests]));
+
+                localStorage.setItem('signals', JSON.stringify([...existingSignals, ...testSignals]));
+
+                
+
+                //  
+
+                if (typeof loadDashboard === 'function') loadDashboard();
+
+                if (typeof loadRequests === 'function') loadRequests();
+
+                if (typeof loadSignals === 'function') loadSignals();
+
+                
+
+                showNotification('  ', 'success');
+
+            }
+
+        }
+
+        
+
+        //  
+
+        function checkSystem() {
+
+            console.log(' ...');
+
+            showNotification('  ...', 'info');
+
+            
+
+            setTimeout(() => {
+
+                const status = {
+
+                    localStorage: typeof(Storage) !== "undefined",
+
+                    excel: typeof(XLSX) !== "undefined",
+
+                    pdf: typeof(jspdf) !== "undefined",
+
+                    map: typeof(ol) !== "undefined"
+
+                };
+
+                
+
+                let message = ' :\n';
+
+                message += ` LocalStorage: ${status.localStorage ? 'OK' : 'ERROR'}\n`;
+
+                message += ` Excel (XLSX): ${status.excel ? 'OK' : 'ERROR'}\n`;
+
+                message += ` PDF (jsPDF): ${status.pdf ? 'OK' : 'ERROR'}\n`;
+
+                message += `  (OpenLayers): ${status.map ? 'OK' : 'ERROR'}`;
+
+                
+
+                alert(message);
+
+                showNotification('  ', 'success');
+
+            }, 1000);
+
+        }
+
+        
+
+        //   
+
+        function simulateIncomingSignal() {
+
+            console.log('  ...');
+
+            
+
+            const signal = {
+
+                id: 'SIG-' + Date.now(),
+
+                vesselName: ' ',
+
+                signalType: Math.random() > 0.5 ? 'TEST' : 'ALERT',
+
+                isTest: Math.random() > 0.5,
+
+                receivedAt: new Date().toISOString(),
+
+                latitude: 55 + Math.random() * 10,
+
+                longitude: 30 + Math.random() * 10,
+
+                status: 'new',
+
+                mmsi: '273' + Math.floor(Math.random() * 1000000),
+
+                message: '  '
+
+            };
+
+            
+
+            const signals = JSON.parse(localStorage.getItem('signals') || '[]');
+
+            signals.unshift(signal);
+
+            localStorage.setItem('signals', JSON.stringify(signals));
+
+            
+
+            //  
+
+            const alertType = signal.isTest ? 'info' : 'warning';
+
+            const alertText = signal.isTest ? '  ' : '   !';
+
+            showNotification(`${alertText}  ${signal.vesselName}`, alertType);
+
+            
+
+            //  
+
+            if (typeof loadSignals === 'function') loadSignals();
+
+            if (typeof loadDashboard === 'function') loadDashboard();
+
+            
+
+            //       
+
+            if (!signal.isTest) {
+
+                switchTab('signals');
+
+            }
+
+        }
+
+        
+
+        //    
+
+        ] ${message}`);
+
+            
+
+            //   
+
+            const notification = document.createElement('div');
+
+            notification.className = `notification notification-${type}`;
+
+            notification.style.cssText = `
+
+                position: fixed;
+
+                top: 20px;
+
+                right: 20px;
+
+                padding: 15px 20px;
+
+                background: ${type === 'success' ? '#4CAF50' : type === 'error' ? '#f44336' : type === 'warning' ? '#ff9800' : '#2196F3'};
+
+                color: white;
+
+                border-radius: 5px;
+
+                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+
+                z-index: 10000;
+
+                animation: slideIn 0.3s ease;
+
+                max-width: 300px;
+
+            `;
+
+            notification.textContent = message;
+
+            
+
+            //   
+
+            document.body.appendChild(notification);
+
+            
+
+            //   3 
+
+            setTimeout(() => {
+
+                notification.style.animation = 'slideOut 0.3s ease';
+
+                setTimeout(() => {
+
+                    if (document.body.contains(notification)) {
+
+                        document.body.removeChild(notification);
+
+                    }
+
+                }, 300);
+
+            }, 3000);
+
+        }
+
+        
+
+        //  CSS  
+
+        if (!document.querySelector('#notification-styles')) {
+
+            const style = document.createElement('style');
+
+            style.id = 'notification-styles';
+
+            style.textContent = `
+
+                @keyframes slideIn {
+
+                    from { transform: translateX(100%); opacity: 0; }
+
+                    to { transform: translateX(0); opacity: 1; }
+
+                }
+
+                @keyframes slideOut {
+
+                    from { transform: translateX(0); opacity: 1; }
+
+                    to { transform: translateX(100%); opacity: 0; }
+
+                }
+
+            `;
+
+            document.head.appendChild(style);
+
+        }
+
+    </script>
+
+    
+
+</body>
+
+</html>

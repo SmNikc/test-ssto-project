@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Модуль Тест ССТО</title>
+    <link rel="stylesheet" href="https://unpkg.com/openlayers@7.3.0/dist/ol.css">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        header { display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 24px; }
+        .logo span { font-weight: bold; }
+        .actions { display: flex; gap: 10px; }
+        .btn { padding: 8px 16px; border: none; cursor: pointer; border-radius: 4px; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-sm { padding: 4px 8px; font-size: 0.875rem; }
+        nav { margin: 20px 0; }
+        .tab { padding: 10px 20px; margin-right: 5px; background: #f0f0f0; cursor: pointer; border-radius: 4px 4px 0 0; border: none; }
+        .tab.active { background: white; border: 1px solid #ddd; border-bottom: none; }
+        .content { display: none; padding: 20px; border: 1px solid #ddd; border-radius: 0 4px 4px 4px; }
+        .content.active { display: block; }
+        .stats { display: flex; gap: 20px; }
+        .stat { flex: 1; padding: 20px; background: #f8f9fa; border-radius: 4px; }
+        .stat h3 { margin: 0 0 10px; font-size: 14px; color: #6c757d; }
+        .stat p { font-size: 24px; margin: 0; font-weight: bold; }
+        .stat small { display: block; color: #6c757d; margin-top: 5px; }
+        .status { margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 4px; }
+        .quick-actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+        form { display: grid; gap: 15px; max-width: 600px; }
+        input, select { padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 100%; }
+        label { font-weight: bold; display: block; margin-bottom: 5px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
+        th { background: #f0f0f0; font-weight: bold; }
+        #map { height: 400px; border: 1px solid #ddd; border-radius: 4px; }
+        .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 0.8em; display: inline-block; }
+        .status-active { background: #d4edda; color: #155724; }
+        .status-inactive { background: #f8d7da; color: #721c24; }
+        .status-tested { background: #c7f3c7; color: #0d5f0d; }
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-confirmed { background: #cce5ff; color: #004085; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                🚢 <span>МОДУЛЬ ТЕСТ ССТО</span>
+                <div style="font-size: 14px; color: #6c757d;">Система управления тестированием ССТО</div>
+            </div>
+            <div class="actions">
+                <button class="btn btn-primary" onclick="uploadExcel()">📊 Загрузить Excel</button>
+                <button class="btn btn-secondary" onclick="configureEmail()">✉️ Настройки Email</button>
+                <button class="btn btn-secondary" onclick="exportSettings()">💾 Экспорт настроек</button>
+                <button class="btn btn-secondary" onclick="importSettings()">📥 Импорт настроек</button>
+            </div>
+        </header>
+        
+        <nav>
+            <button class="tab active" data-tab="dashboard">📊 Главная</button>
+            <button class="tab" data-tab="new-request">➕ Новая заявка</button>
+            <button class="tab" data-tab="requests">📋 Заявки</button>
+            <button class="tab" data-tab="signals">📡 Сигналы</button>
+            <button class="tab" data-tab="terminals">🖥️ Терминалы</button>
+            <button class="tab" data-tab="map">🗺️ Карта</button>
+            <button class="tab" data-tab="reports">📈 Отчёты</button>
+        </nav>
+        
+        <div id="dashboard" class="content active">
+            <div class="stats">
+                <div class="stat">
+                    <h3>АКТИВНЫЕ ЗАЯВКИ</h3>
+                    <p id="active-requests">0</p>
+                    <small>↑ +2 за сегодня</small>
+                </div>
+                <div class="stat">
+                    <h3>ОЖИДАЮТ ПОДТВЕРЖДЕНИЯ</h3>
+                    <p id="pending-confirm">0</p>
+                    <small>Требуют внимания</small>
+                </div>
+                <div class="stat">
+                    <h3>ПОДТВЕРЖДЕНО</h3>
+                    <p id="confirmed">0</p>
+                    <small>↑ +5 за неделю</small>
+                </div>
+                <div class="stat">
+                    <h3>ВСЕГО СИГНАЛОВ</h3>
+                    <p id="total-signals">0</p>
+                    <small>За текущий месяц</small>
+                </div>
+            </div>
+            <div class="status">
+                <strong>Статус автоподтверждения:</strong>
+                <span id="auto-confirm-status">ОТКЛЮЧЕН</span>
+                <button class="btn btn-primary" onclick="toggleAutoConfirm()" style="margin-left: 20px;">Изменить режим</button>
+            </div>
+            <div class="quick-actions">
+                <button class="btn btn-primary" onclick="processEmailQueue()">📧 Обработать email очередь</button>
+                <button class="btn btn-primary" onclick="syncSearchSea()">🔄 Синхронизация с Поиск-Море</button>
+                <button class="btn btn-primary" onclick="generateTestData()">🎲 Генерировать тестовые данные</button>
+                <button class="btn btn-primary" onclick="systemCheck()">🏥 Проверка системы</button>
+                <button class="btn btn-secondary" onclick="clearAllData()">🗑️ Очистить все данные</button>
+            </div>
+        </div>
+        
+        <div id="new-request" class="content">
+            <h2>Создание новой заявки на тестирование ССТО</h2>
+            <form id="new-request-form">
+                <div>
+                    <label>⚠️ НОМЕР СТОЙКИ ССТО (ГЛАВНЫЙ ИДЕНТИФИКАТОР) *</label>
+                    <input type="text" id="terminal-number" required placeholder="9-значный номер">
+                    <small style="color: #dc3545;">КРИТИЧЕСКИ ВАЖНО: Уникальный номер терминала - единственный идентификатор для сопоставления</small>
+                </div>
+                <div>
+                    <label>Тип спутниковой связи *</label>
+                    <select id="sat-type" required>
+                        <option>ИНМАРСАТ</option>
+                        <option>ИРИДИУМ</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Название судна *</label>
+                    <input type="text" id="vessel-name" required>
+                </div>
+                <div>
+                    <label>MMSI *</label>
+                    <input type="text" id="mmsi" required placeholder="9-значный код">
+                </div>
+                <div>
+                    <label>IMO</label>
+                    <input type="text" id="imo" placeholder="7-значный код">
+                </div>
+                <div>
+                    <label>Судовладелец *</label>
+                    <input type="text" id="owner" required>
+                </div>
+                <div>
+                    <label>Email *</label>
+                    <input type="email" id="email" required>
+                </div>
+                <div>
+                    <label>Дата теста *</label>
+                    <input type="date" id="test-date" required>
+                </div>
+                <div>
+                    <label>Время теста</label>
+                    <input type="time" id="test-time">
+                </div>
+                <button type="submit" class="btn btn-primary">Создать заявку</button>
+            </form>
+        </div>
+        
+        <div id="requests" class="content">
+            <h2>Список заявок на тестирование</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Номер стойки</th>
+                        <th>Судно</th>
+                        <th>MMSI</th>
+                        <th>IMO</th>
+                        <th>Дата теста</th>
+                        <th>Статус</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody id="requests-tbody">
+                    <tr><td colspan="8" style="text-align: center;">Нет заявок</td></tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div id="signals" class="content">
+            <h2>Полученные сигналы ССТО</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Номер стойки</th>
+                        <th>Судно</th>
+                        <th>MMSI</th>
+                        <th>IMO</th>
+                        <th>Тип</th>
+                        <th>Время получения</th>
+                        <th>Тест/Тревога</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody id="signals-tbody">
+                    <tr><td colspan="9" style="text-align: center;">Нет сигналов</td></tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div id="terminals" class="content">
+            <h2>База данных терминалов ССТО</h2>
+            <div style="margin-bottom: 20px;">
+                <button class="btn btn-primary" onclick="addTerminal()">➕ Добавить терминал</button>
+                <button class="btn btn-secondary" onclick="exportTerminalsCSV()">📥 Экспорт в CSV</button>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Номер стойки</th>
+                        <th>Судно</th>
+                        <th>MMSI</th>
+                        <th>Тип связи</th>
+                        <th>Владелец</th>
+                        <th>Последний тест</th>
+                        <th>Следующий тест</th>
+                        <th>Статус</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody id="terminals-tbody">
+                    <tr><td colspan="9" style="text-align: center;">Нет терминалов</td></tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div id="map" class="content">
+            <h2>Карта сигналов ССТО</h2>
+            <div id="map-container" style="height: 400px; border: 1px solid #ddd;"></div>
+            <div style="margin-top: 20px;">
+                <button class="btn btn-primary" onclick="showAllSignals()">🎯 Показать все</button>
+                <button class="btn btn-secondary" onclick="measureDistance()">📏 Измерить</button>
+                <button class="btn btn-secondary" onclick="takeScreenshot()">📷 Скриншот</button>
+                <button class="btn btn-secondary" onclick="clearMap()">🗑️ Очистить</button>
+            </div>
+        </div>
+        
+        <div id="reports" class="content">
+            <h2>Генерация отчётов</h2>
+            <div style="margin-bottom: 20px;">
+                <label>Тип отчёта</label>
+                <select id="report-type" style="width: 300px;">
+                    <option>Суточный</option>
+                    <option>Недельный</option>
+                    <option>Месячный</option>
+                    <option>Произвольный период</option>
+                </select>
+            </div>
+            <div id="report-period" style="display: none; margin-bottom: 20px;">
+                <label>Начало периода</label>
+                <input type="date" id="report-start" style="width: 300px;">
+                <label style="margin-top: 10px;">Конец периода</label>
+                <input type="date" id="report-end" style="width: 300px;">
+            </div>
+            <div>
+                <button class="btn btn-primary" onclick="generateReport()">📊 Генерировать отчёт</button>
+                <button class="btn btn-secondary" onclick="exportPDF()">📄 Экспорт в PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/openlayers@7.3.0/dist/ol.js"></script>
+    <script src="https://unpkg.com/xlsx@latest/dist/xlsx.full.min.js"></script>
+    <script>
+        // Простое хранилище данных
+        const storage = {
+            requests: [],
+            signals: [],
+            terminals: []
+        };
+
+        // ===================== LocalStorage Support =====================
+        // Автоматическое сохранение данных
+        function saveToLocalStorage() {
+            try {
+                localStorage.setItem('ssto_requests', JSON.stringify(storage.requests));
+                localStorage.setItem('ssto_signals', JSON.stringify(storage.signals));
+                localStorage.setItem('ssto_terminals', JSON.stringify(storage.terminals));
+                console.log('✅ Данные сохранены в LocalStorage');
+            } catch(e) {
+                console.error('Ошибка сохранения:', e);
+            }
+        }
+        
+        // Загрузка данных при старте
+        function loadFromLocalStorage() {
+            try {
+                const requests = localStorage.getItem('ssto_requests');
+                const signals = localStorage.getItem('ssto_signals');
+                const terminals = localStorage.getItem('ssto_terminals');
+                
+                if (requests) storage.requests = JSON.parse(requests);
+                if (signals) storage.signals = JSON.parse(signals);
+                if (terminals) storage.terminals = JSON.parse(terminals);
+                
+                console.log('✅ Данные загружены из LocalStorage');
+                console.log('  Заявки:', storage.requests.length);
+                console.log('  Сигналы:', storage.signals.length);
+                console.log('  Терминалы:', storage.terminals.length);
+                
+                // Обновляем интерфейс
+                updateDashboard();
+                loadRequests();
+                loadSignals();
+                loadTerminals();
+            } catch(e) {
+                console.error('Ошибка загрузки:', e);
+            }
+        }
+        
+        // Очистка данных
+        function clearAllData() {
+            if (confirm('Удалить все данные? Это действие нельзя отменить!')) {
+                localStorage.removeItem('ssto_requests');
+                localStorage.removeItem('ssto_signals');
+                localStorage.removeItem('ssto_terminals');
+                storage.requests = [];
+                storage.signals = [];
+                storage.terminals = [];
+                updateDashboard();
+                loadRequests();
+                loadSignals();
+                loadTerminals();
+                alert('Все данные удалены');
+            }
+        }
+
+
+        // Функция переключения вкладок
+        function switchTab(tabName) {
+            // Скрываем все вкладки
+            document.querySelectorAll('.content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Показываем нужную
+            const target = document.getElementById(tabName);
+            if (target) {
+                target.classList.add('active');
+            }
+            
+            // Обновляем кнопки
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Находим и подсвечиваем активную кнопку
+            document.querySelectorAll('.tab').forEach(tab => {
+                if (tab.getAttribute('data-tab') === tabName) {
+                    tab.classList.add('active');
+                }
+            });
+        }
+
+        // Обработчики для вкладок
+        document.addEventListener('DOMContentLoaded', function() {
+            // Привязываем клики к вкладкам
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const tabName = this.getAttribute('data-tab');
+                    switchTab(tabName);
+                });
+            });
+
+            // Обработчик формы новой заявки
+            const form = document.getElementById('new-request-form');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const request = {
+                        id: 'REQ' + Date.now(),
+                        terminal: document.getElementById('terminal-number').value,
+                        vessel: document.getElementById('vessel-name').value,
+                        mmsi: document.getElementById('mmsi').value,
+                        imo: document.getElementById('imo').value,
+                        owner: document.getElementById('owner').value,
+                        email: document.getElementById('email').value,
+                        testDate: document.getElementById('test-date').value,
+                        testTime: document.getElementById('test-time').value,
+                        status: 'pending'
+                    };
+                    
+                    storage.requests.push(request);
+            saveToLocalStorage();
+                    alert('Заявка создана успешно!');
+                    form.reset();
+                    updateDashboard();
+                    loadRequests();
+                });
+            }
+
+            // Обработчик изменения типа отчета
+            const reportType = document.getElementById('report-type');
+            if (reportType) {
+                reportType.addEventListener('change', function() {
+                    const period = document.getElementById('report-period');
+                    if (this.value === 'Произвольный период') {
+                        period.style.display = 'block';
+                    } else {
+                        period.style.display = 'none';
+                    }
+                });
+            }
+
+            // Инициализация
+            loadFromLocalStorage();
+        });
+
+        // Обновление главной страницы
+        function updateDashboard() {
+            const activeEl = document.getElementById('active-requests');
+            const pendingEl = document.getElementById('pending-confirm');
+            const confirmedEl = document.getElementById('confirmed');
+            const signalsEl = document.getElementById('total-signals');
+            
+            if (activeEl) activeEl.textContent = storage.requests.length;
+            if (pendingEl) pendingEl.textContent = storage.requests.filter(r => r.status === 'pending').length;
+            if (confirmedEl) confirmedEl.textContent = storage.requests.filter(r => r.status === 'confirmed').length;
+            if (signalsEl) signalsEl.textContent = storage.signals.length;
+        }
+
+        // Загрузка заявок
+        function loadRequests() {
+            const tbody = document.getElementById('requests-tbody');
+            if (!tbody) return;
+            
+            if (storage.requests.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">Нет заявок</td></tr>';
+            } else {
+                tbody.innerHTML = '';
+                storage.requests.forEach(req => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${req.id}</td>
+                        <td>${req.terminal}</td>
+                        <td>${req.vessel}</td>
+                        <td>${req.mmsi}</td>
+                        <td>${req.imo || '-'}</td>
+                        <td>${req.testDate}</td>
+                        <td><span class="status-badge status-${req.status}">${req.status}</span></td>
+                        <td><button class="btn btn-primary btn-sm" onclick="confirmRequest('${req.id}')">Подтвердить</button></td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+        }
+
+        // Подтверждение заявки
+        function confirmRequest(id) {
+            const request = storage.requests.find(r => r.id === id);
+            if (request) {
+                request.status = 'confirmed';
+                saveToLocalStorage();
+                loadRequests();
+                updateDashboard();
+                alert('Заявка подтверждена!');
+            }
+        }
+
+        // Генерация тестовых данных
+        function generateTestData() {
+            // Добавляем тестовую заявку
+            storage.requests.push({
+                id: 'REQ' + Date.now(),
+                terminal: '427309676',
+                vessel: 'Тестовое судно',
+                mmsi: '273456789',
+                imo: '1234567',
+                owner: 'Тестовый владелец',
+                email: 'test@example.com',
+                testDate: new Date().toISOString().split('T')[0],
+                status: 'pending'
+            });
+            
+            // Добавляем тестовый сигнал
+            storage.signals.push({
+                id: 'SIG' + Date.now(),
+                terminal: '427309676',
+                vessel: 'Тестовое судно',
+                mmsi: '273456789',
+                type: 'ИНМАРСАТ',
+                received: new Date().toLocaleString(),
+                isTest: true
+            });
+            
+            // Добавляем тестовый терминал
+            storage.terminals.push({
+                terminal_number: '427309676',
+                vessel_name: 'Тестовое судно',
+                mmsi: '273456789',
+                type: 'ИНМАРСАТ',
+                owner: 'Тестовый владелец',
+                lastTest: new Date().toISOString().split('T')[0],
+                status: 'active'
+            });
+            
+            updateDashboard();
+            loadRequests();
+            loadSignals();
+            loadTerminals();
+            
+            saveToLocalStorage();
+            alert('Тестовые данные добавлены!');
+        }
+
+        // Загрузка сигналов
+        function loadSignals() {
+            const tbody = document.getElementById('signals-tbody');
+            if (!tbody) return;
+            
+            if (storage.signals.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">Нет сигналов</td></tr>';
+            } else {
+                tbody.innerHTML = '';
+                storage.signals.forEach(sig => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${sig.id}</td>
+                        <td>${sig.terminal}</td>
+                        <td>${sig.vessel}</td>
+                        <td>${sig.mmsi}</td>
+                        <td>${sig.imo || '-'}</td>
+                        <td>${sig.type}</td>
+                        <td>${sig.received}</td>
+                        <td>${sig.isTest ? '<span class="status-badge status-tested">Тест</span>' : '<span class="status-badge status-active">Тревога</span>'}</td>
+                        <td><button class="btn btn-primary btn-sm" onclick="matchSignal('${sig.id}')">Сопоставить</button></td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+        }
+
+        // Загрузка терминалов
+        function loadTerminals() {
+            const tbody = document.getElementById('terminals-tbody');
+            if (!tbody) return;
+            
+            if (storage.terminals.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">Нет терминалов</td></tr>';
+            } else {
+                tbody.innerHTML = '';
+                storage.terminals.forEach(terminal => {
+                    const nextTest = terminal.lastTest ? 
+                        new Date(new Date(terminal.lastTest).setFullYear(new Date(terminal.lastTest).getFullYear() + 1)).toISOString().split('T')[0] : 
+                        '';
+                    
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${terminal.terminal_number}</td>
+                        <td>${terminal.vessel_name}</td>
+                        <td>${terminal.mmsi}</td>
+                        <td>${terminal.type}</td>
+                        <td>${terminal.owner}</td>
+                        <td>${terminal.lastTest || '-'}</td>
+                        <td>${nextTest || '-'}</td>
+                        <td><span class="status-badge status-${terminal.status}">${terminal.status}</span></td>
+                        <td>
+                            <button class="btn btn-primary btn-sm" onclick="viewTerminal('${terminal.terminal_number}')">Просмотр</button>
+                            <button class="btn btn-success btn-sm" onclick="testTerminal('${terminal.terminal_number}')">Тест</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+        }
+
+        // Функции-заглушки
+        function uploadExcel() { alert('Загрузка Excel в разработке'); }
+        function configureEmail() { alert('Настройки Email в разработке'); }
+        function exportSettings() { alert('Экспорт настроек в разработке'); }
+        function importSettings() { alert('Импорт настроек в разработке'); }
+        function processEmailQueue() { alert('Обработка email в разработке'); }
+        function syncSearchSea() { alert('Синхронизация в разработке'); }
+        function systemCheck() { alert('Проверка системы в разработке'); }
+        function toggleAutoConfirm() { 
+            const status = document.getElementById('auto-confirm-status');
+            if (status) {
+                status.textContent = status.textContent === 'ВКЛЮЧЕН' ? 'ОТКЛЮЧЕН' : 'ВКЛЮЧЕН';
+            }
+        }
+        function addTerminal() { alert('Добавление терминала в разработке'); }
+        function exportTerminalsCSV() { alert('Экспорт в CSV в разработке'); }
+        function showAllSignals() { alert('Показать сигналы в разработке'); }
+        function measureDistance() { alert('Измерение в разработке'); }
+        function takeScreenshot() { alert('Скриншот в разработке'); }
+        function clearMap() { alert('Очистка карты в разработке'); }
+        function generateReport() { alert('Генерация отчёта в разработке'); }
+        function exportPDF() { alert('Экспорт в PDF в разработке'); }
+        function matchSignal(id) { alert('Сопоставление сигнала ' + id); }
+        function viewTerminal(id) { alert('Просмотр терминала ' + id); }
+        function testTerminal(id) { alert('Тест терминала ' + id); }
+    </script>
+</body>
+</html>

@@ -1,0 +1,2597 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Модуль ТЕСТ ССТО - Система управления тестированием</title>
+    
+    <!-- OpenLayers для карты -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v7.3.0/ol.css">
+    <script src="https://cdn.jsdelivr.net/npm/ol@v7.3.0/dist/ol.js"></script>
+    
+    <!-- XLSX для работы с Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <!-- jsPDF для генерации PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Поддержка кириллицы для PDF -->
+    <script>
+        // Функция для транслитерации кириллицы в латиницу
+        function cyrillicToTranslit(text) {
+            const converter = {
+                'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd',
+                'е': 'e', 'ё': 'e', 'ж': 'zh', 'з': 'z', 'и': 'i',
+                'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n',
+                'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't',
+                'у': 'u', 'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch',
+                'ш': 'sh', 'щ': 'sch', 'ъ': '', 'ы': 'y', 'ь': '',
+                'э': 'e', 'ю': 'yu', 'я': 'ya',
+                'А': 'A', 'Б': 'B', 'В': 'V', 'Г': 'G', 'Д': 'D',
+                'Е': 'E', 'Ё': 'E', 'Ж': 'Zh', 'З': 'Z', 'И': 'I',
+                'Й': 'Y', 'К': 'K', 'Л': 'L', 'М': 'M', 'Н': 'N',
+                'О': 'O', 'П': 'P', 'Р': 'R', 'С': 'S', 'Т': 'T',
+                'У': 'U', 'Ф': 'F', 'Х': 'H', 'Ц': 'Ts', 'Ч': 'Ch',
+                'Ш': 'Sh', 'Щ': 'Sch', 'Ъ': '', 'Ы': 'Y', 'Ь': '',
+                'Э': 'E', 'Ю': 'Yu', 'Я': 'Ya',
+                ' ': ' ', '.': '.', ',': ',', '!': '!', '?': '?',
+                '-': '-', ':': ':', ';': ';', '"': '"', "'": "'",
+                '(': '(', ')': ')', '[': '[', ']': ']', '/': '/',
+                '«': '"', '»': '"', '—': '-', '–': '-'
+            };
+            
+            if (!text) return '';
+            return text.split('').map(char => converter[char] || char).join('');
+        }
+        
+        // Функция-обертка для безопасного добавления текста в PDF
+        function addTextToPDF(doc, text, x, y, options) {
+            try {
+                // Транслитерируем текст для PDF
+                const translitText = cyrillicToTranslit(String(text));
+                doc.text(translitText, x, y, options);
+            } catch (e) {
+                console.error('Ошибка при добавлении текста в PDF:', e);
+                // Пробуем добавить без опций
+                try {
+                    doc.text(String(text), x, y);
+                } catch (e2) {
+                    console.error('Не удалось добавить текст:', text);
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* ===== БАЗОВЫЕ СТИЛИ ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+        }
+        
+        .logo-text h1 {
+            font-size: 24px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 2px;
+        }
+        
+        .logo-text p {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .navigation {
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin: 20px auto;
+            max-width: 1400px;
+            border-radius: 10px;
+            padding: 10px;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #4a5568;
+            transition: 0.3s;
+        }
+        
+        .tab:hover {
+            background: #f7fafc;
+        }
+        
+        .tab.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .content-area {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .tab-content {
+            display: none;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .stat-card h3 {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+        
+        .stat-card .value {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-card .change {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        /* Формы */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: 0.3s;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .form-group.highlight {
+            background: #fff3cd;
+            border: 3px solid #ff6b6b;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .form-group.highlight label {
+            color: #d32f2f;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .form-group.highlight input {
+            font-size: 20px;
+            font-weight: bold;
+            border: 3px solid #ff6b6b;
+        }
+        
+        /* Таблицы */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        th {
+            background: #f7fafc;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #4a5568;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        tr:hover {
+            background: #f7fafc;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .status-confirmed {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status-active {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        /* Карта */
+        #map {
+            height: 500px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        
+        .map-controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        /* Модальные окна */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s;
+        }
+        
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2d3748;
+        }
+        
+        .modal-close {
+            font-size: 30px;
+            color: #a0aec0;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+        
+        .modal-close:hover {
+            color: #4a5568;
+        }
+        
+        /* Уведомления */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            z-index: 3000;
+            animation: slideIn 0.3s;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+        
+        .notification.success {
+            background: #48bb78;
+        }
+        
+        .notification.error {
+            background: #f56565;
+        }
+        
+        .notification.info {
+            background: #4299e1;
+        }
+        
+        /* Скрытый input для загрузки файлов */
+        #excel-upload {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">🚢</div>
+                <div class="logo-text">
+                    <h1>МОДУЛЬ ТЕСТ ССТО</h1>
+                    <p>Система управления тестированием ССТО</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="window.excelLoader.openFileDialog()">📊 Загрузить Excel</button>
+                <button class="btn btn-secondary" onclick="window.emailSender.configureSMTP()">✉️ Настройки Email</button>
+                <button class="btn btn-secondary" onclick="exportSettings()">💾 Экспорт настроек</button>
+                <button class="btn btn-secondary" onclick="importSettings()">📥 Импорт настроек</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="navigation">
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('dashboard')">📊 Главная</button>
+            <button class="tab" onclick="switchTab('new-request')">➕ Новая заявка</button>
+            <button class="tab" onclick="switchTab('requests')">📋 Заявки</button>
+            <button class="tab" onclick="switchTab('signals')">📡 Сигналы</button>
+            <button class="tab" onclick="switchTab('terminals')">🖥️ Терминалы</button>
+            <button class="tab" onclick="switchTab('map-container')">🗺️ Карта</button>
+            <button class="tab" onclick="switchTab('reports')">📈 Отчёты</button>
+        </div>
+    </div>
+    
+    <div class="content-area">
+        <!-- Главная -->
+        <div id="dashboard" class="tab-content active">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>АКТИВНЫЕ ЗАЯВКИ</h3>
+                    <div class="value" id="total-requests">0</div>
+                    <div class="change">↑ +2 за сегодня</div>
+                </div>
+                <div class="stat-card">
+                    <h3>ОЖИДАЮТ ПОДТВЕРЖДЕНИЯ</h3>
+                    <div class="value" id="pending-requests">0</div>
+                    <div class="change">Требуют внимания</div>
+                </div>
+                <div class="stat-card">
+                    <h3>ПОДТВЕРЖДЕНО</h3>
+                    <div class="value" id="confirmed-requests">0</div>
+                    <div class="change">↑ +5 за неделю</div>
+                </div>
+                <div class="stat-card">
+                    <h3>ВСЕГО СИГНАЛОВ</h3>
+                    <div class="value" id="total-signals">0</div>
+                    <div class="change">За текущий месяц</div>
+                </div>
+            </div>
+            
+            <div style="background: #e6fffa; border: 2px solid #38b2ac; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+                <h3 style="color: #234e52; margin-bottom: 10px;">Статус автоподтверждения</h3>
+                <p>Режим: <strong id="auto-confirm-status">ОТКЛЮЧЕН</strong></p>
+                <button class="btn btn-primary" onclick="toggleAutoConfirm()">Изменить режим</button>
+            </div>
+            
+            <div class="map-controls">
+                <button class="btn btn-primary" onclick="processEmailQueue()">📧 Обработать email очередь</button>
+                <button class="btn btn-primary" onclick="syncWithPoiskMore()">🔄 Синхронизация с Поиск-Море</button>
+                <button class="btn btn-secondary" onclick="generateTestData()">🎲 Генерировать тестовые данные</button>
+                <button class="btn btn-secondary" onclick="systemHealthCheck()">🏥 Проверка системы</button>
+            </div>
+        </div>
+        
+        <!-- Новая заявка -->
+        <div id="new-request" class="tab-content">
+            <h2>Создание новой заявки на тестирование ССТО</h2>
+            <form id="request-form">
+                <div class="form-group highlight">
+                    <label>⚠️ НОМЕР СТОЙКИ ССТО (ГЛАВНЫЙ ИДЕНТИФИКАТОР) *</label>
+                    <input type="text" id="station-number" name="station-number" required pattern="[0-9]{9}" 
+                           placeholder="Например: 427309676" maxlength="9">
+                    <small style="color: #d32f2f;">КРИТИЧЕСКИ ВАЖНО: Уникальный номер терминала - единственный идентификатор для сопоставления</small>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                    <div class="form-group">
+                        <label>Тип спутниковой связи *</label>
+                        <div>
+                            <label><input type="radio" name="satcom-type" value="INMARSAT" checked> ИНМАРСАТ</label>
+                            <label><input type="radio" name="satcom-type" value="IRIDIUM"> ИРИДИУМ</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Название судна *</label>
+                        <input type="text" id="vessel-name" name="vessel-name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>MMSI *</label>
+                        <input type="text" id="mmsi" name="mmsi" required pattern="[0-9]{9}" maxlength="9">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>IMO</label>
+                        <input type="text" id="imo" name="imo" pattern="[0-9]{7}" maxlength="7">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Судовладелец *</label>
+                        <input type="text" id="ship-owner" name="ship-owner" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Email *</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Дата теста *</label>
+                        <input type="date" id="test-date" name="test-date" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Время теста</label>
+                        <input type="time" id="test-time" name="test-time">
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="margin-top: 20px;">Создать заявку</button>
+            </form>
+        </div>
+        
+        <!-- Заявки -->
+        <div id="requests" class="tab-content">
+            <h2>Список заявок на тестирование</h2>
+            <table>
+                <thead>
+                    <tr>
+                    <th>ID</th>
+                    <th>Номер стойки</th>
+                    <th>Судно</th>
+                    <th>MMSI</th>
+                    <th>IMO</th>
+                    <th>Дата теста</th>
+                    <th>Статус</th>
+                    <th>Действия</th>
+                </tr>
+                </thead>
+                <tbody id="requests-tbody">
+                    <!-- Данные загружаются динамически -->
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Сигналы -->
+        <div id="signals" class="tab-content">
+            <h2>Полученные сигналы ССТО</h2>
+            <table>
+                <thead>
+                    <tr>
+                    <th>ID</th>
+                    <th>Номер стойки</th>
+                    <th>Судно</th>
+                    <th>MMSI</th>
+                    <th>IMO</th>
+                    <th>Тип</th>
+                    <th>Время получения</th>
+                    <th>Тест/Тревога</th>
+                    <th>Действия</th>
+                </tr>
+                </thead>
+                <tbody id="signals-tbody">
+                    <!-- Данные загружаются динамически -->
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Терминалы -->
+        <div id="terminals" class="tab-content">
+            <h2>База данных терминалов ССТО</h2>
+            <div class="map-controls">
+                <button class="btn btn-primary" onclick="addNewTerminal()">➕ Добавить терминал</button>
+                <button class="btn btn-secondary" onclick="app.vesselDB.exportToCSV()">📥 Экспорт в CSV</button>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Номер стойки</th>
+                        <th>Судно</th>
+                        <th>MMSI</th>
+                        <th>Тип связи</th>
+                        <th>Владелец</th>
+                        <th>Последний тест</th>
+                        <th>Следующий тест</th>
+                        <th>Статус</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody id="terminals-tbody">
+                    <!-- Данные загружаются динамически -->
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Карта -->
+        <div id="map-container" class="tab-content">
+            <h2>Карта сигналов ССТО</h2>
+            <div id="map"></div>
+            <div class="map-controls">
+                <button class="btn btn-primary" onclick="window.mapManager.zoomToSignals()">🎯 Показать все</button>
+                <button class="btn btn-primary" onclick="window.mapManager.measureDistance()">📏 Измерить</button>
+                <button class="btn btn-secondary" onclick="window.mapManager.exportMapImage()">📷 Скриншот</button>
+                <button class="btn btn-secondary" onclick="window.mapManager.clearMap()">🗑️ Очистить</button>
+            </div>
+        </div>
+        
+        <!-- Отчёты -->
+        <div id="reports" class="tab-content">
+            <h2>Генерация отчётов</h2>
+            <div class="form-group">
+                <label>Тип отчёта</label>
+                <select id="report-type">
+                    <option value="daily">Суточный</option>
+                    <option value="weekly">Недельный</option>
+                    <option value="monthly">Месячный</option>
+                    <option value="custom">Произвольный период</option>
+                </select>
+            </div>
+            <div class="map-controls">
+                <button class="btn btn-primary" onclick="generateDailyReport()">📊 Суточный отчёт</button>
+                <button class="btn btn-primary" onclick="generateWeeklyReport()">📊 Недельный отчёт</button>
+                <button class="btn btn-primary" onclick="generateMonthlyReport()">📊 Месячный отчёт</button>
+                <button class="btn btn-secondary" onclick="exportReportToPDF()">📄 Экспорт в PDF</button>
+            </div>
+            <div id="report-content" style="margin-top: 20px;">
+                <!-- Содержимое отчёта -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Скрытый input для загрузки Excel -->
+    <input type="file" id="excel-upload" accept=".xlsx,.xls,.csv">
+    
+    <!-- Модальные окна будут создаваться динамически -->
+    
+    <script>
+        // ===== ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ =====
+        const app = {
+            autoConfirmManager: null,
+            emailProcessor: null,
+            poiskMoreIntegration: null,
+            vesselDB: null,
+            map: null,
+            markers: [],
+            currentTab: 'dashboard',
+            filters: {
+                dateFrom: null,
+                dateTo: null,
+                status: 'all',
+                vesselMMSI: null,
+                signalType: 'all'
+            }
+        };
+
+        // ===== КЛАСС VesselDB - База данных судов =====
+        class VesselDB {
+            constructor() {
+                this.vessels = JSON.parse(localStorage.getItem('vessels') || '[]');
+                this.initDefaultVessels();
+            }
+
+            initDefaultVessels() {
+                if (this.vessels.length === 0) {
+                    this.vessels = [
+                        {
+                            id: 'V001',
+                            name: 'АКАДЕМИК ЛОМОНОСОВ',
+                            mmsi: '273456789',
+                            imo: '9876543',
+                            callSign: 'UBXR',
+                            flag: 'RU',
+                            type: 'Research Vessel',
+                            stationNumbers: ['427309676', '427309677'],
+                            owner: 'Российская Академия Наук',
+                            operator: 'РАН Флот',
+                            email: 'fleet@ras.ru',
+                            satcomType: 'INMARSAT',
+                            lastTest: '2025-01-15T10:00:00Z',
+                            nextTest: '2025-02-15T10:00:00Z',
+                            status: 'ACTIVE'
+                        },
+                        {
+                            id: 'V002',
+                            name: 'КАПИТАН ВОРОНИН',
+                            mmsi: '273456790',
+                            imo: '9876544',
+                            callSign: 'UBXS',
+                            flag: 'RU',
+                            type: 'Cargo',
+                            stationNumbers: ['427309678'],
+                            owner: 'Северное Морское Пароходство',
+                            operator: 'СМП',
+                            email: 'dispatch@smp.ru',
+                            satcomType: 'IRIDIUM',
+                            lastTest: '2025-01-20T14:00:00Z',
+                            nextTest: '2025-02-20T14:00:00Z',
+                            status: 'ACTIVE'
+                        }
+                    ];
+                    this.save();
+                }
+            }
+
+            save() {
+                localStorage.setItem('vessels', JSON.stringify(this.vessels));
+            }
+
+            findByStationNumber(stationNumber) {
+                return this.vessels.find(v => 
+                    v.stationNumbers && v.stationNumbers.includes(stationNumber)
+                );
+            }
+
+            findByMMSI(mmsi) {
+                return this.vessels.find(v => v.mmsi === mmsi);
+            }
+
+            addVessel(vessel) {
+                vessel.id = `V${Date.now()}`;
+                vessel.createdAt = new Date().toISOString();
+                vessel.status = vessel.status || 'ACTIVE';
+                this.vessels.push(vessel);
+                this.save();
+                return vessel;
+            }
+
+            exportToCSV() {
+                const headers = ['ID', 'Название', 'MMSI', 'IMO', 'Позывной', 'Номера стоек', 'Владелец', 'Email', 'Тип связи', 'Статус'];
+                const rows = this.vessels.map(v => [
+                    v.id,
+                    v.name,
+                    v.mmsi,
+                    v.imo || '',
+                    v.callSign || '',
+                    (v.stationNumbers || []).join(';'),
+                    v.owner || '',
+                    v.email || '',
+                    v.satcomType || '',
+                    v.status
+                ]);
+
+                const csvContent = [
+                    headers.join(','),
+                    ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+                ].join('\n');
+
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `vessels_${Date.now()}.csv`;
+                link.click();
+                URL.revokeObjectURL(url);
+            }
+
+            getActiveVessels() {
+                return this.vessels.filter(v => v.status === 'ACTIVE');
+            }
+        }
+
+        // ===== КЛАСС AutoConfirmationManager =====
+        class AutoConfirmationManager {
+            constructor() {
+                this.enabled = localStorage.getItem('autoConfirmEnabled') === 'true';
+                this.adminPassword = 'Admin@SSTO2025';
+            }
+
+            toggleAutoConfirmation(password, reason, userId) {
+                if (password !== this.adminPassword) {
+                    throw new Error('Неверный пароль администратора');
+                }
+
+                this.enabled = !this.enabled;
+                localStorage.setItem('autoConfirmEnabled', this.enabled.toString());
+
+                return {
+                    success: true,
+                    enabled: this.enabled,
+                    message: `Автоматическое подтверждение ${this.enabled ? 'включено' : 'отключено'}`
+                };
+            }
+
+            processSignal(signal) {
+                if (!this.enabled) {
+                    return { processed: false, reason: 'Автоподтверждение отключено' };
+                }
+
+                const requests = JSON.parse(localStorage.getItem('testRequests') || '[]');
+                const matchingRequest = requests.find(req => 
+                    req.stationNumber === signal.stationNumber &&
+                    req.status === 'pending'
+                );
+
+                if (!matchingRequest) {
+                    return { processed: false, reason: 'Соответствующая заявка не найдена' };
+                }
+
+                matchingRequest.status = 'confirmed';
+                matchingRequest.confirmedAt = new Date().toISOString();
+                
+                localStorage.setItem('testRequests', JSON.stringify(requests));
+
+                return {
+                    processed: true,
+                    requestId: matchingRequest.id
+                };
+            }
+        }
+
+// ===== ОБНОВЛЕННЫЙ EmailProcessor с парсингом реальных сигналов =====
+class EmailProcessor {
+    constructor() {
+        this.emailQueue = JSON.parse(localStorage.getItem('emailQueue') || '[]');
+        this.processedEmails = JSON.parse(localStorage.getItem('processedEmails') || '[]');
+        this.emailPatterns = {
+            // Паттерны из реальных сообщений
+            testSignal: /---TEST SSAS TEST---|TEST SSAS/i,
+            mobileTerminal: /Mobile Terminal No[:\s]*(\d{9})/i,
+            stationNumber: /Station Number[:\s]*(\d{9})|Mobile Terminal No[:\s]*(\d{9})/i,
+            position: /Position[:\s]*([\d.]+)[NS]\s*([\d.]+)[EW]/i,
+            coordinates: /(\d+\.?\d*)[NS]\s+(\d+\.?\d*)[EW]/i,
+            utcTime: /(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})/i,
+            mmsi: /MMSI[:\s]*(\d{9})|(\d{9})\s+\d{4}-\d{2}-\d{2}/i,
+            vesselName: /Vessel[:\s]*([A-Za-zА-Яа-я\s\-]+)/i
+        };
+    }
+
+    parseIncomingEmail(emailContent, emailFrom, emailSubject) {
+        console.log('Парсинг входящего email:', emailSubject);
+        
+        const signal = {
+            id: `SIG-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            receivedAt: new Date().toISOString(),
+            emailFrom: emailFrom,
+            emailSubject: emailSubject,
+            rawContent: emailContent,
+            isTest: false,
+            type: 'UNKNOWN',
+            stationNumber: null,
+            mmsi: null,
+            vesselName: null,
+            coordinates: null,
+            positionTime: null
+        };
+
+        // Определение тестового сигнала
+        if (this.emailPatterns.testSignal.test(emailContent)) {
+            signal.isTest = true;
+            signal.type = 'TEST';
+        }
+
+        // Извлечение номера стойки/терминала
+        const stationMatch = emailContent.match(this.emailPatterns.stationNumber);
+        if (stationMatch) {
+            signal.stationNumber = stationMatch[1] || stationMatch[2];
+            console.log('Найден номер стойки:', signal.stationNumber);
+        }
+
+        // Извлечение MMSI
+        const mmsiMatch = emailContent.match(this.emailPatterns.mmsi);
+        if (mmsiMatch) {
+            signal.mmsi = mmsiMatch[1] || mmsiMatch[2];
+        }
+
+        // Извлечение координат
+        const coordMatch = emailContent.match(this.emailPatterns.coordinates);
+        if (coordMatch) {
+            signal.coordinates = {
+                lat: parseFloat(coordMatch[1]),
+                lon: parseFloat(coordMatch[2])
+            };
+        }
+
+        // Извлечение времени UTC
+        const timeMatch = emailContent.match(this.emailPatterns.utcTime);
+        if (timeMatch) {
+            signal.positionTime = `${timeMatch[1]}T${timeMatch[2]}Z`;
+        }
+
+        // Попытка найти судно в базе
+        if (signal.stationNumber) {
+            const vessel = app.vesselDB.findByStationNumber(signal.stationNumber);
+            if (vessel) {
+                signal.vesselName = vessel.name;
+                signal.mmsi = signal.mmsi || vessel.mmsi;
+                signal.type = vessel.satcomType;
+            }
+        }
+
+        return signal;
+    }
+
+    processTestSignalEmail(emailContent) {
+        // Специальная обработка для тестовых сигналов формата из документа
+        const testData = {
+            stationNumber: null,
+            position: null,
+            time: null,
+            mmsi: null
+        };
+
+        // Парсинг по образцу:
+        // Mobile Terminal No:427305964
+        // Position:41 28.83N 31 47.83'E
+        // Position updated:08:26 2025-03-18 UTC
+        
+        const lines = emailContent.split('\n');
+        lines.forEach(line => {
+            if (line.includes('Mobile Terminal No')) {
+                const match = line.match(/(\d{9})/);
+                if (match) testData.stationNumber = match[1];
+            }
+            if (line.includes('Position:')) {
+                const match = line.match(/([\d.]+)\s*[NS]\s*([\d.]+)\s*[EW]/);
+                if (match) {
+                    testData.position = {
+                        lat: parseFloat(match[1]),
+                        lon: parseFloat(match[2])
+                    };
+                }
+            }
+            if (line.includes('Position updated') || line.includes('UTC')) {
+                const match = line.match(/(\d{2}:\d{2})\s+(\d{4}-\d{2}-\d{2})/);
+                if (match) {
+                    testData.time = `${match[2]}T${match[1]}:00Z`;
+                }
+            }
+            if (line.match(/^\d{9}\s+\d{4}-\d{2}-\d{2}/)) {
+                const match = line.match(/^(\d{9})/);
+                if (match) testData.mmsi = match[1];
+            }
+        });
+
+        return testData;
+    }
+
+    async simulateIncomingEmail() {
+        // Симуляция получения email как из документа
+        const testEmail = `---TEST SSAS TEST---
+Mobile Terminal No:427305964
+Position:41 28.83N 31 47.83'E
+Position updated:08:26 2025-03-18 UTC
+---TEST SSAS TEST---
+009598830 2025-03-18 08:26:42
+41.28N 31.47E
+2025-03-18 08:26:42
+Coverage message setup:
+E-mail:od_gmrcc@morflot.ru
+E-mail:uvdp@volgaflot.com
+E-mail:sb-tech@volgaflot.com`;
+
+        const signal = this.parseIncomingEmail(
+            testEmail,
+            'ssas@inmarsat.com',
+            'TEST SSAS ALERT'
+        );
+
+        // Сохранение сигнала
+        const signals = JSON.parse(localStorage.getItem('signals') || '[]');
+        signals.push(signal);
+        localStorage.setItem('signals', JSON.stringify(signals));
+
+        // Проверка автоподтверждения
+        if (app.autoConfirmManager && app.autoConfirmManager.enabled) {
+            const result = app.autoConfirmManager.processSignal(signal);
+            if (result.processed) {
+                // Генерация официального подтверждения
+                await this.generateOfficialConfirmation(signal, result.requestId);
+            }
+        }
+
+        showNotification(`📧 Получен тестовый сигнал от стойки ${signal.stationNumber}`, 'info');
+        loadSignals();
+        
+        return signal;
+    }
+
+    async generateOfficialConfirmation(signal, requestId) {
+        const request = JSON.parse(localStorage.getItem('testRequests') || '[]')
+            .find(r => r.id === requestId);
+        
+        if (!request) return;
+
+        const vessel = app.vesselDB.findByStationNumber(signal.stationNumber);
+        
+        // Шаблон официального документа ГМСКЦ
+        const confirmationHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: 'Times New Roman', serif; margin: 40px; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h3 { margin: 5px 0; font-size: 14px; }
+        .doc-number { margin: 20px 0; }
+        .content { margin: 30px 0; line-height: 1.6; }
+        .signature { margin-top: 50px; }
+        .details { margin: 20px 0; background: #f0f0f0; padding: 15px; }
+        .details-line { margin: 5px 0; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h3>МИНТРАНС РОССИИ</h3>
+        <h3>РОСМОРРЕЧФЛОТ</h3>
+        <h3>ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ</h3>
+        <h3>«МОРСКАЯ СПАСАТЕЛЬНАЯ СЛУЖБА»</h3>
+        <h3>(ФГБУ «МОРСПАССЛУЖБА»)</h3>
+        <p style="font-size: 12px;">
+            ул. Петровка д. 3/6 стр. 2, г. Москва, 125993<br>
+            тел.: (495) 626-18-08<br>
+            info@morspas.ru, www.morspas.ru<br>
+            ОКПО 18685292, ОГРН 1027739737321<br>
+            ИНН/КПП 7707274249/770701001
+        </p>
+        <h3>Главный морской спасательно-координационный центр (ГМСКЦ)</h3>
+    </div>
+
+    <div class="doc-number">
+        <strong>№ МСС-${request.id.replace('REQ-', '')}</strong><br>
+        от ${new Date().toLocaleDateString('ru-RU')}
+    </div>
+
+    <div class="content">
+        <p><strong>Подтверждаем получение тестового сообщения ССТО:</strong></p>
+        
+        <div class="details">
+            <div class="details-line">---TEST SSAS TEST---</div>
+            <div class="details-line">Mobile Terminal No:${signal.stationNumber}</div>
+            <div class="details-line">Position:${signal.coordinates ? 
+                signal.coordinates.lat + 'N ' + signal.coordinates.lon + 'E' : 'Не указана'}</div>
+            <div class="details-line">Position updated:${formatDate(signal.positionTime || signal.receivedAt)}</div>
+            <div class="details-line">---TEST SSAS TEST---</div>
+            <div class="details-line">${signal.mmsi || '000000000'} ${new Date().toISOString().split('T')[0]}</div>
+            <div class="details-line">Vessel: ${vessel ? vessel.name : 'Не определено'}</div>
+        </div>
+
+        <p>Coverage message setup:</p>
+        <p>E-mail: od_gmrcc@morflot.ru<br>
+           E-mail: ${request.email}<br>
+           ${vessel && vessel.operator ? `E-mail: ${vessel.operator}@volgaflot.com` : ''}
+        </p>
+    </div>
+
+    <div class="signature">
+        <p>Подписано ПЭП</p>
+        <p><strong>С.А. Мохначев</strong></p>
+        <p>Оперативный дежурный ГМСКЦ</p>
+        <p>${new Date().toLocaleDateString('ru-RU')}</p>
+        <br>
+        <p>Оперативный дежурный ГМСКЦ<br>
+        +7 (495) 626-10-52</p>
+    </div>
+</body>
+</html>
+        `;
+
+        // Сохранение подтверждения
+        const confirmation = {
+            id: `CONF-${Date.now()}`,
+            requestId: requestId,
+            signalId: signal.id,
+            html: confirmationHTML,
+            createdAt: new Date().toISOString(),
+            documentNumber: `МСС-${request.id.replace('REQ-', '')}`,
+            signedBy: 'С.А. Мохначев'
+        };
+
+        const confirmations = JSON.parse(localStorage.getItem('confirmations') || '[]');
+        confirmations.push(confirmation);
+        localStorage.setItem('confirmations', JSON.stringify(confirmations));
+
+        // Отправка по email если включено
+        if (window.emailSender && window.emailSender.enabled) {
+            await window.emailSender.sendOfficialConfirmation(confirmation, request, vessel);
+        }
+
+        return confirmation;
+    }
+}
+
+// Добавьте эту функцию для просмотра подтверждения
+function viewConfirmation(requestId) {
+    const confirmations = JSON.parse(localStorage.getItem('confirmations') || '[]');
+    const confirmation = confirmations.find(c => c.requestId === requestId);
+    
+    if (!confirmation) {
+        showNotification('Подтверждение не найдено', 'error');
+        return;
+    }
+    
+    // Открытие в новом окне
+    const win = window.open('', '_blank');
+    win.document.write(confirmation.html);
+    win.document.close();
+}
+
+// Добавьте кнопку для симуляции получения email в интерфейс
+function addEmailTestButton() {
+    const dashboardActions = document.querySelector('#dashboard .map-controls');
+    if (dashboardActions) {
+        const button = document.createElement('button');
+        button.className = 'btn btn-primary';
+        button.innerHTML = '📨 Симулировать входящий сигнал';
+        button.onclick = () => app.emailProcessor.simulateIncomingEmail();
+        dashboardActions.appendChild(button);
+    }
+}
+
+// Вызовите при инициализации
+document.addEventListener('DOMContentLoaded', () => {
+    addEmailTestButton();
+});
+
+        // ===== КЛАСС PoiskMoreIntegration =====
+        class PoiskMoreIntegration {
+            constructor() {
+                this.syncEnabled = localStorage.getItem('poiskMoreSyncEnabled') === 'true';
+            }
+
+            async sendToPoiskMore(signal) {
+                // Имитация отправки
+                return {
+                    success: true,
+                    poiskMoreId: `PM-${Date.now()}`,
+                    message: 'Сигнал передан в Поиск-Море'
+                };
+            }
+
+            async syncBatch(signals) {
+                const results = [];
+                for (const signal of signals) {
+                    const result = await this.sendToPoiskMore(signal);
+                    results.push(result);
+                }
+                return results;
+            }
+        }
+
+        // ===== КЛАСС AdvancedMapManager =====
+        class AdvancedMapManager {
+            constructor() {
+                this.map = null;
+                this.vectorSource = null;
+            }
+
+            initAdvancedMap() {
+                if (!document.getElementById('map')) return;
+
+                this.map = new ol.Map({
+                    target: 'map',
+                    layers: [
+                        new ol.layer.Tile({
+                            source: new ol.source.OSM()
+                        })
+                    ],
+                    view: new ol.View({
+                        center: ol.proj.fromLonLat([37.6173, 55.7558]),
+                        zoom: 5
+                    })
+                });
+
+                this.vectorSource = new ol.source.Vector();
+                const vectorLayer = new ol.layer.Vector({
+                    source: this.vectorSource
+                });
+                this.map.addLayer(vectorLayer);
+
+                this.loadSignalsToMap();
+            }
+
+            loadSignalsToMap() {
+                const signals = JSON.parse(localStorage.getItem('signals') || '[]');
+                this.vectorSource.clear();
+                
+                signals.forEach(signal => {
+                    if (signal.coordinates) {
+                        const feature = new ol.Feature({
+                            geometry: new ol.geom.Point(
+                                ol.proj.fromLonLat([signal.coordinates.lon, signal.coordinates.lat])
+                            )
+                        });
+                        
+                        const iconStyle = new ol.style.Style({
+                            image: new ol.style.Circle({
+                                radius: 8,
+                                fill: new ol.style.Fill({
+                                    color: signal.isTest ? 'rgba(0, 255, 0, 0.6)' : 'rgba(255, 0, 0, 0.6)'
+                                }),
+                                stroke: new ol.style.Stroke({
+                                    color: signal.isTest ? 'green' : 'red',
+                                    width: 2
+                                })
+                            })
+                        });
+                        
+                        feature.setStyle(iconStyle);
+                        this.vectorSource.addFeature(feature);
+                    }
+                });
+            }
+
+            zoomToSignals() {
+                if (!this.vectorSource) return;
+                const extent = this.vectorSource.getExtent();
+                if (!ol.extent.isEmpty(extent)) {
+                    this.map.getView().fit(extent, {
+                        padding: [50, 50, 50, 50],
+                        duration: 1000
+                    });
+                }
+            }
+
+            measureDistance() {
+                alert('Функция измерения расстояния активирована');
+            }
+
+            exportMapImage() {
+                alert('Экспорт карты в изображение');
+            }
+
+            clearMap() {
+                if (this.vectorSource) {
+                    this.vectorSource.clear();
+                }
+            }
+        }
+
+        // ===== КЛАСС EmailAutoSender =====
+// ===== КЛАСС EmailAutoSender С ПОЛНОЙ НАСТРОЙКОЙ =====
+class EmailAutoSender {
+    constructor() {
+        this.enabled = localStorage.getItem('emailAutoSendEnabled') === 'true';
+        this.smtp = {
+            host: localStorage.getItem('smtpHost') || 'smtp.gmail.com',
+            port: localStorage.getItem('smtpPort') || '587',
+            user: localStorage.getItem('smtpUser') || '',
+            pass: localStorage.getItem('smtpPass') || '',
+            from: localStorage.getItem('smtpFrom') || 'ssto@morflot.ru',
+            secure: localStorage.getItem('smtpSecure') === 'true'
+        };
+        this.templates = this.loadTemplates();
+        this.queue = JSON.parse(localStorage.getItem('emailQueue') || '[]');
+    }
+
+    loadTemplates() {
+        const saved = localStorage.getItem('emailTemplates');
+        if (saved) return JSON.parse(saved);
+        
+        return {
+            testConfirmation: {
+                subject: 'Подтверждение получения тестового сигнала ССТО - {{vesselName}}',
+                body: `
+ФГБУ «МОРСПАССЛУЖБА»
+Главный морской спасательно-координационный центр
+
+Подтверждаем получение тестового сигнала от системы ССТО
+
+Детали теста:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Судно: {{vesselName}}
+MMSI: {{mmsi}}
+IMO: {{imo}}
+Номер стойки ССТО: {{stationNumber}}
+Тип системы: {{satcomType}}
+Дата/время теста: {{testDate}}
+Дата/время получения сигнала: {{receivedAt}}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Результат: ✅ ТЕСТ УСПЕШНО ПРОЙДЕН
+
+Сигнал получен и обработан в соответствии с установленными процедурами.
+
+С уважением,
+Оперативный дежурный ГМСКЦ
+Тел: +7 (495) 626-10-52
+Email: gmskc@morflot.ru
+
+---
+Это автоматическое сообщение системы ТЕСТ ССТО.
+                `
+            }
+        };
+    }
+
+    configureSMTP() {
+        // Создание модального окна настройки
+        const modal = document.createElement('div');
+        modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="modal-title">⚙️ Настройка автоматической отправки Email</div>
+                    <button class="modal-close" onclick="this.closest('.modal').remove()">×</button>
+                </div>
+                <div style="padding: 20px;">
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="email-auto-send" ${this.enabled ? 'checked' : ''}>
+                            Включить автоматическую отправку подтверждений
+                        </label>
+                    </div>
+                    
+                    <h3>Настройки SMTP сервера</h3>
+                    
+                    <div class="form-group">
+                        <label>SMTP сервер</label>
+                        <input type="text" id="smtp-host" value="${this.smtp.host}" placeholder="smtp.gmail.com">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Порт</label>
+                        <input type="text" id="smtp-port" value="${this.smtp.port}" placeholder="587">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="smtp-secure" ${this.smtp.secure ? 'checked' : ''}>
+                            Использовать SSL/TLS
+                        </label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Имя пользователя (email)</label>
+                        <input type="email" id="smtp-user" value="${this.smtp.user}" placeholder="user@domain.ru">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Пароль</label>
+                        <input type="password" id="smtp-pass" value="${this.smtp.pass}" placeholder="••••••••">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Email отправителя</label>
+                        <input type="email" id="smtp-from" value="${this.smtp.from}" placeholder="ssto@morflot.ru">
+                    </div>
+                    
+                    <h3>Настройки отправки</h3>
+                    
+                    <div class="form-group">
+                        <label>Задержка между письмами (сек)</label>
+                        <input type="number" id="email-delay" value="${localStorage.getItem('emailDelay') || '5'}" min="1" max="60">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Копия на email ГМСКЦ</label>
+                        <input type="email" id="email-cc" value="${localStorage.getItem('emailCC') || 'gmskc@morflot.ru'}">
+                    </div>
+                    
+                    <div style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 15px; margin: 20px 0;">
+                        <strong>⚠️ Важно:</strong><br>
+                        Для реальной отправки email требуется backend сервер.<br>
+                        В демо-режиме письма сохраняются в очередь без отправки.
+                    </div>
+                    
+                    <div class="map-controls">
+                        <button class="btn btn-primary" onclick="window.emailSender.saveSettings()">💾 Сохранить настройки</button>
+                        <button class="btn btn-secondary" onclick="window.emailSender.testConnection()">🔧 Тест соединения</button>
+                        <button class="btn btn-secondary" onclick="window.emailSender.viewQueue()">📧 Очередь (${this.queue.length})</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    saveSettings() {
+        this.enabled = document.getElementById('email-auto-send').checked;
+        this.smtp.host = document.getElementById('smtp-host').value;
+        this.smtp.port = document.getElementById('smtp-port').value;
+        this.smtp.secure = document.getElementById('smtp-secure').checked;
+        this.smtp.user = document.getElementById('smtp-user').value;
+        this.smtp.pass = document.getElementById('smtp-pass').value;
+        this.smtp.from = document.getElementById('smtp-from').value;
+        
+        localStorage.setItem('emailAutoSendEnabled', this.enabled);
+        localStorage.setItem('smtpHost', this.smtp.host);
+        localStorage.setItem('smtpPort', this.smtp.port);
+        localStorage.setItem('smtpSecure', this.smtp.secure);
+        localStorage.setItem('smtpUser', this.smtp.user);
+        localStorage.setItem('smtpPass', this.smtp.pass);
+        localStorage.setItem('smtpFrom', this.smtp.from);
+        localStorage.setItem('emailDelay', document.getElementById('email-delay').value);
+        localStorage.setItem('emailCC', document.getElementById('email-cc').value);
+        
+        showNotification('Настройки email сохранены', 'success');
+        document.querySelector('.modal').remove();
+    }
+
+    testConnection() {
+        if (!this.smtp.host || !this.smtp.user || !this.smtp.pass) {
+            showNotification('Заполните настройки SMTP', 'error');
+            return;
+        }
+        
+        // В реальности здесь был бы запрос к backend
+        showNotification('Демо-режим: соединение успешно', 'info');
+    }
+
+    viewQueue() {
+        const modal = document.createElement('div');
+        modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="modal-title">📧 Очередь отправки Email</div>
+                    <button class="modal-close" onclick="this.closest('.modal').remove()">×</button>
+                </div>
+                <div style="padding: 20px;">
+                    <table style="width: 100%;">
+                        <thead>
+                            <tr>
+                                <th>Дата</th>
+                                <th>Кому</th>
+                                <th>Тема</th>
+                                <th>Статус</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${this.queue.map(email => `
+                                <tr>
+                                    <td>${new Date(email.createdAt).toLocaleString('ru-RU')}</td>
+                                    <td>${email.to}</td>
+                                    <td>${email.subject}</td>
+                                    <td><span class="status-badge status-${email.status}">${email.status}</span></td>
+                                    <td>
+                                        <button onclick="window.emailSender.resendEmail('${email.id}')" class="btn btn-secondary">Повтор</button>
+                                        <button onclick="window.emailSender.removeFromQueue('${email.id}')" class="btn btn-secondary">Удалить</button>
+                                    </td>
+                                </tr>
+                            `).join('') || '<tr><td colspan="5">Очередь пуста</td></tr>'}
+                        </tbody>
+                    </table>
+                    <div class="map-controls" style="margin-top: 20px;">
+                        <button class="btn btn-primary" onclick="window.emailSender.processQueue()">▶️ Обработать очередь</button>
+                        <button class="btn btn-secondary" onclick="window.emailSender.clearQueue()">🗑️ Очистить очередь</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    async sendConfirmation(request, signal) {
+        if (!this.enabled) {
+            console.log('Автоотправка email отключена');
+            return { success: false, reason: 'Автоотправка отключена' };
+        }
+
+        const vessel = app.vesselDB.findByStationNumber(signal.stationNumber);
+        if (!vessel || !vessel.email) {
+            return { success: false, reason: 'Email судовладельца не найден' };
+        }
+
+        // Подготовка данных для шаблона
+        const templateData = {
+            vesselName: vessel.name,
+            mmsi: vessel.mmsi,
+            imo: vessel.imo || 'Не указан',
+            stationNumber: signal.stationNumber,
+            satcomType: vessel.satcomType,
+            testDate: formatDate(request.testDate),
+            receivedAt: formatDate(signal.receivedAt)
+        };
+
+        // Обработка шаблона
+        let subject = this.templates.testConfirmation.subject;
+        let body = this.templates.testConfirmation.body;
+        
+        for (const [key, value] of Object.entries(templateData)) {
+            const regex = new RegExp(`{{${key}}}`, 'g');
+            subject = subject.replace(regex, value);
+            body = body.replace(regex, value);
+        }
+
+        // Создание письма
+        const email = {
+            id: `EMAIL-${Date.now()}`,
+            to: vessel.email,
+            cc: localStorage.getItem('emailCC') || 'gmskc@morflot.ru',
+            subject: subject,
+            body: body,
+            attachments: [],
+            createdAt: new Date().toISOString(),
+            status: 'pending',
+            requestId: request.id,
+            signalId: signal.id
+        };
+
+        // Добавление в очередь
+        this.queue.push(email);
+        localStorage.setItem('emailQueue', JSON.stringify(this.queue));
+
+        // Попытка отправки
+        await this.processQueue();
+
+        return {
+            success: true,
+            emailId: email.id,
+            message: `Email добавлен в очередь отправки на ${vessel.email}`
+        };
+    }
+
+    async processQueue() {
+        const pending = this.queue.filter(e => e.status === 'pending');
+        const delay = parseInt(localStorage.getItem('emailDelay') || '5') * 1000;
+        
+        for (const email of pending) {
+            // В демо-режиме помечаем как отправлено
+            email.status = 'sent';
+            email.sentAt = new Date().toISOString();
+            
+            showNotification(`📧 Email отправлен на ${email.to}`, 'success');
+            
+            // Задержка между письмами
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+        
+        localStorage.setItem('emailQueue', JSON.stringify(this.queue));
+        return { processed: pending.length };
+    }
+
+    resendEmail(emailId) {
+        const email = this.queue.find(e => e.id === emailId);
+        if (email) {
+            email.status = 'pending';
+            localStorage.setItem('emailQueue', JSON.stringify(this.queue));
+            this.processQueue();
+        }
+    }
+
+    removeFromQueue(emailId) {
+        this.queue = this.queue.filter(e => e.id !== emailId);
+        localStorage.setItem('emailQueue', JSON.stringify(this.queue));
+        this.viewQueue(); // Обновить модальное окно
+    }
+
+    clearQueue() {
+        if (confirm('Удалить все письма из очереди?')) {
+            this.queue = [];
+            localStorage.setItem('emailQueue', JSON.stringify(this.queue));
+            document.querySelector('.modal').remove();
+            showNotification('Очередь очищена', 'success');
+        }
+    }
+}
+
+                        // ===== КЛАСС ExcelDataLoader С ОБРАБОТКОЙ ВСЕХ ЛИСТОВ =====
+        class ExcelDataLoader {
+            constructor() {
+                this.setupHandlers();
+                this.lastLoadedFile = null;
+                this.lastLoadedHash = null;
+            }
+
+            setupHandlers() {
+                const input = document.getElementById('excel-upload');
+                if (input) {
+                    input.addEventListener('change', (e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                            this.loadExcelFile(file);
+                        }
+                    });
+                }
+            }
+
+            // Парсинг имени судна с извлечением MMSI и IMO
+            parseVesselInfo(value) {
+                if (!value) return { name: '', mmsi: '', imo: '' };
+                
+                const str = String(value).trim();
+                let name = str;
+                let mmsi = '';
+                let imo = '';
+                
+                // Проверяем разные форматы записи
+                // Формат: "Название судна MMSI:123456789" или "Название (MMSI 123456789)"
+                const mmsiPatterns = [
+                    /MMSI[\s:]*(\d{9})/i,
+                    /\(MMSI[\s:]*(\d{9})\)/i,
+                    /[\s,;](\d{9})(?:\s|$)/,  // 9 цифр отдельно
+                    /MMSI[\s:]*(\d{8,9})/i     // иногда 8 цифр
+                ];
+                
+                for (const pattern of mmsiPatterns) {
+                    const match = str.match(pattern);
+                    if (match) {
+                        mmsi = match[1].padStart(9, '0'); // Дополняем нулями если нужно
+                        name = str.replace(match[0], '').trim();
+                        break;
+                    }
+                }
+                
+                // Проверяем IMO
+                const imoPatterns = [
+                    /IMO[\s:]*(\d{7})/i,
+                    /\(IMO[\s:]*(\d{7})\)/i,
+                    /IMO[\s:]*([0-9]{7})/i,
+                    /(?:^|\s)(\d{7})(?:\s|$)/  // 7 цифр отдельно
+                ];
+                
+                for (const pattern of imoPatterns) {
+                    const match = str.match(pattern);
+                    if (match) {
+                        imo = match[1];
+                        name = str.replace(match[0], '').trim();
+                        break;
+                    }
+                }
+                
+                // Очищаем имя от лишних символов
+                name = name.replace(/[,;:\-\(\)]+$/, '').trim();
+                name = name.replace(/^\[|\]$/g, '').trim();
+                
+                return { name, mmsi, imo };
+            }
+
+            async calculateFileHash(content) {
+                let hash = 0;
+                for (let i = 0; i < content.length; i++) {
+                    const char = content.charCodeAt(i);
+                    hash = ((hash << 5) - hash) + char;
+                    hash = hash & hash;
+                }
+                return hash.toString(36);
+            }
+
+            // Показываем диалог с тремя опциями
+            async showLoadDialog(existingData) {
+                return new Promise((resolve) => {
+                    const modal = document.createElement('div');
+                    modal.className = 'modal';
+                    modal.style.cssText = `
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        background: rgba(0,0,0,0.7);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        z-index: 10000;
+                    `;
+                    
+                    const dialog = document.createElement('div');
+                    dialog.style.cssText = `
+                        background: white;
+                        border-radius: 8px;
+                        padding: 30px;
+                        max-width: 500px;
+                        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                    `;
+                    
+                    dialog.innerHTML = `
+                        <h2 style="margin-top: 0; color: #333;">Загрузка данных Excel</h2>
+                        <p style="color: #666; line-height: 1.6;">
+                            В базе уже есть данные:<br>
+                            • Терминалов: <strong>${existingData.terminals}</strong><br>
+                            • Судов: <strong>${existingData.vessels}</strong><br>
+                            • Заявок: <strong>${existingData.requests}</strong>
+                        </p>
+                        <p style="color: #444; margin-top: 20px;">
+                            <strong>Выберите действие:</strong>
+                        </p>
+                        <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: space-between;">
+                            <button id="btn-replace" style="
+                                padding: 10px 20px;
+                                background: #dc3545;
+                                color: white;
+                                border: none;
+                                border-radius: 4px;
+                                cursor: pointer;
+                                font-size: 14px;
+                            ">ДА - Заменить всё</button>
+                            
+                            <button id="btn-append" style="
+                                padding: 10px 20px;
+                                background: #28a745;
+                                color: white;
+                                border: none;
+                                border-radius: 4px;
+                                cursor: pointer;
+                                font-size: 14px;
+                            ">НЕТ - Добавить к существующим</button>
+                            
+                            <button id="btn-cancel" style="
+                                padding: 10px 20px;
+                                background: #6c757d;
+                                color: white;
+                                border: none;
+                                border-radius: 4px;
+                                cursor: pointer;
+                                font-size: 14px;
+                            ">Отказаться</button>
+                        </div>
+                        <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 4px;">
+                            <small style="color: #666;">
+                                <strong>ДА</strong> - Полная замена всех данных<br>
+                                <strong>НЕТ</strong> - Добавить новые и обновить существующие<br>
+                                <strong>Отказаться</strong> - Не загружать файл
+                            </small>
+                        </div>
+                    `;
+                    
+                    modal.appendChild(dialog);
+                    document.body.appendChild(modal);
+                    
+                    // Обработчики кнопок
+                    document.getElementById('btn-replace').onclick = () => {
+                        modal.remove();
+                        resolve('replace');
+                    };
+                    
+                    document.getElementById('btn-append').onclick = () => {
+                        modal.remove();
+                        resolve('append');
+                    };
+                    
+                    document.getElementById('btn-cancel').onclick = () => {
+                        modal.remove();
+                        resolve('cancel');
+                    };
+                });
+            }
+
+            async loadExcelFile(file) {
+                showNotification('Чтение файла Excel...', 'info');
+
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        const data = e.target.result;
+                        const fileHash = await this.calculateFileHash(data);
+                        
+                        // Проверяем, не тот же ли это файл
+                        if (this.lastLoadedHash === fileHash) {
+                            if (!confirm('Этот файл уже был загружен. Продолжить?')) {
+                                showNotification('Загрузка отменена', 'warning');
+                                return;
+                            }
+                        }
+                        
+                        // Читаем Excel
+                        const workbook = XLSX.read(data, { type: 'binary' });
+                        
+                        // Собираем существующие данные
+                        const existingData = {
+                            terminals: JSON.parse(localStorage.getItem('ssasTerminals') || '[]').length,
+                            vessels: app.vesselDB ? app.vesselDB.vessels.length : 0,
+                            requests: JSON.parse(localStorage.getItem('testRequests') || '[]').length
+                        };
+                        
+                        // Если есть данные, показываем диалог
+                        let action = 'replace'; // по умолчанию
+                        if (existingData.terminals > 0 || existingData.vessels > 0 || existingData.requests > 0) {
+                            action = await this.showLoadDialog(existingData);
+                        }
+                        
+                        if (action === 'cancel') {
+                            showNotification('Загрузка отменена', 'warning');
+                            return;
+                        }
+                        
+                        // Очищаем данные если выбрана замена
+                        if (action === 'replace') {
+                            this.clearAllData();
+                        }
+                        
+                        // Обрабатываем все листы
+                        const results = {
+                            terminals: { added: 0, updated: 0, skipped: 0 },
+                            vessels: { added: 0, updated: 0, skipped: 0 },
+                            requests: { added: 0, updated: 0, skipped: 0 }
+                        };
+                        
+                        // Обрабатываем каждый лист
+                        for (const sheetName of workbook.SheetNames) {
+                            const worksheet = workbook.Sheets[sheetName];
+                            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                            
+                            console.log(`Обработка листа: ${sheetName}, записей: ${jsonData.length}`);
+                            
+                            // Определяем тип данных по названию листа или содержимому
+                            const sheetNameLower = sheetName.toLowerCase();
+                            
+                            if (sheetNameLower.includes('терминал') || sheetNameLower.includes('terminal') || 
+                                sheetNameLower.includes('стойк') || this.isTerminalData(jsonData)) {
+                                // Обрабатываем как терминалы
+                                const result = this.processTerminals(jsonData, action === 'append');
+                                results.terminals.added += result.added;
+                                results.terminals.updated += result.updated;
+                                results.terminals.skipped += result.skipped;
+                                
+                            } else if (sheetNameLower.includes('суд') || sheetNameLower.includes('vessel') || 
+                                      sheetNameLower.includes('ship') || this.isVesselData(jsonData)) {
+                                // Обрабатываем как суда
+                                const result = this.processVessels(jsonData, action === 'append');
+                                results.vessels.added += result.added;
+                                results.vessels.updated += result.updated;
+                                results.vessels.skipped += result.skipped;
+                                
+                            } else if (sheetNameLower.includes('заявк') || sheetNameLower.includes('request') || 
+                                      sheetNameLower.includes('тест') || this.isRequestData(jsonData)) {
+                                // Обрабатываем как заявки
+                                const result = this.processRequests(jsonData, action === 'append');
+                                results.requests.added += result.added;
+                                results.requests.updated += result.updated;
+                                results.requests.skipped += result.skipped;
+                                
+                            } else {
+                                // Пытаемся определить по содержимому
+                                if (this.isTerminalData(jsonData)) {
+                                    const result = this.processTerminals(jsonData, action === 'append');
+                                    results.terminals.added += result.added;
+                                    results.terminals.updated += result.updated;
+                                    results.terminals.skipped += result.skipped;
+                                }
+                            }
+                        }
+                        
+                        // Сохраняем информацию о загрузке
+                        this.lastLoadedFile = file.name;
+                        this.lastLoadedHash = fileHash;
+                        localStorage.setItem('lastExcelFile', file.name);
+                        localStorage.setItem('lastExcelHash', fileHash);
+                        localStorage.setItem('lastExcelDate', new Date().toISOString());
+                        
+                        // Обновляем интерфейс
+                        loadTerminals();
+                        loadRequests();
+                        loadDashboardData();
+                        
+                        // Показываем результаты
+                        let message = 'Загрузка завершена:\n\n';
+                        if (results.terminals.added + results.terminals.updated > 0) {
+                            message += `Терминалы: ${results.terminals.added} новых, ${results.terminals.updated} обновлено\n`;
+                        }
+                        if (results.vessels.added + results.vessels.updated > 0) {
+                            message += `Суда: ${results.vessels.added} новых, ${results.vessels.updated} обновлено\n`;
+                        }
+                        if (results.requests.added + results.requests.updated > 0) {
+                            message += `Заявки: ${results.requests.added} новых, ${results.requests.updated} обновлено\n`;
+                        }
+                        
+                        showNotification(message, 'success');
+
+                        // Обновляем интерфейс СРАЗУ после загрузки
+                        setTimeout(() => {
+                            loadTerminals();
+                            loadRequests();
+                            loadSignals();
+                            loadDashboardData();
+                            
+                            // Если мы на вкладке, обновляем её
+                            const activeTab = document.querySelector('.tab.active');
+                            if (activeTab) {
+                                const tabName = activeTab.textContent;
+                                if (tabName.includes('Заявки')) loadRequests();
+                                if (tabName.includes('Сигналы')) loadSignals();
+                                if (tabName.includes('Терминалы')) loadTerminals();
+                            }
+                        }, 100);
+                        
+                    } catch (error) {
+                        console.error('Ошибка загрузки:', error);
+                        showNotification('Ошибка загрузки файла: ' + error.message, 'error');
+                    }
+                };
+                reader.readAsBinaryString(file);
+            }
+
+            // Определение типа данных по содержимому
+            isTerminalData(data) {
+                if (!data || data.length === 0) return false;
+                const firstRow = data[0];
+                return firstRow.hasOwnProperty('Номер стойки') || 
+                       firstRow.hasOwnProperty('terminal_number') ||
+                       firstRow.hasOwnProperty('Terminal Number') ||
+                       firstRow.hasOwnProperty('Station Number');
+            }
+
+            isVesselData(data) {
+                if (!data || data.length === 0) return false;
+                const firstRow = data[0];
+                return (firstRow.hasOwnProperty('Судно') || firstRow.hasOwnProperty('Vessel Name')) &&
+                       !firstRow.hasOwnProperty('Номер стойки');
+            }
+
+            isRequestData(data) {
+                if (!data || data.length === 0) return false;
+                const firstRow = data[0];
+                return firstRow.hasOwnProperty('Дата теста') || 
+                       firstRow.hasOwnProperty('Test Date') ||
+                       firstRow.hasOwnProperty('Время начала') ||
+                       firstRow.hasOwnProperty('Контактное лицо');
+            }
+
+            // Очистка всех данных
+            clearAllData() {
+                // Очищаем терминалы
+                localStorage.setItem('ssasTerminals', JSON.stringify([]));
+                
+                // Очищаем суда
+                if (app.vesselDB) {
+                    app.vesselDB.vessels = [];
+                    app.vesselDB.save();
+                }
+                
+                // Очищаем заявки и сигналы
+                localStorage.setItem('testRequests', JSON.stringify([]));
+                localStorage.setItem('testSignals', JSON.stringify([]));
+                localStorage.setItem('confirmations', JSON.stringify([]));
+                
+                console.log('Все данные очищены');
+            }
+
+            // Обработка терминалов
+            processTerminals(data, isAppend) {
+                const result = { added: 0, updated: 0, skipped: 0 };
+                
+                const existingTerminals = isAppend ? 
+                    JSON.parse(localStorage.getItem('ssasTerminals') || '[]') : [];
+                const terminalMap = new Map();
+                
+                existingTerminals.forEach(t => {
+                    terminalMap.set(t.terminal_number, t);
+                });
+                
+                data.forEach(row => {
+                    const stationNumber = String(row['Номер стойки'] || row['terminal_number'] || '').trim();
+                    const vesselInfo = this.parseVesselInfo(row['Судно'] || row['Vessel Name'] || '');
+                    
+                    if (!stationNumber) {
+                        result.skipped++;
+                        return;
+                    }
+                    
+                    const existing = terminalMap.get(stationNumber);
+                    
+                    if (existing && isAppend) {
+                        // Обновляем существующий
+                        existing.current_vessel_name = vesselInfo.name;
+                        existing.current_mmsi = vesselInfo.mmsi || row['MMSI'] || '';
+                        existing.current_imo = vesselInfo.imo || row['IMO'] || '';
+                        existing.owner = row['Владелец'] || row['Owner'] || existing.owner;
+                        existing.contact_email = row['Email'] || row['Contact Email'] || existing.contact_email;
+                        existing.terminal_type = row['Тип связи'] || row['Terminal Type'] || existing.terminal_type;
+                        existing.updated_at = new Date().toISOString();
+                        result.updated++;
+                    } else {
+                        // Создаем новый
+                        const newTerminal = {
+                            id: 'T' + Date.now() + Math.random().toString(36).substr(2, 9),
+                            terminal_number: stationNumber,
+                            terminal_type: row['Тип связи'] || row['Terminal Type'] || 'INMARSAT',
+                            current_vessel_name: vesselInfo.name,
+                            current_mmsi: vesselInfo.mmsi || row['MMSI'] || '',
+                            current_imo: vesselInfo.imo || row['IMO'] || '',
+                            owner: row['Владелец'] || row['Owner'] || '',
+                            contact_email: row['Email'] || row['Contact Email'] || '',
+                            is_active: true,
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        };
+                        terminalMap.set(stationNumber, newTerminal);
+                        result.added++;
+                    }
+                });
+                
+                // Сохраняем
+                const terminals = Array.from(terminalMap.values());
+                localStorage.setItem('ssasTerminals', JSON.stringify(terminals));
+                
+                return result;
+            }
+
+            // Обработка судов
+            processVessels(data, isAppend) {
+                const result = { added: 0, updated: 0, skipped: 0 };
+                
+                if (!app.vesselDB) {
+                    app.vesselDB = new VesselDB();
+                }
+                
+                if (!isAppend) {
+                    app.vesselDB.vessels = [];
+                }
+                
+                data.forEach(row => {
+                    const vesselInfo = this.parseVesselInfo(row['Судно'] || row['Vessel Name'] || '');
+                    
+                    if (!vesselInfo.name) {
+                        result.skipped++;
+                        return;
+                    }
+                    
+                    const vessel = {
+                        name: vesselInfo.name,
+                        mmsi: vesselInfo.mmsi || row['MMSI'] || '',
+                        imo: vesselInfo.imo || row['IMO'] || '',
+                        callSign: row['Позывной'] || row['Call Sign'] || '',
+                        stationNumbers: row['Номер стойки'] ? [String(row['Номер стойки'])] : [],
+                        owner: row['Владелец'] || row['Owner'] || '',
+                        email: row['Email'] || row['Contact Email'] || '',
+                        satcomType: row['Тип связи'] || row['Terminal Type'] || 'INMARSAT',
+                        flag: row['Флаг'] || row['Flag'] || '',
+                        type: row['Тип судна'] || row['Vessel Type'] || ''
+                    };
+                    
+                    // Проверяем существование
+                    const existing = app.vesselDB.vessels.find(v => 
+                        (vessel.mmsi && v.mmsi === vessel.mmsi) ||
+                        (vessel.imo && v.imo === vessel.imo) ||
+                        (v.name === vessel.name)
+                    );
+                    
+                    if (existing && isAppend) {
+                        // Обновляем
+                        Object.assign(existing, vessel);
+                        existing.updated_at = new Date().toISOString();
+                        result.updated++;
+                    } else if (!existing) {
+                        // Добавляем новое
+                        app.vesselDB.addVessel(vessel);
+                        result.added++;
+                    } else {
+                        result.skipped++;
+                    }
+                });
+                
+                app.vesselDB.save();
+                return result;
+            }
+
+            // Обработка заявок
+            processRequests(data, isAppend) {
+                const result = { added: 0, updated: 0, skipped: 0 };
+                
+                const existingRequests = isAppend ? 
+                    JSON.parse(localStorage.getItem('testRequests') || '[]') : [];
+                
+                data.forEach(row => {
+                    const vesselInfo = this.parseVesselInfo(row['Судно'] || row['Vessel Name'] || '');
+                    
+                    if (!vesselInfo.name && !row['Номер стойки']) {
+                        result.skipped++;
+                        return;
+                    }
+                    
+                    const request = {
+                        id: 'REQ' + Date.now() + Math.random().toString(36).substr(2, 5),
+                        vesselName: vesselInfo.name,
+                        mmsi: vesselInfo.mmsi || row['MMSI'] || '',
+                        imo: vesselInfo.imo || row['IMO'] || '',
+                        stationNumber: String(row['Номер стойки'] || row['Station Number'] || ''),
+                        testDate: row['Дата теста'] || row['Test Date'] || new Date().toISOString().split('T')[0],
+                        startTime: row['Время начала'] || row['Start Time'] || '10:00',
+                        endTime: row['Время окончания'] || row['End Time'] || '11:00',
+                        contactPerson: row['Контактное лицо'] || row['Contact Person'] || '',
+                        contactPhone: row['Телефон'] || row['Phone'] || '',
+                        email: row['Email'] || '',
+                        organization: row['Организация'] || row['Organization'] || '',
+                        notes: row['Примечания'] || row['Notes'] || '',
+                        status: row['Статус'] || 'pending',
+                        createdAt: new Date().toISOString()
+                    };
+                    
+                    // Проверяем дубликаты
+                    const existing = existingRequests.find(r => 
+                        r.stationNumber === request.stationNumber &&
+                        r.testDate === request.testDate
+                    );
+                    
+                    if (!existing) {
+                        existingRequests.push(request);
+                        result.added++;
+                    } else {
+                        result.skipped++;
+                    }
+                });
+                
+                localStorage.setItem('testRequests', JSON.stringify(existingRequests));
+                return result;
+            }
+
+            openFileDialog() {
+                const lastFile = localStorage.getItem('lastExcelFile');
+                const lastDate = localStorage.getItem('lastExcelDate');
+                
+                if (lastFile && lastDate) {
+                    const date = new Date(lastDate);
+                    const dateStr = date.toLocaleDateString('ru-RU') + ' ' + date.toLocaleTimeString('ru-RU');
+                    console.log(`Последняя загрузка: ${lastFile} (${dateStr})`);
+                }
+                
+                document.getElementById('excel-upload').click();
+            }
+        }
+
+        // ===== ФУНКЦИИ ПРИЛОЖЕНИЯ =====
+        
+        function initializeApp() {
+            console.log('🚀 Инициализация модуля ТЕСТ ССТО...');
+            
+            app.autoConfirmManager = new AutoConfirmationManager();
+            app.emailProcessor = new EmailProcessor();
+            app.poiskMoreIntegration = new PoiskMoreIntegration();
+            app.vesselDB = new VesselDB();
+            
+            loadDashboardData();
+            loadRequests();
+            loadSignals();
+            loadTerminals();
+            
+            updateAutoConfirmStatus();
+            
+            console.log('✅ Модуль успешно инициализирован');
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            document.querySelectorAll('.tab').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            const selectedTab = document.getElementById(tabName);
+            if (selectedTab) {
+                selectedTab.classList.add('active');
+            }
+            
+            event.target.classList.add('active');
+            app.currentTab = tabName;
+            
+            if (tabName === 'map-container' && !app.map) {
+                setTimeout(() => {
+                    window.mapManager.initAdvancedMap();
+                }, 100);
+            }
+        }
+
+        function loadDashboardData() {
+            const requests = JSON.parse(localStorage.getItem('testRequests') || '[]');
+            const signals = JSON.parse(localStorage.getItem('signals') || '[]');
+            
+            document.getElementById('total-requests').textContent = requests.length;
+            document.getElementById('pending-requests').textContent = 
+                requests.filter(r => r.status === 'pending').length;
+            document.getElementById('confirmed-requests').textContent = 
+                requests.filter(r => r.status === 'confirmed').length;
+            document.getElementById('total-signals').textContent = signals.length;
+        }
+
+        function loadRequests() {
+    console.log('📋 Загрузка заявок...');
+    
+    const requests = JSON.parse(localStorage.getItem('testRequests') || '[]');
+    const tbody = document.getElementById('requests-tbody');
+    
+    if (tbody) {
+        tbody.innerHTML = '';
+        
+        if (requests.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px;">Нет заявок</td></tr>';
+        } else {
+            requests.forEach(request => {
+                const row = document.createElement('tr');
+                // Правильный порядок: ID, Номер стойки, Судно, MMSI, IMO, Дата теста, Статус, Действия
+                row.innerHTML = `
+                    <td>${request.id || 'N/A'}</td>
+                    <td>${request.stationNumber || ''}</td>
+                    <td>${request.vesselName || ''}</td>
+                    <td>${request.mmsi || ''}</td>
+                    <td>${request.imo || ''}</td>
+                    <td>${request.testDate || ''}</td>
+                    <td><span class="status-badge">${request.status === 'pending' ? 'Ожидает' : request.status === 'confirmed' ? 'Подтверждено' : 'Новая'}</span></td>
+                    <td><button class="btn btn-primary btn-sm" onclick="viewRequest('${request.id}')">Просмотр</button></td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+    }
+    
+    // Обновляем дашборд если функция существует
+    if (typeof loadDashboard === 'function') {
+        loadDashboard();
+    } else if (typeof updateDashboardData === 'function') {
+        updateDashboardData();
+    }
+}
+
+if (typeof updateStats === 'undefined') {
+    window.updateStats = window.updateDashboardData;
+}
+
+
+
+// ============= ФУНКЦИИ ДАШБОРДА И ОБНОВЛЕНИЯ ДАННЫХ =============
+
+// Основная функция обновления дашборда
+function loadDashboard() {
+    console.log('📊 Обновление дашборда...');
+    
+    const requests = JSON.parse(localStorage.getItem('testRequests') || '[]');
+    const signals = JSON.parse(localStorage.getItem('signals') || '[]');
+    const terminals = JSON.parse(localStorage.getItem('ssasTerminals') || localStorage.getItem('terminals') || localStorage.getItem('vessels') || '[]');
+    
+    // Обновляем счетчики на главной странице
+    const totalRequestsEl = document.getElementById('total-requests');
+    const pendingRequestsEl = document.getElementById('pending-requests');
+    const confirmedRequestsEl = document.getElementById('confirmed-requests');
+    const totalSignalsEl = document.getElementById('total-signals');
+    
+    if (totalRequestsEl) {
+        totalRequestsEl.textContent = requests.length;
+    }
+    if (pendingRequestsEl) {
+        pendingRequestsEl.textContent = requests.filter(r => r.status === 'pending').length;
+    }
+    if (confirmedRequestsEl) {
+        confirmedRequestsEl.textContent = requests.filter(r => r.status === 'confirmed').length;
+    }
+    if (totalSignalsEl) {
+        totalSignalsEl.textContent = signals.length;
+    }
+    
+    console.log(`📈 Статистика: Заявки=${requests.length}, Ожидают=${requests.filter(r => r.status === 'pending').length}, Подтверждено=${requests.filter(r => r.status === 'confirmed').length}, Сигналы=${signals.length}`);
+}
+
+// Алиас для совместимости с разными версиями
+function updateDashboardData() {
+    console.log('🔄 updateDashboardData вызвана, перенаправляем на loadDashboard');
+    loadDashboard();
+}
+
+// Еще один алиас для совместимости
+function updateStats() {
+    console.log('📊 updateStats вызвана, перенаправляем на loadDashboard');
+    loadDashboard();
+}
+
+// Функция загрузки заявок в таблицу
+function loadRequests() {
+    console.log('📋 Загрузка заявок...');
+    
+    const requests = JSON.parse(localStorage.getItem('testRequests') || '[]');
+    const tbody = document.getElementById('requests-tbody');
+    
+    if (tbody) {
+        tbody.innerHTML = '';
+        
+        if (requests.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px;">Нет заявок</td></tr>';
+        } else {
+            requests.forEach(request => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${request.id || 'N/A'}</td>
+                    <td>${request.stationNumber || ''}</td>
+                    <td>${request.vesselName || ''}</td>
+                    <td>${request.mmsi || ''}</td>
+                    <td>${request.testDate || ''}</td>
+                    <td><span class="status-badge">${request.status || 'pending'}</span></td>
+                    <td><button class="btn btn-sm" onclick="viewRequest('${request.id}')">Просмотр</button></td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+    }
+    
+    // Обновляем дашборд после загрузки заявок
+    loadDashboard();
+}
+
+// Функция загрузки сигналов в таблицу
+function loadSignals() {
+    console.log('📡 Загрузка сигналов...');
+    
+    const signals = JSON.parse(localStorage.getItem('signals') || '[]');
+    const tbody = document.getElementById('signals-tbody');
+    
+    if (tbody) {
+        tbody.innerHTML = '';
+        
+        if (signals.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px;">Нет сигналов</td></tr>';
+        } else {
+            signals.forEach(signal => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${signal.id || 'N/A'}</td>
+                    <td>${signal.stationNumber || ''}</td>
+                    <td>${signal.vesselName || ''}</td>
+                    <td>${signal.mmsi || ''}</td>
+                    <td>${signal.receivedAt || signal.positionTime || ''}</td>
+                    <td>${signal.signalType || signal.type || ''}</td>
+                    <td><span class="status-badge">${signal.status || 'new'}</span></td>
+                    <td><button class="btn btn-sm" onclick="viewSignal('${signal.id}')">Просмотр</button></td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+    }
+    
+    // Обновляем дашборд после загрузки сигналов
+    loadDashboard();
+}
+
+// Функция загрузки терминалов в таблицу
+function loadTerminals() {
+    console.log('🚢 Загрузка терминалов...');
+    
+    const terminals = JSON.parse(localStorage.getItem('ssasTerminals') || localStorage.getItem('terminals') || localStorage.getItem('vessels') || '[]');
+    const tbody = document.getElementById('terminals-tbody');
+    
+    if (tbody) {
+        tbody.innerHTML = '';
+        
+        if (terminals.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px;">Нет терминалов</td></tr>';
+        } else {
+            terminals.forEach(terminal => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${terminal.terminal_number || terminal.stationNumber || ''}</td>
+                    <td>${terminal.vessel_name || terminal.vesselName || terminal.name || ''}</td>
+                    <td>${terminal.mmsi || ''}</td>
+                    <td>${terminal.terminal_type || terminal.terminalType || terminal.type || 'INMARSAT'}</td>
+                    <td>${terminal.owner || ''}</td>
+                    <td><span class="status-badge">${terminal.status || 'active'}</span></td>
+                    <td><button class="btn btn-sm" onclick="viewTerminal('${terminal.id}')">Просмотр</button></td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+    }
+    
+    // Обновляем дашборд после загрузки терминалов
+    loadDashboard();
+}
+
+// Вспомогательные функции просмотра
+function viewRequest(id) {
+    console.log('Просмотр заявки:', id);
+    // Здесь может быть модальное окно или переход на детальную страницу
+}
+
+function viewSignal(id) {
+    console.log('Просмотр сигнала:', id);
+    // Здесь может быть модальное окно или переход на детальную страницу
+}
+
+function viewTerminal(id) {
+    console.log('Просмотр терминала:', id);
+    // Здесь может быть модальное окно или переход на детальную страницу
+}
+
+// ============= КОНЕЦ ФУНКЦИЙ ДАШБОРДА =============
+
+
+// ============= КЛАСС ДЛЯ ЗАГРУЗКИ EXCEL =============
+class ExcelLoader {
+    constructor() {
+        this.setupHandlers();
+    }
+
+    setupHandlers() {
+        const input = document.getElementById('excel-upload');
+        if (input) {
+            input.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    this.loadExcelFile(file);
+                }
+            });
+        }
+    }
+
+    openFileDialog() {
+        const input = document.getElementById('excel-upload');
+        if (input) {
+            input.click();
+        }
+    }
+
+    loadExcelFile(file) {
+        console.log('📂 Загрузка файла:', file.name);
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = e.target.result;
+                const workbook = XLSX.read(data, { type: 'binary' });
+                
+                // Обрабатываем каждый лист
+                let allData = [];
+                workbook.SheetNames.forEach(sheetName => {
+                    console.log('📄 Обработка листа:', sheetName);
+                    const worksheet = workbook.Sheets[sheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                    allData = allData.concat(jsonData);
+                });
+                
+                console.log('📊 Всего строк данных:', allData.length);
+                this.processExcelData(allData);
+                
+            } catch (error) {
+                console.error('❌ Ошибка загрузки:', error);
+                alert('Ошибка загрузки файла: ' + error.message);
+            }
+        };
+        
+        reader.onerror = () => {
+            alert('Ошибка чтения файла');
+        };
+        
+        reader.readAsBinaryString(file);
+    }
+
+    processExcelData(data) {
+        console.log('🔄 Обработка данных Excel, записей:', data.length);
+        
+        if (!data || data.length === 0) {
+            alert('Файл не содержит данных');
+            return;
+        }
+        
+        let requests = [];
+        let terminals = [];
+        
+        // Обрабатываем каждую строку
+        data.forEach((row, index) => {
+            // Извлекаем номер станции (9 цифр)
+            let stationNumber = '';
+            
+            // Ищем номер станции в разных полях
+            for (let key in row) {
+                const value = String(row[key] || '');
+                // Ищем 9 цифр подряд
+                const matches = value.match(/[0-9]{9}/);
+                if (matches) {
+                    stationNumber = matches[0];
+                    break;
+                }
+            }
+            
+            if (!stationNumber) {
+                console.log('Пропускаем строку', index, '- нет номера станции');
+                return;
+            }
+            
+            // Определяем тип записи
+            // Если есть поле с датой теста - это заявка
+            let hasTestDate = false;
+            let testDate = '';
+            
+            for (let key in row) {
+                if (key.toLowerCase().includes('дата') || 
+                    key.toLowerCase().includes('тест') || 
+                    key.toLowerCase().includes('план')) {
+                    if (row[key]) {
+                        hasTestDate = true;
+                        testDate = String(row[key]);
+                        break;
+                    }
+                }
+            }
+            
+            if (hasTestDate) {
+                // Создаем заявку
+                const request = {
+                    id: 'REQ-' + Date.now() + '-' + index,
+                    stationNumber: stationNumber,
+                    vesselName: row['Судно'] || row['Название судна'] || row['Vessel'] || '',
+                    mmsi: row['MMSI'] || row['ММС'] || '',
+                    imo: row['IMO'] || row['ИМО'] || '',
+                    testDate: testDate,
+                    status: 'pending',
+                    createdAt: new Date().toISOString()
+                };
+                
+                requests.push(request);
+                console.log('Добавлена заявка:', stationNumber);
+            } else {
+                // Создаем терминал
+                const terminal = {
+                    id: 'T-' + Date.now() + '-' + index,
+                    terminal_number: stationNumber,
+                    vessel_name: row['Судно'] || row['Vessel'] || '',
+                    mmsi: row['MMSI'] || '',
+                    terminal_type: row['Тип связи'] || row['Type'] || 'INMARSAT',
+                    owner: row['Владелец'] || row['Owner'] || '',
+                    status: 'active'
+                };
+                
+                terminals.push(terminal);
+                console.log('Добавлен терминал:', stationNumber);
+            }
+        });
+        
+        // Сохраняем в localStorage
+        if (requests.length > 0) {
+            const existingRequests = JSON.parse(localStorage.getItem('testRequests') || '[]');
+            localStorage.setItem('testRequests', JSON.stringify([...existingRequests, ...requests]));
+            console.log('Сохранено заявок:', requests.length);
+        }
+        
+        if (terminals.length > 0) {
+            const existingTerminals = JSON.parse(localStorage.getItem('ssasTerminals') || '[]');
+            localStorage.setItem('ssasTerminals', JSON.stringify([...existingTerminals, ...terminals]));
+            console.log('Сохранено терминалов:', terminals.length);
+        }
+        
+        // Обновляем интерфейс
+        if (typeof loadRequests === 'function') loadRequests();
+        if (typeof loadTerminals === 'function') loadTerminals();
+        if (typeof loadDashboard === 'function') loadDashboard();
+        
+        alert('Загружено: ' + requests.length + ' заявок, ' + terminals.length + ' терминалов');
+    }
+}
+
+// Создаем экземпляр ExcelLoader
+window.excelLoader = new ExcelLoader();
+
+// ============= КОНЕЦ КЛАССА ExcelLoader =============
+
+</script>
+</body>
+</html>

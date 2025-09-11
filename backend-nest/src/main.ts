@@ -1,39 +1,44 @@
-import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { ValidationPipe } from '@nestjs/common';
 
-// 🚀 Функция запуска приложения
 async function bootstrap() {
-  // Создание NestJS приложения с включенным CORS
-  const app = await NestFactory.create(AppModule, { cors: true });
+  const app = await NestFactory.create(AppModule);
   
-  // 🔧 Глобальная валидация (если нужна)
+  // Настройка CORS для работы с file:// и localhost
+  app.enableCors({
+    origin: (origin, callback) => {
+      // Разрешаем запросы от file://, localhost и null (для file://)
+      const allowedOrigins = [
+        'http://localhost:3001',
+        'http://localhost:5173',
+        'http://localhost:3000',
+        null, // для file://
+      ];
+      
+      if (!origin || allowedOrigins.includes(origin) || origin.startsWith('file://')) {
+        callback(null, true);
+      } else {
+        callback(null, true); // В dev режиме разрешаем все
+      }
+    },
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    credentials: true,
+    allowedHeaders: 'Content-Type, Accept, Authorization',
+    preflightContinue: false,
+    optionsSuccessStatus: 204
+  });
+  
+  // Глобальная валидация
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,
-    forbidNonWhitelisted: true,
     transform: true,
+    forbidNonWhitelisted: false,
   }));
   
-  // 🌐 РАСШИРЕННАЯ НАСТРОЙКА CORS (более детальная настройка)
-  app.enableCors({
-    origin: [
-      'http://localhost:5173',  // Vite/React локально
-      'http://localhost:5174',  // Vite альтернативный порт (у вас сейчас)
-    ],
-    credentials: true,           // Позволяет передавать cookie/авторизацию
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  });
-
-  // 📍 Префикс API (при необходимости раскомментировать)
-  // app.setGlobalPrefix('api');
-
-  // 🛎️ Стартуем API на порту из env или 3001 (как предложено)
   const port = process.env.PORT ? Number(process.env.PORT) : 3001;
   await app.listen(port);
-  console.log(`[Nest] Application is running on: http://localhost:${port}`);
+  console.log(`Backend listening on http://localhost:${port}`);
+  console.log(`CORS enabled for file:// and localhost origins`);
 }
-
-// ⚡ Запуск bootstrapping
 bootstrap();

@@ -1,0 +1,100 @@
+// src/models/confirmation-document.model.ts
+
+import {
+  Table,
+  Column,
+  Model,
+  DataType,
+  ForeignKey,
+  BelongsTo,
+  CreatedAt,
+  UpdatedAt,
+} from 'sequelize-typescript';
+import TestRequest from './test-request.model';
+
+@Table({ tableName: 'confirmation_documents' })
+export default class ConfirmationDocument extends Model {
+  @Column({
+    type: DataType.INTEGER,
+    primaryKey: true,
+    autoIncrement: true,
+  })
+  id: number;
+
+  @ForeignKey(() => TestRequest)
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: false,
+  })
+  test_request_id: number;
+
+  @Column({
+    type: DataType.STRING,
+    unique: true,
+    allowNull: false,
+  })
+  document_number: string; // Формат: GMSKC-2025-001
+
+  @Column({
+    type: DataType.TEXT,
+    allowNull: false,
+  })
+  html_content: string;
+
+  @Column({
+    type: DataType.BLOB,
+    allowNull: true,
+  })
+  pdf_content: Buffer;
+
+  @Column({
+    type: DataType.STRING,
+    allowNull: false,
+  })
+  recipient_email: string;
+
+  @Column({
+    type: DataType.ENUM('draft', 'ready', 'sent', 'delivered', 'failed'),
+    defaultValue: 'draft',
+  })
+  status: string;
+
+  @Column({
+    type: DataType.BOOLEAN,
+    defaultValue: false,
+  })
+  auto_send_enabled: boolean;
+
+  @Column({
+    type: DataType.DATE,
+    allowNull: true,
+  })
+  sent_at: Date;
+
+  @Column({
+    type: DataType.DATE,
+    allowNull: true,
+  })
+  delivered_at: Date;
+
+  @Column({
+    type: DataType.STRING,
+    allowNull: true,
+  })
+  sent_by: string; // Имя оператора или 'AUTO'
+
+  @Column({
+    type: DataType.TEXT,
+    allowNull: true,
+  })
+  notes: string;
+
+  @CreatedAt
+  created_at: Date;
+
+  @UpdatedAt
+  updated_at: Date;
+
+  @BelongsTo(() => TestRequest)
+  testRequest: TestRequest;
+}

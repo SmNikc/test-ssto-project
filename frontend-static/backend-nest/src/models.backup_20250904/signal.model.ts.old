@@ -1,0 +1,105 @@
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Request } from './request.model';
+
+export enum SignalFrequency {
+  F_406_MHZ = '406',
+  F_121_5_MHZ = '121.5',
+  BOTH = 'both'
+}
+
+export enum SignalStatus {
+  RECEIVED = 'received',
+  PROCESSED = 'processed',
+  CONFIRMED = 'confirmed',
+  FALSE_ALARM = 'false_alarm'
+}
+
+@Entity('signals')
+export class Signal {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column({ name: 'request_id', nullable: true })
+  requestId: number;
+
+  @ManyToOne(() => Request, { nullable: true })
+  @JoinColumn({ name: 'request_id' })
+  request: Request;
+
+  @Column({ name: 'beacon_hex_id' })
+  beaconHexId: string;
+
+  @Column({
+    type: 'enum',
+    enum: SignalFrequency,
+    default: SignalFrequency.F_406_MHZ
+  })
+  frequency: SignalFrequency;
+
+  @Column({ name: 'detection_time', type: 'timestamp' })
+  detectionTime: Date;
+
+  @Column({ name: 'email_subject' })
+  emailSubject: string;
+
+  @Column({ name: 'email_body', type: 'text' })
+  emailBody: string;
+
+  @Column({ name: 'email_from' })
+  emailFrom: string;
+
+  @Column({ name: 'email_received_at', type: 'timestamp' })
+  emailReceivedAt: Date;
+
+  @Column({ name: 'email_message_id', nullable: true })
+  emailMessageId: string;
+
+  @Column({ nullable: true })
+  latitude: string;
+
+  @Column({ nullable: true })
+  longitude: string;
+
+  @Column({ name: 'satellite_name', nullable: true })
+  satelliteName: string;
+
+  @Column({ name: 'lut_name', nullable: true })
+  lutName: string;
+
+  @Column({ name: 'country_code', nullable: true })
+  countryCode: string;
+
+  @Column({ name: 'beacon_type', nullable: true })
+  beaconType: string;
+
+  @Column({ name: 'mmsi', nullable: true })
+  mmsi: string;
+
+  @Column({ name: 'call_sign', nullable: true })
+  callSign: string;
+
+  @Column({ name: 'serial_number', nullable: true })
+  serialNumber: string;
+
+  @Column({
+    type: 'enum',
+    enum: SignalStatus,
+    default: SignalStatus.RECEIVED
+  })
+  status: SignalStatus;
+
+  @Column({ name: 'processed_at', type: 'timestamp', nullable: true })
+  processedAt: Date;
+
+  @Column({ name: 'processed_by', nullable: true })
+  processedBy: string;
+
+  @Column({ type: 'text', nullable: true })
+  notes: string;
+
+  @Column({ type: 'jsonb', nullable: true })
+  metadata: Record<string, any>;
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
+}

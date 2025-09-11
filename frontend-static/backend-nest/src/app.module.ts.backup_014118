@@ -1,0 +1,100 @@
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { SequelizeModule } from '@nestjs/sequelize';
+import { ScheduleModule } from '@nestjs/schedule';
+
+// Контроллеры
+import { HealthController } from './controllers/health.controller';
+import { LogController } from './controllers/log.controller';
+import { SignalController } from './controllers/signal.controller';
+import { TestingController } from './controllers/testing.controller';
+import { UserController } from './controllers/user.controller';
+// Используем правильное имя контроллера
+import { RequestController } from './controllers/request-ssto.controller';
+
+// Сервисы
+import { LogService } from './log/log.service';
+import { RequestService } from './request/request.service';
+import { SignalService } from './signal/signal.service';
+import { TestingService } from './testing/testing.service';
+import { UserService } from './user/user.service';
+
+// Модели
+import Log from './models/log.model';
+import SSASRequest from './models/request.model';
+import Signal from './models/signal.model';
+import Vessel from './models/vessel.model';
+import TestingScenario from './models/testingScenario.model';
+import User from './models/user.model';
+
+@Module({
+  imports: [
+    // Глобальная конфигурация
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
+
+    // Планировщик задач
+    ScheduleModule.forRoot(),
+
+    // Конфигурация базы данных
+    SequelizeModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        dialect: 'postgres',
+        host: configService.get('DB_HOST', 'localhost'),
+        port: configService.get('DB_PORT', 5432),
+        username: configService.get('DB_USER', 'postgres'),
+        password: configService.get('DB_PASSWORD', 'postgres'),
+        database: configService.get('DB_NAME', 'sstodb'),
+        models: [
+          Log,
+          SSASRequest,
+          Signal,
+          TestingScenario,
+          User,,
+          Vessel
+        ],
+        autoLoadModels: false,
+        synchronize: false, // В продакшене всегда false
+        logging: false,
+        define: {
+          timestamps: true,
+          underscored: true,
+        },
+      }),
+    }),
+
+    // Регистрация моделей для DI
+    SequelizeModule.forFeature([
+      Log,
+      SSASRequest,
+      Signal,
+      TestingScenario,
+      User,,
+      Vessel
+    ]),
+  ],
+
+  controllers: [
+    HealthController,
+    LogController,
+    RequestController,
+    SignalController,
+    TestingController,
+    UserController,
+  ],
+
+  providers: [
+    LogService,
+    RequestService,
+    SignalService,
+    TestingService,
+    UserService,
+  ],
+})
+export class AppModule {}
+
+
