@@ -6,6 +6,7 @@ import RoleBasedLayout from './layouts/RoleBasedLayout';
 import OperatorDashboard from './pages/OperatorDashboard';
 import ClientPortal from './pages/ClientPortal';
 import LoginPage from './pages/LoginPage';
+import UnauthorizedPage from './pages/UnauthorizedPage'; // Добавить импорт
 
 const ProtectedRoute = ({ role, children }: { role: string; children: React.ReactNode }) => {
   const { user } = useAuth();
@@ -38,6 +39,7 @@ function App() {
             } />
             
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/unauthorized" element={<UnauthorizedPage />} /> {/* Добавить эту строку */}
             <Route path="/" element={<Navigate to="/login" />} />
           </Routes>
         </Router>

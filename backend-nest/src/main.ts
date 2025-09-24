@@ -5,21 +5,25 @@ import { ValidationPipe } from '@nestjs/common';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   
-  // Настройка CORS для работы с file:// и localhost
+  // НЕ устанавливаем глобальный префикс, так как контроллеры
+  // уже имеют нужные пути (например, DevAuthController имеет ['auth', 'api/auth'])
+  
+  // Настройка CORS
   app.enableCors({
     origin: (origin, callback) => {
-      // Разрешаем запросы от file://, localhost и null (для file://)
-      const allowedOrigins = [
-        'http://localhost:3001',
-        'http://localhost:5173',
-        'http://localhost:3000',
-        null, // для file://
-      ];
+      // Берем разрешенные origin из переменной окружения или используем дефолтные
+      const corsOrigins = process.env.CORS_ORIGIN?.split(',') || ['http://localhost:5173'];
       
-      if (!origin || allowedOrigins.includes(origin) || origin.startsWith('file://')) {
+      // Разрешаем запросы от указанных origin, file:// и null (для file://)
+      if (!origin || corsOrigins.includes(origin) || origin?.startsWith('file://')) {
         callback(null, true);
       } else {
-        callback(null, true); // В dev режиме разрешаем все
+        // В dev режиме можно разрешить все для удобства разработки
+        if (process.env.NODE_ENV === 'development') {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
       }
     },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
@@ -38,7 +42,11 @@ async function bootstrap() {
   
   const port = process.env.PORT ? Number(process.env.PORT) : 3001;
   await app.listen(port);
-  console.log(`Backend listening on http://localhost:${port}`);
-  console.log(`CORS enabled for file:// and localhost origins`);
+  
+  console.log(`🚀 Backend listening on http://localhost:${port}`);
+  console.log(`📡 API endpoints available at: http://localhost:${port}/api`);
+  console.log(`🔐 Keycloak: ${process.env.KEYCLOAK_ENABLED === 'true' ? 'Enabled' : 'Disabled'}`);
+  console.log(`🌐 CORS enabled for: ${process.env.CORS_ORIGIN || 'http://localhost:5173'}`);
 }
+
 bootstrap();

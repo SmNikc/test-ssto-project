@@ -15,6 +15,7 @@ import { LogModule } from './log/log.module';
 import { AppController } from './app.controller';
 import { EmailController } from './controllers/email.controller';
 import { HealthController } from './controllers/health.controller';
+import { DevAuthController } from './dev-auth/dev-auth.controller'; // Keycloak авторизация
 
 // Сервисы верхнего уровня
 import { AppService } from './app.service';
@@ -113,6 +114,7 @@ import SystemSettings from './models/system-settings.model';
     AppController,
     EmailController,
     HealthController,
+    DevAuthController, // Keycloak OAuth2 авторизация
   ],
 
   providers: [
