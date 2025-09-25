@@ -1,132 +1,147 @@
 // backend-nest/src/controllers/signal.controller.ts
-// Контроллер сигналов. Гарантируем сериализацию с signal_number во всех ответах списков/объектов.
-
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Param,
+import { 
+  Controller, 
+  Get, 
+  Post, 
+  Put, 
+  Delete, 
+  Body, 
+  Param, 
   Query,
   HttpException,
-  HttpStatus,
+  HttpStatus 
 } from '@nestjs/common';
-import { SignalService } from '../signal/signal.service';
-import { PdfService } from '../signal/pdf.service';
+import { SignalService } from '../services/signal.service';
 
 @Controller('signals')
 export class SignalController {
-  constructor(
-    private readonly signalService: SignalService,
-    private readonly pdfService: PdfService,
-  ) {}
+  constructor(private readonly signalService: SignalService) {}
 
-  /** Гарантируем наличие signal_number в JSON */
-  private withSignalNumber(row: any) {
-    if (!row) return row;
-    const plain = typeof row.toJSON === 'function' ? row.toJSON() : row;
-    const sn =
-      (typeof row.getDataValue === 'function' &&
-        row.getDataValue('signal_number')) ||
-      plain.signal_number ||
-      row['signal_number'];
-    return { ...plain, signal_number: sn };
-  }
-
-  /** GET /signals — список сигналов с signal_number */
   @Get()
-  async getAllSignals() {
+  async getSignals(
+    @Query('status') status?: string,
+    @Query('type') type?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
     try {
-      const rows = await this.signalService.findAll();
-      const data = (rows || []).map((s) => this.withSignalNumber(s));
-      return { success: true, count: data.length, data };
-    } catch (error: any) {
+      return await this.signalService.getAll({
+        status,
+        type,
+        startDate,
+        endDate,
+      });
+    } catch (error) {
       throw new HttpException(
-        error.message || 'Ошибка при получении сигналов',
+        'Failed to fetch signals',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
-  @Post('send-confirmation/:requestId')
-  async sendConfirmation(@Param('requestId') requestId: string) {
+  @Get('statistics')
+  async getStatistics(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
     try {
-      const request = await this.signalService.findRequest(requestId);
-      if (!request) {
-        throw new HttpException('Заявка не найдена', HttpStatus.NOT_FOUND);
-      }
-      return {
-        success: true,
-        message: 'Подтверждение отправлено',
-        requestId,
-      };
-    } catch (error: any) {
+      return await this.signalService.getStatistics(startDate, endDate);
+    } catch (error) {
       throw new HttpException(
-        error.message || 'Ошибка при отправке подтверждения',
+        'Failed to fetch statistics',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
-  @Post('generate-report/:requestId')
-  async generateReport(@Param('requestId') requestId: string) {
+  @Get(':id')
+  async getSignalById(@Param('id') id: string) {
     try {
-      const request = await this.signalService.findRequest(requestId);
-      if (!request) {
-        throw new HttpException('Заявка не найдена', HttpStatus.NOT_FOUND);
+      const signal = await this.signalService.findById(parseInt(id));
+      if (!signal) {
+        throw new HttpException('Signal not found', HttpStatus.NOT_FOUND);
       }
-
-      // Данные берём напрямую из заявки (без обращения к справочнику судов)
-      const requestData = {
-        id: request.id,
-        vessel_name: (request as any).vessel_name || 'Неизвестное судно',
-        mmsi: (request as any).mmsi || 'Неизвестно',
-        imo: (request as any).imo_number || 'Неизвестно',
-        status: (request as any).status,
-        test_date: (request as any).planned_test_date,
-      };
-
-      const html = this.pdfService.generateConfirmation(requestData);
-
-      return {
-        success: true,
-        message: 'Отчет сгенерирован',
-        html,
-        requestId,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        message: error.message || 'Ошибка при генерации отчета',
-      };
-    }
-  }
-
-  // Сопутствующие запросы к заявкам
-  @Get('requests')
-  async getAllRequests(@Query() _query: any) {
-    try {
-      const requests = await this.signalService.findAllRequests();
-      return { success: true, data: requests };
-    } catch (error: any) {
+      return signal;
+    } catch (error) {
       throw new HttpException(
-        error.message || 'Ошибка при получении заявок',
+        'Failed to fetch signal',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
-  @Get('requests/:id')
-  async getRequestById(@Param('id') id: string) {
+  @Post()
+  async createSignal(@Body() signalData: any) {
     try {
-      const request = await this.signalService.findRequest(id);
-      if (!request) {
-        throw new HttpException('Заявка не найдена', HttpStatus.NOT_FOUND);
-      }
-      return { success: true, data: request };
-    } catch (error: any) {
+      return await this.signalService.create(signalData);
+    } catch (error) {
       throw new HttpException(
-        error.message || 'Ошибка при получении заявки',
+        'Failed to create signal',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Put(':id')
+  async updateSignal(
+    @Param('id') id: string,
+    @Body() updateData: any,
+  ) {
+    try {
+      const updated = await this.signalService.update(parseInt(id), updateData);
+      if (!updated) {
+        throw new HttpException('Signal not found', HttpStatus.NOT_FOUND);
+      }
+      return updated;
+    } catch (error) {
+      throw new HttpException(
+        'Failed to update signal',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Delete(':id')
+  async deleteSignal(@Param('id') id: string) {
+    try {
+      const deleted = await this.signalService.delete(parseInt(id));
+      if (!deleted) {
+        throw new HttpException('Signal not found', HttpStatus.NOT_FOUND);
+      }
+      return { message: 'Signal deleted successfully' };
+    } catch (error) {
+      throw new HttpException(
+        'Failed to delete signal',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post(':id/link/:requestId')
+  async linkToRequest(
+    @Param('id') signalId: string,
+    @Param('requestId') requestId: string,
+  ) {
+    try {
+      return await this.signalService.linkToRequest(
+        parseInt(signalId),
+        parseInt(requestId),
+      );
+    } catch (error) {
+      throw new HttpException(
+        'Failed to link signal to request',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Post('generate-report/:id')
+  async generateReport(@Param('id') id: string) {
+    try {
+      return await this.signalService.generateReport(parseInt(id));
+    } catch (error) {
+      throw new HttpException(
+        'Failed to generate report',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

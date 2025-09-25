@@ -1,6 +1,8 @@
+// frontend/src/index.tsx
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './app';
+import App from './App';  // Измените app на App
+
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(
   <React.StrictMode>

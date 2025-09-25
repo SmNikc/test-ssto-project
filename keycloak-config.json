@@ -1,0 +1,97 @@
+{
+  "realm": "ssto",
+  "enabled": true,
+  "displayName": "ССТО Система",
+  "displayNameHtml": "<div>Система ССТО</div>",
+  "defaultSignatureAlgorithm": "RS256",
+  "clients": [
+    {
+      "clientId": "ssto-frontend",
+      "name": "ССТО Frontend",
+      "description": "React приложение системы ССТО",
+      "rootUrl": "http://localhost:5173",
+      "adminUrl": "http://localhost:5173",
+      "baseUrl": "/",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "webOrigins": ["+"],
+      "redirectUris": [
+        "http://localhost:5173/*",
+        "http://localhost:3000/*"
+      ],
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "ssto-backend",
+      "name": "ССТО Backend",
+      "description": "NestJS backend системы ССТО",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "CHANGE_THIS_SECRET_IN_PRODUCTION",
+      "publicClient": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "protocol": "openid-connect"
+    }
+  ],
+  "roles": {
+    "realm": [
+      {
+        "name": "operator",
+        "description": "Оператор ССТО"
+      },
+      {
+        "name": "client",
+        "description": "Клиент/Судовладелец"
+      },
+      {
+        "name": "admin",
+        "description": "Администратор системы"
+      }
+    ]
+  },
+  "users": [
+    {
+      "username": "operator1",
+      "email": "operator1@morflot.ru",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Иван",
+      "lastName": "Петров",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "operator123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["operator"],
+      "attributes": {
+        "organization": ["ФГБУ Морспасслужба"]
+      }
+    },
+    {
+      "username": "client1",
+      "email": "client1@sovcomflot.ru",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Сергей",
+      "lastName": "Сидоров",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "client123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["client"],
+      "attributes": {
+        "organization": ["ПАО Совкомфлот"]
+      }
+    }
+  ]
+}
