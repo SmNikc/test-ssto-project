@@ -104,4 +104,59 @@ export class ReportService {
     doc.end();
     return filePath;
   }
+
+  async generateForSignal(signal: any): Promise<string> {
+    const doc = new PDFDocument({
+      size: 'A4',
+      margins: { top: 50, bottom: 50, left: 50, right: 50 },
+    });
+
+    const reportsDir = path.join(__dirname, '../../uploads/reports');
+    if (!fs.existsSync(reportsDir)) {
+      fs.mkdirSync(reportsDir, { recursive: true });
+    }
+
+    const fileName = `signal_${signal?.id ?? 'unknown'}_${Date.now()}.pdf`;
+    const filePath = path.join(reportsDir, fileName);
+
+    doc.pipe(fs.createWriteStream(filePath));
+
+    const signalData = typeof signal?.get === 'function' ? signal.get({ plain: true }) : signal;
+    const request = signalData?.request || signalData?.SSASRequest;
+    const requestData = request && typeof request.get === 'function' ? request.get({ plain: true }) : request;
+
+    doc.fontSize(16).text('Отчет по сигналу ССТО', { align: 'center' });
+    doc.moveDown();
+
+    doc.fontSize(12);
+    doc.text(`ID сигнала: ${signalData?.id ?? 'N/A'}`);
+    doc.text(`Тип сигнала: ${signalData?.signal_type ?? 'N/A'}`);
+    doc.text(`Статус: ${signalData?.status ?? 'N/A'}`);
+    doc.text(`Время получения: ${signalData?.received_at ? new Date(signalData.received_at).toLocaleString('ru-RU') : 'N/A'}`);
+    doc.text(`Терминал: ${signalData?.terminal_number ?? 'N/A'}`);
+    doc.text(`MMSI: ${signalData?.mmsi ?? 'N/A'}`);
+    doc.text(`Название судна: ${signalData?.vessel_name ?? requestData?.vessel_name ?? 'N/A'}`);
+
+    if (signalData?.coordinates) {
+      doc.moveDown();
+      doc.text('Координаты:');
+      const { lat, lng } = signalData.coordinates;
+      doc.text(`  Широта: ${lat ?? 'N/A'}`);
+      doc.text(`  Долгота: ${lng ?? 'N/A'}`);
+    }
+
+    if (requestData) {
+      doc.moveDown();
+      doc.text('Связанная заявка:');
+      doc.text(`  ID заявки: ${requestData.id ?? 'N/A'}`);
+      doc.text(`  Номер заявки: ${requestData.request_number ?? 'N/A'}`);
+      doc.text(`  Контактное лицо: ${requestData.contact_person ?? 'N/A'}`);
+      doc.text(`  Email: ${requestData.contact_email ?? 'N/A'}`);
+      doc.text(`  Телефон: ${requestData.contact_phone ?? 'N/A'}`);
+    }
+
+    doc.end();
+
+    return filePath;
+  }
 }
