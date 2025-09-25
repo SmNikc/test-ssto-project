@@ -104,4 +104,19 @@ export class ReportService {
     doc.end();
     return filePath;
   }
+
+  async generateForSignal(signal: any): Promise<string> {
+    const request =
+      signal?.request ??
+      signal?.ssas_request ??
+      signal?.SSASRequest ??
+      signal?.['Request'] ??
+      null;
+
+    if (!request) {
+      throw new Error('Cannot generate report without linked request');
+    }
+
+    return this.generateTestConfirmation(request, signal);
+  }
 }

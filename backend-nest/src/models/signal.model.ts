@@ -33,6 +33,12 @@ export default class Signal extends Model {
 
   @Column({
     type: DataType.STRING,
+    allowNull: true
+  })
+  vessel_name: string;
+
+  @Column({
+    type: DataType.STRING,
     defaultValue: 'TEST'
   })
   signal_type: string;
