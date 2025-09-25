@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import * as PDFDocument from 'pdfkit';
 import * as fs from 'fs';
 import * as path from 'path';
+import Signal from '../models/signal.model';
+import SSASRequest from '../models/request.model';
 
 @Injectable()
 export class ReportService {
@@ -12,12 +14,8 @@ export class ReportService {
     });
     
     const fileName = `confirmation_${request.id}_${Date.now()}.pdf`;
-    const filePath = path.join(__dirname, '../../uploads/reports', fileName);
-    
-    if (!fs.existsSync(path.dirname(filePath))) {
-      fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    }
-    
+    const filePath = path.join(this.ensureReportsDirectory(), fileName);
+
     doc.pipe(fs.createWriteStream(filePath));
     
     // Шапка документа - имитация бланка
@@ -103,5 +101,60 @@ export class ReportService {
     
     doc.end();
     return filePath;
+  }
+
+  async generateForSignal(signal: Signal & { request?: SSASRequest | null }): Promise<string> {
+    const request = signal.request ?? null;
+
+    if (request) {
+      return this.generateTestConfirmation(request, signal);
+    }
+
+    const doc = new PDFDocument({
+      size: 'A4',
+      margins: { top: 50, bottom: 50, left: 50, right: 50 }
+    });
+
+    const fileName = `signal_${signal.id}_${Date.now()}.pdf`;
+    const filePath = path.join(this.ensureReportsDirectory(), fileName);
+
+    doc.pipe(fs.createWriteStream(filePath));
+
+    doc.fontSize(16).text('Signal Report', { align: 'center' });
+    doc.moveDown();
+
+    doc.fontSize(11);
+    doc.text(`Signal ID: ${signal.id ?? 'N/A'}`);
+    doc.text(`Terminal Number: ${signal.terminal_number ?? 'N/A'}`);
+    doc.text(`Vessel Name: ${signal.vessel_name ?? 'N/A'}`);
+    doc.text(`MMSI: ${signal.mmsi ?? 'N/A'}`);
+    doc.text(`Signal Type: ${signal.signal_type ?? 'N/A'}`);
+    doc.text(`Status: ${signal.status ?? 'N/A'}`);
+    const receivedAt = signal.received_at ? new Date(signal.received_at) : null;
+    doc.text(`Received At: ${receivedAt ? receivedAt.toISOString() : 'N/A'}`);
+
+    if (signal.coordinates) {
+      doc.moveDown();
+      doc.text('Coordinates:');
+      doc.text(`Latitude: ${signal.coordinates.lat ?? 'N/A'}`);
+      doc.text(`Longitude: ${signal.coordinates.lng ?? signal.coordinates.lon ?? 'N/A'}`);
+    }
+
+    if (signal.metadata) {
+      doc.moveDown();
+      doc.text('Metadata:');
+      doc.text(JSON.stringify(signal.metadata, null, 2));
+    }
+
+    doc.end();
+    return filePath;
+  }
+
+  private ensureReportsDirectory(): string {
+    const reportsDir = path.join(__dirname, '../../uploads/reports');
+    if (!fs.existsSync(reportsDir)) {
+      fs.mkdirSync(reportsDir, { recursive: true });
+    }
+    return reportsDir;
   }
 }
