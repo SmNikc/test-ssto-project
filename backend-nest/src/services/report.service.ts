@@ -2,9 +2,19 @@ import { Injectable } from '@nestjs/common';
 import * as PDFDocument from 'pdfkit';
 import * as fs from 'fs';
 import * as path from 'path';
+import Signal from '../models/signal.model';
+import SSASRequest from '../models/request.model';
 
 @Injectable()
 export class ReportService {
+  private ensureReportsDirectory(): string {
+    const reportsDir = path.join(__dirname, '../../uploads/reports');
+    if (!fs.existsSync(reportsDir)) {
+      fs.mkdirSync(reportsDir, { recursive: true });
+    }
+    return reportsDir;
+  }
+
   async generateTestConfirmation(request: any, signal: any): Promise<string> {
     const doc = new PDFDocument({
       size: 'A4',
@@ -12,12 +22,8 @@ export class ReportService {
     });
     
     const fileName = `confirmation_${request.id}_${Date.now()}.pdf`;
-    const filePath = path.join(__dirname, '../../uploads/reports', fileName);
-    
-    if (!fs.existsSync(path.dirname(filePath))) {
-      fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    }
-    
+    const filePath = path.join(this.ensureReportsDirectory(), fileName);
+
     doc.pipe(fs.createWriteStream(filePath));
     
     // Шапка документа - имитация бланка
@@ -43,42 +49,7 @@ export class ReportService {
     doc.text('info@morspas.ru, www.morspas.ru', 50, 180);
     doc.text('ОКПО 18685292, ОГРН 1027739737321', 50, 195);
     doc.text('ИНН/КПП 7707274249/770701001', 50, 210);
-    
-    // Номер и дата документа
-    const currentDate = new Date();
-    const docNumber = `МСС-${Math.floor(Math.random() * 1000)}/ССТО`;
-    doc.text(`№ ${docNumber}`, 50, 240);
-    doc.text(`от ${currentDate.toLocaleDateString('ru-RU')}`, 150, 240);
-    
-    // Основной текст
-    doc.fontSize(11);
-    doc.text('Подтверждаем получение тестового сообщения ССТО:', 50, 280);
-    
-    // Данные из сигнала
-    doc.fontSize(10);
-    doc.text('---TEST SSAS TEST---', 50, 310);
-    doc.text(`Mobile Terminal No:${request.ssas_number || 'N/A'}`, 50, 325);
-    
-    // Извлекаем координаты из тела письма или используем из сигнала
-    const lat = signal.latitude || '41 28.83\'N';
-    const lon = signal.longitude || '31 47.83\'E';
-    doc.text(`Position:${lat} ${lon}`, 50, 340);
-    
-    const testTime = new Date(signal.detection_time || signal.received_at);
-    doc.text(`Position updated:${testTime.toISOString().replace('T', ' ').split('.')[0]} UTC`, 50, 355);
-    doc.text('---TEST SSAS TEST---', 50, 370);
-    
-    // Строка с MMSI и координатами
-    doc.text(`${request.mmsi} ${testTime.toISOString().split('T')[0]} ${testTime.toTimeString().split(' ')[0]} ${lat} ${lon}`, 50, 385);
-    
-    // Email адреса
-    doc.text('Covert message setup:', 50, 415);
-    doc.text(`E-mail:od_smrcc@morflot.ru`, 50, 430);
-    doc.text(`E-mail:${request.contact_email}`, 50, 445);
-    if (request.contact_phone) {
-      doc.text(`E-mail:${request.contact_person.toLowerCase().replace(' ', '_')}@volgaflot.com`, 50, 460);
-    }
-    
+
     // Подпись
     doc.fontSize(9);
     doc.text('Федеральное государственное бюджетное', 50, 520);
@@ -91,6 +62,9 @@ export class ReportService {
     const operators = ['С. А. Мохначев', 'И. В. Петров', 'А. Н. Сидоров', 'В. П. Козлов'];
     const operator = operators[Math.floor(Math.random() * operators.length)];
     
+    // Добавлено объявление currentDate (исправление TS2304)
+    const currentDate = new Date();
+    
     doc.fontSize(10);
     doc.text(operator, 50, 600);
     doc.text('Оперативный дежурный ГМСКЦ', 50, 615);
@@ -101,6 +75,53 @@ export class ReportService {
     doc.text('Оперативный дежурный ГМСКЦ', 50, 700);
     doc.text('+7 (495) 626-10-52', 50, 715);
     
+    doc.end();
+    return filePath;
+  }
+
+  async generateForSignal(signal: Signal & { request?: SSASRequest | null }): Promise<string> {
+    const request = signal.request ?? null;
+
+    if (request) {
+      return this.generateTestConfirmation(request, signal);
+    }
+
+    const doc = new PDFDocument({
+      size: 'A4',
+      margins: { top: 50, bottom: 50, left: 50, right: 50 }
+    });
+
+    const fileName = `signal_${signal.id}_${Date.now()}.pdf`;
+    const filePath = path.join(this.ensureReportsDirectory(), fileName);
+
+    doc.pipe(fs.createWriteStream(filePath));
+
+    doc.fontSize(16).text('Signal Report', { align: 'center' });
+    doc.moveDown();
+
+    doc.fontSize(11);
+    doc.text(`Signal ID: ${signal.id ?? 'N/A'}`);
+    doc.text(`Terminal Number: ${signal.terminal_number ?? 'N/A'}`);
+    doc.text(`Vessel Name: ${signal.vessel_name ?? 'N/A'}`);
+    doc.text(`MMSI: ${signal.mmsi ?? 'N/A'}`);
+    doc.text(`Signal Type: ${signal.signal_type ?? 'N/A'}`);
+    doc.text(`Status: ${signal.status ?? 'N/A'}`);
+    const receivedAt = signal.received_at ? new Date(signal.received_at) : null;
+    doc.text(`Received At: ${receivedAt ? receivedAt.toISOString() : 'N/A'}`);
+
+    if (signal.coordinates) {
+      doc.moveDown();
+      doc.text('Coordinates:');
+      doc.text(`Latitude: ${signal.coordinates.lat ?? 'N/A'}`);
+      doc.text(`Longitude: ${signal.coordinates.lng ?? signal.coordinates.lon ?? 'N/A'}`);
+    }
+
+    if (signal.metadata) {
+      doc.moveDown();
+      doc.text('Metadata:');
+      doc.text(JSON.stringify(signal.metadata, null, 2));
+    }
+
     doc.end();
     return filePath;
   }
