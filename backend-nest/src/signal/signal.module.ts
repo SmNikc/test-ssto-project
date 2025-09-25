@@ -4,8 +4,9 @@
 import { Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { SignalController } from '../controllers/signal.controller';
-import { SignalService } from './signal.service';
+import { SignalService } from '../services/signal.service';
 import { PdfService } from './pdf.service';
+import { ReportService } from '../services/report.service';
 import Signal from '../models/signal.model';
 import SSASRequest from '../models/request.model';
 import Vessel from '../models/vessel.model';
@@ -15,7 +16,7 @@ import Vessel from '../models/vessel.model';
     SequelizeModule.forFeature([Signal, SSASRequest, Vessel])
   ],
   controllers: [SignalController],
-  providers: [SignalService, PdfService],
+  providers: [SignalService, PdfService, ReportService],
   exports: [SignalService, PdfService]
 })
 export class SignalModule {}
