@@ -1,7 +1,4 @@
-version: '3.8'
-
 services:
-  # PostgreSQL База данных
   postgres:
     image: postgres:14-alpine
     container_name: ssto-postgres
@@ -13,33 +10,21 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./test_data.sql:/docker-entrypoint-initdb.d/test_data.sql
-    networks:
-      - ssto-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ssto -d sstodb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [ssto]
 
-  # Keycloak (опционально)
-  keycloak:
-    image: quay.io/keycloak/keycloak:22.0
-    container_name: ssto-keycloak
-    environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
-      KC_DB_USERNAME: ssto
-      KC_DB_PASSWORD: sstopass
-    ports:
-      - "8080:8080"
-    depends_on:
-      - postgres
-    command: start-dev
-    networks:
-      - ssto-network
-
-  # Backend NestJS
   backend:
-    build: ./backend-nest
+    build:
+      context: ./backend-nest
+      dockerfile: Dockerfile
     container_name: ssto-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
       NODE_ENV: production
       PORT: 3001
@@ -48,33 +33,27 @@ services:
       DB_USER: ssto
       DB_PASSWORD: sstopass
       DB_NAME: sstodb
-      SIMPLE_AUTH_MODE: ${SIMPLE_AUTH_MODE:-true}
-      KEYCLOAK_URL: http://keycloak:8080/realms/ssto
+      CORS_ORIGIN: http://localhost
+      KEYCLOAK_ENABLED: "false"
+      # DB_BOOTSTRAP: "true"   # включайте только на один прогон для точечной правки схемы
     ports:
       - "3001:3001"
-    depends_on:
-      - postgres
-    volumes:
-      - ./backend-nest:/app
-      - /app/node_modules
-    networks:
-      - ssto-network
-    command: npm run start:prod
+    networks: [ssto]
 
-  # Frontend React
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: ssto-frontend
+    depends_on:
+      backend:
+        condition: service_started
     ports:
       - "80:80"
-    depends_on:
-      - backend
-    networks:
-      - ssto-network
+    networks: [ssto]
 
 networks:
-  ssto-network:
-    driver: bridge
+  ssto: {}
 
 volumes:
-  postgres_data:
+  postgres_data: {}

@@ -1,92 +1,98 @@
-import { Table, Column, Model, DataType } from 'sequelize-typescript';
+import {
+  Table,
+  Column,
+  Model,
+  DataType,
+  CreatedAt,
+  UpdatedAt,
+} from 'sequelize-typescript';
 
 @Table({
   tableName: 'signals',
   timestamps: true,
-  underscored: true
+  underscored: true,
 })
 export default class Signal extends Model {
   @Column({
     type: DataType.INTEGER,
     primaryKey: true,
-    autoIncrement: true
+    autoIncrement: true,
   })
-  id: number;
+  id!: number;
 
   @Column({
     type: DataType.STRING(50),
-    allowNull: true
+    allowNull: true,
   })
-  terminal_number: string;
+  terminal_number!: string | null;
 
   @Column({
     type: DataType.STRING(9),
-    allowNull: false
+    allowNull: false,
   })
-  mmsi: string;
+  mmsi!: string;
 
   @Column({
     type: DataType.STRING(20),
-    allowNull: true
+    allowNull: true,
   })
-  call_sign: string;
+  call_sign!: string | null;
+
+  // <— ДОБАВЛЕНО: используется сервисами/отчётами
+  @Column({
+    type: DataType.STRING,
+    allowNull: true,
+  })
+  vessel_name!: string | null;
 
   @Column({
     type: DataType.STRING,
-    allowNull: true
+    defaultValue: 'TEST',
   })
-  vessel_name: string;
-
-  @Column({
-    type: DataType.STRING,
-    defaultValue: 'TEST'
-  })
-  signal_type: string;
+  signal_type!: string;
 
   @Column({
     type: DataType.DATE,
     allowNull: false,
-    defaultValue: DataType.NOW
+    defaultValue: DataType.NOW,
   })
-  received_at: Date;
+  received_at!: Date;
 
   @Column({
     type: DataType.DATE,
-    allowNull: true
+    allowNull: true,
   })
-  detection_time: Date;
+  detection_time!: Date | null;
 
   @Column({
     type: DataType.STRING,
-    defaultValue: 'UNMATCHED'
+    defaultValue: 'UNMATCHED',
   })
-  status: string;
+  status!: string;
 
   @Column({
     type: DataType.INTEGER,
-    allowNull: true
+    allowNull: true,
   })
-  request_id: number;
+  request_id!: number | null;
 
   @Column({
     type: DataType.JSONB,
-    allowNull: true
+    allowNull: true,
   })
-  coordinates: any;
+  coordinates!: any;
 
   @Column({
     type: DataType.JSONB,
-    allowNull: true
+    allowNull: true,
   })
-  metadata: any;
+  metadata!: any;
 
-  @Column({
-    type: DataType.DATE
-  })
-  created_at: Date;
+  @CreatedAt
+  @Column({ type: DataType.DATE })
+  created_at!: Date;
 
-  @Column({
-    type: DataType.DATE
-  })
-  updated_at: Date;
+  @UpdatedAt
+  @Column({ type: DataType.DATE })
+  updated_at!: Date;
 }

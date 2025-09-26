@@ -19,6 +19,7 @@ import { Visibility, VisibilityOff } from '@mui/icons-material';
 const API_PREFIX = '/api';
 const api = (path: string) => {
   const p = path.startsWith('/') ? path : `/${path}`;
+  // если кто-то случайно передаст уже "/api/...", не удваиваем префикс
   return p.startsWith('/api') ? p : `${API_PREFIX}${p}`;
 };
 
@@ -86,13 +87,16 @@ const Auth: React.FC = () => {
         throw new Error('Токен не получен от сервера');
       }
 
+      // сохраняем токены, как в проекте
       sessionStorage.setItem('token', token);
       if (refreshToken) sessionStorage.setItem('refreshToken', refreshToken);
 
+      // расклеиваем роль
       const payload = decodeJWT(token);
       if (!payload) throw new Error('Ошибка декодирования токена');
       const role = getRoleFromPayload(payload);
 
+      // редирект на раздел роли
       setTimeout(() => {
         window.location.href = `/${role}`;
       }, 100);
