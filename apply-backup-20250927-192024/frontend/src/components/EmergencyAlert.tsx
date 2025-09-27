@@ -65,7 +65,7 @@ const EmergencyAlert = ({ signal }: EmergencyAlertProps) => {
   const logCriticalEvent = (signal: any) => {
     console.log('Критическое событие:', signal);
     // Здесь можно добавить запись в backend или local storage
-    fetch('/api/logs/critical', {
+    fetch('http://localhost:3001/logs/critical', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json; charset=utf-8' },
       body: JSON.stringify({
@@ -92,7 +92,7 @@ const EmergencyAlert = ({ signal }: EmergencyAlertProps) => {
     }
     
     // Email и SMS - через backend
-    fetch('/api/notifications/emergency', {
+    fetch('http://localhost:3001/notifications/emergency', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json; charset=utf-8' },
       body: JSON.stringify(signal)

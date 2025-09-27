@@ -127,7 +127,9 @@ class BackendService {
 
   initWebSocket(onNewSignal: (signal: any) => void) {
     const token = sessionStorage.getItem('token');
-    this.socket = io('/', { path: '/socket.io', transports: ['websocket','polling'] });
+    this.socket = io(this.baseURL, {
+      auth: { token }
+    });
 
     this.socket.on('connect', () => {
       console.log('WebSocket подключен');

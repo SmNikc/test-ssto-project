@@ -56,7 +56,7 @@ export default function EmailSimulator() {
           status: 'PENDING'
         };
 
-        const response = await fetch('/api/requests', {
+        const response = await fetch('http://localhost:3001/requests', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(requestData)

@@ -1,0 +1,19 @@
+=== APPLY START 2025-09-27T19:24:43 ===
+Mode: APPLY
+Repo: C:\Projects\test-ssto-project
+backend-nest/src/models/signal.model.ts: OK (has vessel_name)
+Backup → backend-nest/src/services/report.service.ts
+backend-nest/src/services/report.service.ts: OK
+Backup → backend-nest/src/signal/signal.module.ts
+backend-nest/src/signal/signal.module.ts: OK
+frontend/vite.config.ts: OK
+frontend/nginx.conf: OK
+frontend/src/config.js: OK
+frontend/tsconfig.json: OK
+frontend-static/backend-nest: OK (absent)
+RUN: docker compose exec -T postgres psql -U ssto -d sstodb -c ALTER TABLE signals ADD COLUMN IF NOT EXISTS vessel_name VARCHAR(255);
+DB migration: FAIL (exit=1)
+ERROR:  relation "signals" does not exist
+Backups: C:\Projects\test-ssto-project\apply-backup-20250927-192443
+Report:  C:\Projects\test-ssto-project\apply-report-20250927-192443.txt
+=== APPLY END 2025-09-27T19:24:47 ===

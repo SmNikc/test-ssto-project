@@ -1,7 +1,7 @@
 import { io } from 'socket.io-client';
 
 class BackendService {
-  private baseURL = '/api';
+  private baseURL = 'http://localhost:3001';
   private headers = {
     'Content-Type': 'application/json; charset=utf-8',
     'Accept': 'application/json',
@@ -127,7 +127,9 @@ class BackendService {
 
   initWebSocket(onNewSignal: (signal: any) => void) {
     const token = sessionStorage.getItem('token');
-    this.socket = io('/', { path: '/socket.io', transports: ['websocket','polling'] });
+    this.socket = io(this.baseURL, {
+      auth: { token }
+    });
 
     this.socket.on('connect', () => {
       console.log('WebSocket подключен');
