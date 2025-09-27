@@ -17,6 +17,6 @@ import Vessel from '../models/vessel.model';
   ],
   controllers: [SignalController],
   providers: [SignalService, PdfService, ReportService],
-  exports: [SignalService, PdfService, ReportService]
+  exports: [SignalService, PdfService]
 })
 export class SignalModule {}
