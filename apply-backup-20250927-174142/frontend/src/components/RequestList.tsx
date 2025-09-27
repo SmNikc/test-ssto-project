@@ -65,14 +65,11 @@ export default function RequestList() {
   });
   const [confirmLoading, setConfirmLoading] = useState(false);
 
-  // ИСПРАВЛЕНИЕ 1: Используем /api вместо localhost:3001
-  const API_BASE = '/api';
-
   // Загрузка списка заявок
   const fetchRequests = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE}/requests`);  // ИЗМЕНЕНО
+      const response = await fetch('http://localhost:3001/requests');
       if (!response.ok) throw new Error('Ошибка загрузки заявок');
       
       const data = await response.json();
@@ -138,8 +135,6 @@ ${reportData.vessels.map((v, i) =>
       newWindow.document.title = 'Отчет ССТО';
     }
   };
-
-  // ИСПРАВЛЕНИЕ 2: Функция создания email-заявок с правильной асинхронностью
   const createEmailRequests = async () => {
     if (!confirm('Создать 3 демо-заявки как будто пришли по email?')) return;
     
@@ -193,46 +188,22 @@ ${reportData.vessels.map((v, i) =>
     ];
 
     let successCount = 0;
-    const errors: string[] = [];
-
-    // ГЛАВНОЕ ИСПРАВЛЕНИЕ: используем Promise.all вместо простого цикла
-    try {
-      const promises = demoRequests.map(async (req, index) => {
-        try {
-          await new Promise(resolve => setTimeout(resolve, index * 100));
-          
-          const response = await fetch(`${API_BASE}/requests`, {  // ИЗМЕНЕНО URL
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(req)
-          });
-          
-          if (response.ok) {
-            successCount++;
-            return { success: true };
-          } else {
-            const error = await response.text();
-            errors.push(`${req.vessel_name}: ${error}`);
-            return { success: false };
-          }
-        } catch (error) {
-          console.error('Error creating request:', error);
-          errors.push(`${req.vessel_name}: ${error.message}`);
-          return { success: false };
-        }
-      });
-
-      await Promise.all(promises);
-      await new Promise(resolve => setTimeout(resolve, 500));
-      await fetchRequests();
-      
-      alert(`Система обработала входящие email.\nСоздано заявок: ${successCount} из 3\nСуда: Морской Орел, Балтийский Ветер, Черноморец${errors.length > 0 ? '\n\nОшибки:\n' + errors.join('\n') : ''}`);
-    } catch (error) {
-      console.error('Критическая ошибка:', error);
-      alert('Ошибка при создании заявок');
-    } finally {
-      setLoading(false);
+    for (const req of demoRequests) {
+      try {
+        const response = await fetch('http://localhost:3001/requests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(req)
+        });
+        if (response.ok) successCount++;
+      } catch (error) {
+        console.error('Error creating request:', error);
+      }
     }
+    
+    await fetchRequests();
+    alert(`Система обработала входящие email.\nСоздано заявок: ${successCount} из 3\nСуда: Морской Орел, Балтийский Ветер, Черноморец`);
+    setLoading(false);
   };
 
   // Открытие диалога подтверждения
@@ -265,7 +236,7 @@ ${reportData.vessels.map((v, i) =>
     try {
       // Используем существующий эндпоинт вашего backend
       const response = await fetch(
-        `${API_BASE}/api/requests/${confirmDialog.request.id}/send-confirmation`,  // ИЗМЕНЕНО URL
+        `http://localhost:3001/api/requests/${confirmDialog.request.id}/send-confirmation`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -304,7 +275,7 @@ ${reportData.vessels.map((v, i) =>
 
     try {
       const response = await fetch(
-        `${API_BASE}/requests/${request.id}/confirm`,  // ИЗМЕНЕНО URL
+        `http://localhost:3001/requests/${request.id}/confirm`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -473,7 +444,7 @@ ${reportData.vessels.map((v, i) =>
                   )}
                   {(request.status === 'CONFIRMED' || request.status === 'completed') && (
                     <Typography variant="body2" color="success.main">
-                      ✔ Подтверждено
+                      ✓ Подтверждено
                     </Typography>
                   )}
                   {(request.status === 'FAILED' || request.status === 'rejected') && (

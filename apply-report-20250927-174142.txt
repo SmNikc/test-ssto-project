@@ -1,0 +1,40 @@
+=== APPLY START 2025-09-27T17:41:42 ===
+Mode: DRY-RUN
+Repo: C:\Projects\test-ssto-project
+backend-nest/src/models/signal.model.ts: OK (has vessel_name)
+Backup → backend-nest/src/services/report.service.ts
+backend-nest/src/services/report.service.ts: OK
+Backup → backend-nest/src/signal/signal.module.ts
+backend-nest/src/signal/signal.module.ts: OK
+Backup → frontend/src/components/EmailSimulator.tsx
+frontend/src/components/EmailSimulator.tsx: API → /api
+Backup → frontend/src/components/EmergencyAlert.tsx
+frontend/src/components/EmergencyAlert.tsx: API → /api
+Backup → frontend/src/components/MapView.tsx
+frontend/src/components/MapView.tsx: API → /api
+Backup → frontend/src/components/ReportsPage.tsx
+frontend/src/components/ReportsPage.tsx: API → /api
+Backup → frontend/src/components/RequestForm.tsx
+frontend/src/components/RequestForm.tsx: API → /api
+Backup → frontend/src/components/RequestList.tsx
+frontend/src/components/RequestList.tsx: API → /api
+Backup → frontend/src/components/SignalMonitor.tsx
+frontend/src/components/SignalMonitor.tsx: API → /api
+Backup → frontend/src/services/BackendService.ts
+frontend/src/services/BackendService.ts: API → /api
+Backup → frontend/vite.config.ts
+frontend/vite.config.ts: patched → /api (rewrite) + /socket.io (ws)
+Backup → frontend/nginx.conf
+frontend/nginx.conf: patched (api + socket.io)
+frontend/src/config.js: OK
+frontend/package.json: scripts.build → 'vite build'
+frontend/package.json: add scripts.typecheck
+Backup → frontend/package.json
+Backup → frontend/tsconfig.json
+frontend/tsconfig.json: patched
+frontend-static/backend-nest: OK (absent)
+DB migration: skipped (no --migrate-db)
+Backups: C:\Projects\test-ssto-project\apply-backup-20250927-174142
+Report:  C:\Projects\test-ssto-project\apply-report-20250927-174142.txt
+[DRY-RUN] Изменения НЕ записаны. Запустите с --apply для применения.
+=== APPLY END 2025-09-27T17:41:46 ===
