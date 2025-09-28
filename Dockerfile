@@ -9,11 +9,11 @@ RUN npm run build
 # ===== RUNTIME =====
 FROM node:18-alpine AS runner
 WORKDIR /app
-ENV NODE_ENV=production
-ENV PORT=3001
-ENV NODE_OPTIONS=--enable-source-maps
 COPY package*.json ./
 RUN npm ci --omit=dev
 COPY --from=builder /app/dist ./dist
+
+ENV NODE_ENV=production
+ENV PORT=3001
 EXPOSE 3001
-CMD ["node", "dist/src/main.js"]
+CMD ["node", "dist/main.js"]

@@ -1,59 +1,63 @@
+version: "3.9"
+
 services:
   postgres:
     image: postgres:14-alpine
     container_name: ssto-postgres
     environment:
-      POSTGRES_DB: sstodb
-      POSTGRES_USER: ssto
-      POSTGRES_PASSWORD: sstopass
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ssto
     ports:
       - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ssto -d sstodb"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks: [ssto]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ssto || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - db_data:/var/lib/postgresql/data
 
   backend:
     build:
       context: ./backend-nest
       dockerfile: Dockerfile
+    image: test-ssto-project-backend:latest
     container_name: ssto-backend
     depends_on:
       postgres:
         condition: service_healthy
     environment:
       NODE_ENV: production
-      PORT: 3001
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USER: ssto
-      DB_PASSWORD: sstopass
-      DB_NAME: sstodb
-      CORS_ORIGIN: http://localhost
-      KEYCLOAK_ENABLED: "false"
-      # DB_BOOTSTRAP: "true"   # включайте только на один прогон для точечной правки схемы
+      PORT: "3001"
+      # Оставляю хост базы как у сервисного имени 'postgres'.
+      # Если у вас было 'ssto-postgres' — замените здесь, но функционал не меняем.
+      DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/ssto"
     ports:
       - "3001:3001"
-    networks: [ssto]
+    networks:
+      default:
+        aliases:
+          - backend
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3001/health || curl -s http://127.0.0.1:3001/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 20
 
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+    image: test-ssto-project-frontend:latest
     container_name: ssto-frontend
     depends_on:
-      backend:
-        condition: service_started
+      - backend
     ports:
       - "80:80"
-    networks: [ssto]
-
-networks:
-  ssto: {}
 
 volumes:
-  postgres_data: {}
+  db_data:
+
+networks:
+  default:
+    name: ssto-net
