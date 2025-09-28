@@ -1,10 +1,10 @@
 services:
   backend:
     environment:
-      # 1) Единая строка подключения
+      # Универсальная строка подключения
       DATABASE_URL: "postgresql://postgres:postgres@ssto-postgres:5432/ssto"
 
-      # 2) Распространённые имена для codebase/Sequelize/pg
+      # Часто используемые имена (разные конфиги читают разные ключи)
       DB_HOST: ssto-postgres
       DB_PORT: "5432"
       DB_USER: postgres
