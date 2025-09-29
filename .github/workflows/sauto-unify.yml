@@ -1,0 +1,143 @@
+--- FILE: .github/workflows/auto-unify.yml
+name: Auto Unify + Build + E2E + PR
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_branch:
+        description: 'Base branch (main or master)'
+        required: true
+        default: 'main'
+      run_e2e:
+        description: 'Run E2E after smoke'
+        required: true
+        default: 'true'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  unify:
+    runs-on: ubuntu-latest
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.base_branch }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Git config
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Create working branch
+        run: |
+          BR="chore/ssto-unify-structure-${{ github.run_id }}"
+          echo "BRANCH=$BR" >> $GITHUB_ENV
+          git switch -c "$BR"
+
+      - name: Install deps (backend)
+        if: hashFiles('backend-nest/package.json') != ''
+        working-directory: backend-nest
+        run: |
+          npm ci
+          npx tsc -p tsconfig.build.json --noEmit
+
+      - name: Install deps (frontend)
+        if: hashFiles('frontend/package.json') != ''
+        working-directory: frontend
+        run: |
+          npm ci
+          npx tsc --noEmit || true
+          npm run build || true
+
+      - name: Apply tools/auto_unify.js
+        run: |
+          node tools/auto_unify.js || (echo "::error ::auto_unify failed" && exit 1)
+
+      - name: Commit unified structure
+        run: |
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: unify structure (SSTO) + tests/CI"
+          else
+            echo "No structural changes to commit"
+          fi
+
+      - name: Bring up stack (Docker + MailHog)
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.override.yml up -d --build
+          echo "Wait for backend health..."
+          for i in {1..30}; do
+            if curl -fsS http://localhost:3001/health >/dev/null; then
+              echo "Backend healthy"; break
+            fi
+            sleep 2
+          done
+          curl -fsS http://localhost:8025 >/dev/null || (echo "::warning ::MailHog UI not up yet")
+
+      - name: Seed dev data (HTTP fallback)
+        run: |
+          node scripts/seed-dev.js || echo "seed skipped"
+
+      - name: Run smoke tests
+        run: |
+          chmod +x tests/smoke.sh
+          ./tests/smoke.sh | tee tests/smoke.log
+
+      - name: Install pdf-parse for assertions
+        run: |
+          npm i pdf-parse@1
+
+      - name: Assert PDF header
+        run: |
+          node tests/assert-pdf.js /tmp/report.pdf "МИНТРАНС"
+
+      - name: Optional E2E
+        if: ${{ inputs.run_e2e == 'true' }}
+        run: |
+          echo "E2E placeholder: add supertest/Playwright suites if present"
+          # run backend e2e if tests exist
+          if [ -d backend-nest/test ]; then
+            (cd backend-nest && npx jest --ci --reporters=default --reporters=jest-junit)
+          fi
+
+      - name: Tear down
+        if: always()
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.override.yml down -v || true
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ssto-smoke-artifacts
+          path: |
+            tests/smoke.log
+            /tmp/report.pdf
+            tests/mailhog-snapshot.json
+          if-no-files-found: warn
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          title: "Unify structure + Build + Smoke/E2E (SSTO)"
+          body: |
+            Автоправки структуры, сборка, запуск Docker+MailHog, smoke и (опц.) E2E.
+            В артефактах: smoke.log, report.pdf, mailhog-snapshot.json.
+            См. чек-лист AC внутри PR.
+          branch: ${{ env.BRANCH }}
+          base: ${{ inputs.base_branch }}
+          commit-message: "chore: unify structure (SSTO) + tests/CI"
+          labels: |
+            ssto
+            ci
+          draft: false

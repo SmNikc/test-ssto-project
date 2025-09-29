@@ -1,28 +1,20 @@
+version: "3.9"
+
 services:
+  # Дополняем базовый сервис БД (в базовом compose он называется "postgres")
+  postgres:
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ssto -h 127.0.0.1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      default:
+        aliases:
+          - ssto-postgres   # алиас, чтобы хост ssto-postgres из env backend продолжал работать
+
+  # Дополняем базовый сервис backend, НЕ меняя его окружение/переменные
   backend:
-    environment:
-      # Универсальная строка подключения
-      DATABASE_URL: "postgresql://postgres:postgres@ssto-postgres:5432/ssto"
-
-      # Часто используемые имена (разные конфиги читают разные ключи)
-      DB_HOST: ssto-postgres
-      DB_PORT: "5432"
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-      DB_NAME: ssto
-
-      DATABASE_HOST: ssto-postgres
-      DATABASE_PORT: "5432"
-      DATABASE_USERNAME: postgres
-      DATABASE_PASSWORD: postgres
-      DATABASE_NAME: ssto
-
-      PGHOST: ssto-postgres
-      PGPORT: "5432"
-      PGUSER: postgres
-      PGPASSWORD: postgres
-      PGDATABASE: ssto
-
     depends_on:
       postgres:
         condition: service_healthy
