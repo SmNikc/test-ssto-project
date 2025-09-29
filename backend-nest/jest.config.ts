@@ -1,4 +1,5 @@
 import type { Config } from '@jest/types';
+
 const config: Config = {
   preset: 'ts-jest',
   testEnvironment: 'node',
@@ -7,5 +8,35 @@ const config: Config = {
   transform: { '^.+\\.(t|j)sx?$': ['ts-jest', { tsconfig: 'tsconfig.json' }] },
   transformIgnorePatterns: ['/node_modules/'],
   testMatch: ['**/?(*.)+(spec|test).+(ts|tsx|js)'],
+  reporters: [
+    'default',
+    [
+      'jest-junit',
+      {
+        outputDirectory: 'reports/junit',
+        outputName: 'backend-tests.xml',
+        classNameTemplate: '{classname}',
+        titleTemplate: '{title}'
+      },
+    ],
+  ],
+  coverageDirectory: 'reports/coverage',
+  collectCoverageFrom: [
+    '<rootDir>/src/**/*.ts',
+    '!<rootDir>/src/main.ts',
+    '!<rootDir>/src/**/*.module.ts',
+    '!<rootDir>/src/**/index.ts',
+  ],
+  coverageReporters: ['text', 'lcov'],
+  coverageThreshold: {
+    global: {
+      branches: 60,
+      functions: 60,
+      lines: 60,
+      statements: 60,
+    },
+  },
+  testTimeout: 30000,
 };
+
 export default config;

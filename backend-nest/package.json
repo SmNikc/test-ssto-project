@@ -11,7 +11,8 @@
     "format": "prettier --write .",
     "test": "jest",
     "test:watch": "jest --watch",
-    "db:probe:local": "node scripts/test-db.js"
+    "db:probe:local": "node scripts/test-db.js",
+    "test:ci": "jest --runInBand --coverage"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.10",
@@ -72,7 +73,8 @@
     "ts-jest": "^29.2.3",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.4",
-    "typescript-eslint": "^8.5.0"
+    "typescript-eslint": "^8.5.0",
+    "jest-junit": "^16.0.0"
   },
   "engines": {
     "node": ">=18.18.0"
