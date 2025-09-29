@@ -1,7 +1,7 @@
 // frontend/src/index.tsx
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App';  // Измените app на App
+import App from './App'; // Обратите внимание на регистр имени файла для Linux
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(
