@@ -4,25 +4,63 @@ import { DataGrid } from '@mui/x-data-grid';
 import { BackendService } from '../services/BackendService';
 import { useAuth } from '../contexts/AuthContext';
 
+type RequestItem = {
+  id: number | string;
+  owner_organization?: string;
+  [key: string]: unknown;
+};
+
+type TerminalItem = {
+  terminal_number?: string;
+  owner_organization?: string;
+  [key: string]: unknown;
+};
+
+function normalizeList<T extends Record<string, unknown>>(input: unknown): T[] {
+  if (Array.isArray(input)) return input as T[];
+  if (input && typeof input === 'object') {
+    const maybeData = (input as { data?: unknown }).data;
+    if (Array.isArray(maybeData)) return maybeData as T[];
+  }
+  return [];
+}
+
 const ClientPortal = () => {
   const { user } = useAuth();
-  const [requests, setRequests] = useState([]);
-  const [terminals, setTerminals] = useState([]);
+  const [requests, setRequests] = useState<RequestItem[]>([]);
+  const [terminals, setTerminals] = useState<TerminalItem[]>([]);
 
   useEffect(() => {
-    const loadData = async () => {
-      const reqData = await BackendService.getRequests();
-      const clientRequests = reqData.filter(r => r.owner_organization === user.organization_name);
-      setRequests(clientRequests);
-      
-      const termData = await BackendService.getTerminals();
-      const clientTerminals = termData.filter(t => t.owner_organization === user.organization_name);
-      setTerminals(clientTerminals);
-    };
-    
-    if (user) {
-      loadData();
+    if (!user) {
+      setRequests([]);
+      setTerminals([]);
+      return;
     }
+
+    const loadData = async () => {
+      try {
+        const [reqRaw, termRaw] = await Promise.all([
+          BackendService.getRequests(),
+          BackendService.getTerminals(),
+        ]);
+
+        const organization = user.organization_name ?? '';
+        const allRequests = normalizeList<RequestItem>(reqRaw);
+        const allTerminals = normalizeList<TerminalItem>(termRaw);
+
+        const byOrganization = (item: { owner_organization?: string }) =>
+          organization ? item.owner_organization === organization : true;
+
+        setRequests(allRequests.filter(byOrganization));
+        setTerminals(allTerminals.filter(byOrganization));
+      } catch (error) {
+        console.error('Ошибка загрузки данных клиента', error);
+        setRequests([]);
+        setTerminals([]);
+      }
+    };
+
+    loadData();
   }, [user]);
 
   const handleNewRequest = async () => {

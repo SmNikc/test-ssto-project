@@ -9,4 +9,5 @@ const config: Config.InitialOptions = {
   transformIgnorePatterns: ['/node_modules/'],
   testMatch: ['**/?(*.)+(spec|test).+(ts|tsx|js)'],
 };
+
 export default config;

@@ -18,7 +18,7 @@ type RequestFormValues = {
 const REQUIRED = (label: string) => ({ required: { value: true, message: `${label} обязателен` } });
 
 // Валидационные правила по полям
-const rules: Record<keyof RequestFormValues, RegisterOptions<RequestFormValues>> = {
+const rules = {
   vesselName: {
     ...REQUIRED('Название судна'),
     minLength: { value: 2, message: 'Минимум 2 символа' },
@@ -34,7 +34,7 @@ const rules: Record<keyof RequestFormValues, RegisterOptions<RequestFormValues>>
   },
   testDate: {
     ...REQUIRED('Дата/время теста'),
-    validate: (v: string) => v?.length > 0 || 'Укажите дату/время',
+    validate: (value?: string) => (value && value.length > 0) || 'Укажите дату/время',
   },
   port: {
     ...REQUIRED('Порт приписки'),
@@ -61,10 +61,9 @@ const rules: Record<keyof RequestFormValues, RegisterOptions<RequestFormValues>>
     },
   },
   notes: {
-    required: false,
     maxLength: { value: 1000, message: 'Слишком длинное примечание' },
   },
-};
+} satisfies { [K in keyof RequestFormValues]: RegisterOptions<RequestFormValues, K> };
 
 export default function RequestForm() {
   const { control, handleSubmit } = useForm<RequestFormValues>({

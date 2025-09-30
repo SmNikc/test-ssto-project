@@ -2,7 +2,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { io, Socket } from 'socket.io-client';
 
-const SOCKET_SIGNAL_EVENTS = ['signal', 'new_signal', 'signal:new'];
+// Поддерживаем все известные варианты имени события на случай различий между бэкендами
+const SOCKET_SIGNAL_EVENTS = ['signal', 'new_signal', 'new-signal', 'signal:new'];
 
 const API_BASE =
   // @ts-ignore
@@ -43,8 +44,7 @@ async function request<T>(
 
     const ct = res.headers.get('content-type') || '';
     if (ct.includes('application/json')) return (await res.json()) as T;
-    // @ts-expect-error допускаем T=unknown для не-JSON
-    return (await res.text()) as T;
+    return (await res.text()) as unknown as T;
   } finally {
     clearTimeout(t);
   }
@@ -56,15 +56,40 @@ export const BackendService = {
     return request<{ status: string }>(`${API_BASE}/health`, { method: 'GET' });
   },
 
-  // Сигналы
+  // --------------------------
+  // СИГНАЛЫ
+  // --------------------------
   getSignals(params?: Query) {
     return request<any>(`${API_BASE}/signals${buildQuery(params)}`, { method: 'GET' });
+  },
+  getSignalStatistics(params?: Query) {
+    return request<any>(`${API_BASE}/signals/statistics${buildQuery(params)}`, { method: 'GET' });
   },
   createSignal(payload: Record<string, any>) {
     return request<any>(`${API_BASE}/signals`, { method: 'POST', body: JSON.stringify(payload) });
   },
+  updateSignal(id: string, payload: Record<string, any>) {
+    return request<any>(`${API_BASE}/signals/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  },
+  deleteSignal(id: string) {
+    return request<any>(`${API_BASE}/signals/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  },
+  linkSignalToRequest(signalId: string, requestId: string) {
+    return request<any>(
+      `${API_BASE}/signals/${encodeURIComponent(signalId)}/link/${encodeURIComponent(requestId)}`,
+      { method: 'POST' }
+    );
+  },
+  generateSignalReport(id: string) {
+    return request<any>(`${API_BASE}/signals/generate-report/${encodeURIComponent(id)}`, { method: 'POST' });
+  },
 
-  // Заявки
+  // --------------------------
+  // ЗАЯВКИ
+  // --------------------------
   getRequests(params?: Query) {
     return request<any>(`${API_BASE}/requests${buildQuery(params)}`, { method: 'GET' });
   },
@@ -75,12 +100,28 @@ export const BackendService = {
     return request<any>(`${API_BASE}/requests`, { method: 'POST', body: JSON.stringify(payload) });
   },
 
-  // Терминалы
+  // --------------------------
+  // ТЕРМИНАЛЫ
+  // --------------------------
   getTerminals(params?: Query) {
     return request<any>(`${API_BASE}/terminals${buildQuery(params)}`, { method: 'GET' });
   },
+  createTerminal(payload: Record<string, any>) {
+    return request<any>(`${API_BASE}/terminals`, { method: 'POST', body: JSON.stringify(payload) });
+  },
+  updateTerminal(id: string, payload: Record<string, any>) {
+    return request<any>(`${API_BASE}/terminals/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  },
+  deleteTerminal(id: string) {
+    return request<any>(`${API_BASE}/terminals/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  },
 
-  // PDF (по заявке)
+  // --------------------------
+  // PDF
+  // --------------------------
   async getRequestPdf(id: string): Promise<ArrayBuffer> {
     const res = await fetch(`${API_BASE}/requests/${encodeURIComponent(id)}/pdf`, {
       method: 'GET',
@@ -102,6 +143,9 @@ export const BackendService = {
     return await res.arrayBuffer();
   },
 
+  // --------------------------
+  // EMAIL / УВЕДОМЛЕНИЯ
+  // --------------------------
   // Письмо/уведомление (MailHog проверяется на бэке)
   sendNotificationEmail(payload: { to: string; subject: string; body: string }) {
     return request<any>(`${API_BASE}/notifications/email`, {
@@ -110,7 +154,9 @@ export const BackendService = {
     });
   },
 
-  // Auth
+  // --------------------------
+  // АВТОРИЗАЦИЯ
+  // --------------------------
   login(email: string, password: string) {
     return request<any>(`${API_BASE}/auth/login`, {
       method: 'POST',
@@ -121,7 +167,9 @@ export const BackendService = {
     return request<any>(`${API_BASE}/auth/logout`, { method: 'POST' });
   },
 
-  // Socket.IO
+  // --------------------------
+  // SOCKET.IO
+  // --------------------------
   createSocket(extra?: Parameters<typeof io>[1]): Socket {
     return io('/', {
       path: '/socket.io',
@@ -131,10 +179,10 @@ export const BackendService = {
       ...extra,
     });
   },
-  initWebSocket(onSignal?: (payload: any) => void, extra?: Parameters<typeof io>[1]) {
+  initWebSocket(onSignal?: (payload: any) => void, extra?: Parameters<typeof io>[1]): Socket {
     const socket = this.createSocket(extra);
     if (onSignal) {
-      SOCKET_SIGNAL_EVENTS.forEach(evt => {
+      SOCKET_SIGNAL_EVENTS.forEach((evt) => {
         socket.on(evt, onSignal);
       });
     }
@@ -145,6 +193,9 @@ export const BackendService = {
     if (s && s.connected) s.disconnect();
   },
 
+  // --------------------------
+  // ДОП. ДЕЙСТВИЯ / ТАСКИ
+  // --------------------------
   async generateTestSignal(payload?: Record<string, any>) {
     const defaults = {
       terminal_number: 'TEST-TERMINAL',
@@ -154,11 +205,20 @@ export const BackendService = {
       vessel_name: 'Тестовое судно',
       mmsi: '000000000',
     };
+    // Основной путь — через создание сигнала (как в main), затем fallback на /testing/simulate (как в feature-ветке)
     try {
       return await this.createSignal({ ...defaults, ...(payload || {}) });
-    } catch (error) {
-      console.error('generateTestSignal failed', error);
-      throw error;
+    } catch (primaryError) {
+      console.warn('generateTestSignal via createSignal failed, trying /testing/simulate', primaryError);
+      try {
+        return await request<any>(`${API_BASE}/testing/simulate`, {
+          method: 'POST',
+          body: JSON.stringify({ ...defaults, ...(payload || {}) }),
+        });
+      } catch (fallbackError) {
+        console.error('generateTestSignal fallback failed', fallbackError);
+        throw fallbackError;
+      }
     }
   },
 
@@ -189,3 +249,5 @@ export const BackendService = {
     }
   },
 };
+
+export default BackendService;
