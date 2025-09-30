@@ -7,19 +7,19 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { EmailController } from './email/email.controller';
 import { HealthController } from './controllers/health.controller';
-import { DevAuthController } from './auth/dev-auth.controller';
+import { DevAuthController } from './dev-auth/dev-auth.controller';
 
 // Services  
 import { AppService } from './app.service';
-import { EmailSenderService } from './email/email-sender.service';
-import { EmailParserService } from './email/email-parser.service';
-import { EmailTaskService } from './email/email-task.service';
-import { EmailService } from './email/email.service';
+import { EmailSenderService } from './services/email-sender.service';
+import { EmailParserService } from './services/email-parser.service';
+import { EmailTaskService } from './services/email-task.service';
+import { EmailService } from './services/email.service';
 import { EnhancedConfirmationService } from './services/enhanced-confirmation.service';
 import { ReportService } from './services/report.service';
 import { RequestProcessingService } from './services/request-processing.service';
-import { AuthService } from './auth/auth.service';
-import { AuthGuard } from './auth/auth.guard';
+import { AuthService } from './security/auth.service';
+import { AuthGuard } from './security/auth.guard';
 
 // Modules
 import { RequestModule } from './request/request.module';
