@@ -1,65 +1,56 @@
 // backend-nest/src/main.ts
+import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
-import { Sequelize } from 'sequelize-typescript';
-import { DataTypes } from 'sequelize';
+import { ValidationPipe, RequestMethod } from '@nestjs/common';
+import { json, urlencoded } from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // CORS (оставьте ваш вариант, если он уже есть)
-  app.enableCors({
-    origin: (process.env.CORS_ORIGIN ?? 'http://localhost:5173')
-      .split(',')
-      .map((s) => s.trim()),
-    credentials: true,
+  // Helmet (не обязателен). Пытаемся подключить — без падения если пакета нет.
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const helmet = require('helmet');
+    if (helmet) app.use(helmet());
+  } catch {}
+
+  // Глобальный префикс /api, но /health — БЕЗ префикса.
+  app.setGlobalPrefix('api', {
+    exclude: [{ path: 'health', method: RequestMethod.GET }],
   });
 
-  // Глобальная валидация (если уже есть, не дублируйте)
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  // CORS: из env либо безопасный fallback для dev/Docker.
+  const corsOrigins = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',').map((s) => s.trim()).filter(Boolean)
+    : ['http://localhost:5173', 'http://localhost', 'http://127.0.0.1', 'http://host.docker.internal'];
 
-  // --- DEV BOOTSTRAP (one-shot column add) ---
-  // Выполнить один раз в DEV, если в .env стоит DB_BOOTSTRAP=true
-  // Добавляет только signals.vessel_name, если колонка отсутствует.
-  if (
-    process.env.NODE_ENV !== 'production' &&
-    process.env.DB_BOOTSTRAP === 'true'
-  ) {
-    const sequelize = app.get(Sequelize);
-    try {
-      await sequelize.authenticate();
-      const qi = sequelize.getQueryInterface();
-      const table = 'signals';
-      const column = 'vessel_name';
+  app.enableCors({
+    origin: (origin, cb) => {
+      if (!origin || corsOrigins.includes(origin)) cb(null, true);
+      else cb(null, false);
+    },
+    credentials: true,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: 'Content-Type,Authorization,X-Requested-With,Origin,Accept',
+  });
 
-      const desc = await qi.describeTable(table).catch((e) => {
-        throw new Error(
-          `Не удалось прочитать описание таблицы "${table}": ${e.message}`,
-        );
-      });
+  // Лимиты тела (согласованы с Nginx client_max_body_size)
+  const bodyLimit = process.env.BODY_LIMIT || '20mb';
+  app.use(json({ limit: bodyLimit }));
+  app.use(urlencoded({ extended: true, limit: bodyLimit }));
 
-      const hasColumn = Object.prototype.hasOwnProperty.call(desc, column);
-      if (!hasColumn) {
-        console.log(`[DB] Добавляю колонку ${table}.${column} ...`);
-        await qi.addColumn(table, column, {
-          type: DataTypes.STRING,
-          allowNull: true,
-        });
-        console.log(`[DB] Колонка ${table}.${column} добавлена.`);
-      } else {
-        console.log(`[DB] Колонка ${table}.${column} уже существует — пропускаю.`);
-      }
-    } catch (err: any) {
-      console.error('[DB BOOTSTRAP] Ошибка:', err.message || err);
-    } finally {
-      // СОВЕТ: после успешного старта снимите флаг DB_BOOTSTRAP в .env
-    }
-  }
-  // --- /DEV BOOTSTRAP ---
+  // Валидация DTO
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: false }));
 
-  const port = Number(process.env.PORT || 3001);
-  await app.listen(port);
+  // Доверяем X-Forwarded-* за Nginx
+  const http = (app.getHttpAdapter() as any).getInstance?.();
+  if (http?.set) http.set('trust proxy', 1);
+
+  const port = parseInt(process.env.PORT || '3001', 10);
+  await app.listen(port, '0.0.0.0');
+
+  // eslint-disable-next-line no-console
   console.log(`Backend listening on http://localhost:${port}`);
 }
 bootstrap();
