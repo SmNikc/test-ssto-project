@@ -41,8 +41,7 @@ async function request<T>(
 
     const ct = res.headers.get('content-type') || '';
     if (ct.includes('application/json')) return (await res.json()) as T;
-    // @ts-expect-error допускаем T=unknown для не-JSON
-    return (await res.text()) as T;
+    return (await res.text()) as unknown as T;
   } finally {
     clearTimeout(t);
   }
@@ -63,6 +62,23 @@ export const BackendService = {
   },
   createRequest(payload: Record<string, any>) {
     return request<any>(`${API_BASE}/requests`, { method: 'POST', body: JSON.stringify(payload) });
+  },
+
+  // Терминалы
+  getTerminals(params?: Query) {
+    return request<any>(`${API_BASE}/terminals${buildQuery(params)}`, { method: 'GET' });
+  },
+  createTerminal(payload: Record<string, any>) {
+    return request<any>(`${API_BASE}/terminals`, { method: 'POST', body: JSON.stringify(payload) });
+  },
+  updateTerminal(id: string, payload: Record<string, any>) {
+    return request<any>(`${API_BASE}/terminals/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  },
+  deleteTerminal(id: string) {
+    return request<any>(`${API_BASE}/terminals/${encodeURIComponent(id)}`, { method: 'DELETE' });
   },
 
   // PDF (по заявке)
@@ -116,8 +132,72 @@ export const BackendService = {
       ...extra,
     });
   },
+  initWebSocket(onSignal?: (signal: any) => void, extra?: Parameters<typeof io>[1]): Socket {
+    const socket = this.createSocket(extra);
+    if (onSignal) {
+      socket.on('signal', onSignal);
+      socket.on('new-signal', onSignal);
+    }
+    return socket;
+  },
   disconnectSocket(sock?: Socket) {
     const s = sock as Socket | undefined;
     if (s && s.connected) s.disconnect();
   },
+
+  // Сигналы
+  getSignals(params?: Query) {
+    return request<any>(`${API_BASE}/signals${buildQuery(params)}`, { method: 'GET' });
+  },
+  getSignalStatistics(params?: Query) {
+    return request<any>(`${API_BASE}/signals/statistics${buildQuery(params)}`, { method: 'GET' });
+  },
+  createSignal(payload: Record<string, any>) {
+    return request<any>(`${API_BASE}/signals`, { method: 'POST', body: JSON.stringify(payload) });
+  },
+  updateSignal(id: string, payload: Record<string, any>) {
+    return request<any>(`${API_BASE}/signals/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  },
+  deleteSignal(id: string) {
+    return request<any>(`${API_BASE}/signals/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  },
+  linkSignalToRequest(signalId: string, requestId: string) {
+    return request<any>(
+      `${API_BASE}/signals/${encodeURIComponent(signalId)}/link/${encodeURIComponent(requestId)}`,
+      { method: 'POST' }
+    );
+  },
+  generateSignalReport(id: string) {
+    return request<any>(`${API_BASE}/signals/generate-report/${encodeURIComponent(id)}`, { method: 'POST' });
+  },
+
+  // Доп. действия (заглушки с вызовом бэка, если появится маршрут)
+  async generateTestSignal(payload: Record<string, any> = {}) {
+    try {
+      return await request<any>(`${API_BASE}/testing/simulate`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+    } catch (error) {
+      console.warn('generateTestSignal fallback', error);
+      return { success: false, message: 'Не удалось запустить симуляцию' };
+    }
+  },
+  async processEmailQueue() {
+    console.warn('processEmailQueue: маршрут на бэке не найден, возвращаем заглушку');
+    return { success: false, message: 'Маршрут обработки email-очереди недоступен' };
+  },
+  async syncWithExternal() {
+    console.warn('syncWithExternal: маршрут на бэке не найден, возвращаем заглушку');
+    return { success: false, message: 'Маршрут синхронизации недоступен' };
+  },
+  async runSystemCheck() {
+    console.warn('runSystemCheck: маршрут на бэке не найден, возвращаем заглушку');
+    return { success: false, message: 'Маршрут проверки системы недоступен' };
+  },
 };
+
+export default BackendService;

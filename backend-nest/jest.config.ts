@@ -1,5 +1,6 @@
 import type { Config } from '@jest/types';
-const config: Config = {
+
+const config: Config.InitialOptions = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   roots: ['<rootDir>/test', '<rootDir>/src'],
@@ -8,4 +9,5 @@ const config: Config = {
   transformIgnorePatterns: ['/node_modules/'],
   testMatch: ['**/?(*.)+(spec|test).+(ts|tsx|js)'],
 };
+
 export default config;

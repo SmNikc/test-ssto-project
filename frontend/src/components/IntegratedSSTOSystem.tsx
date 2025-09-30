@@ -208,7 +208,7 @@ export default function IntegratedSSTOSystem() {
   return (
     <Box sx={{ width: '100%' }}>
       <Paper sx={{ width: '100%', mb: 2 }}>
-        <Tabs value={tabValue} onChange={(e, v) => setTabValue(v)}>
+        <Tabs value={tabValue} onChange={(_, value) => setTabValue(value)}>
           <Tab label="Заявки" />
           <Tab label="Мониторинг сигналов" />
           <Tab label="Новая заявка" />

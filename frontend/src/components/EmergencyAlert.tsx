@@ -79,12 +79,16 @@ const EmergencyAlert = ({ signal }: EmergencyAlertProps) => {
   
   const notifyPersonnel = (signal: any) => {
     // Push-уведомление (используя service worker или websocket)
+    if ('vibrate' in navigator) {
+      // @ts-ignore — тип Navigator не содержит vibrate в стандартной декларации
+      navigator.vibrate([200, 100, 200]);
+    }
+
     if ('serviceWorker' in navigator && 'PushManager' in window) {
       navigator.serviceWorker.ready.then(registration => {
         registration.showNotification('ЭКСТРЕННАЯ ТРЕВОГА ССТО', {
           body: `Реальное срабатывание на судне ${signal.vessel_name}. Координаты: ${signal.coordinates.lat}, ${signal.coordinates.lng}`,
           icon: '/icons/emergency.png',
-          vibrate: [200, 100, 200],
           tag: 'emergency-alert',
           data: { signalId: signal.id }
         });

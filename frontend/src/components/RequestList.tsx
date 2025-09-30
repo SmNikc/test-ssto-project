@@ -217,7 +217,8 @@ ${reportData.vessels.map((v, i) =>
           }
         } catch (error) {
           console.error('Error creating request:', error);
-          errors.push(`${req.vessel_name}: ${error.message}`);
+          const message = error instanceof Error ? error.message : String(error);
+          errors.push(`${req.vessel_name}: ${message}`);
           return { success: false };
         }
       });
@@ -292,7 +293,8 @@ ${reportData.vessels.map((v, i) =>
       alert(`Заявка успешно подтверждена! ${result.message || 'Уведомление отправлено.'}`);
     } catch (err) {
       console.error('Error confirming request:', err);
-      alert(err.message || 'Ошибка при подтверждении заявки');
+      const message = err instanceof Error ? err.message : 'Ошибка при подтверждении заявки';
+      alert(message);
     } finally {
       setConfirmLoading(false);
     }
