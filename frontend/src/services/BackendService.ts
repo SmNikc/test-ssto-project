@@ -2,6 +2,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { io, Socket } from 'socket.io-client';
 
+const SOCKET_SIGNAL_EVENTS = ['signal', 'new_signal', 'signal:new'];
+
 const API_BASE =
   // @ts-ignore
   (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE_URL) || '/api';
@@ -54,6 +56,14 @@ export const BackendService = {
     return request<{ status: string }>(`${API_BASE}/health`, { method: 'GET' });
   },
 
+  // Сигналы
+  getSignals(params?: Query) {
+    return request<any>(`${API_BASE}/signals${buildQuery(params)}`, { method: 'GET' });
+  },
+  createSignal(payload: Record<string, any>) {
+    return request<any>(`${API_BASE}/signals`, { method: 'POST', body: JSON.stringify(payload) });
+  },
+
   // Заявки
   getRequests(params?: Query) {
     return request<any>(`${API_BASE}/requests${buildQuery(params)}`, { method: 'GET' });
@@ -63,6 +73,11 @@ export const BackendService = {
   },
   createRequest(payload: Record<string, any>) {
     return request<any>(`${API_BASE}/requests`, { method: 'POST', body: JSON.stringify(payload) });
+  },
+
+  // Терминалы
+  getTerminals(params?: Query) {
+    return request<any>(`${API_BASE}/terminals${buildQuery(params)}`, { method: 'GET' });
   },
 
   // PDF (по заявке)
@@ -116,8 +131,61 @@ export const BackendService = {
       ...extra,
     });
   },
+  initWebSocket(onSignal?: (payload: any) => void, extra?: Parameters<typeof io>[1]) {
+    const socket = this.createSocket(extra);
+    if (onSignal) {
+      SOCKET_SIGNAL_EVENTS.forEach(evt => {
+        socket.on(evt, onSignal);
+      });
+    }
+    return socket;
+  },
   disconnectSocket(sock?: Socket) {
     const s = sock as Socket | undefined;
     if (s && s.connected) s.disconnect();
+  },
+
+  async generateTestSignal(payload?: Record<string, any>) {
+    const defaults = {
+      terminal_number: 'TEST-TERMINAL',
+      signal_type: 'TEST',
+      received_at: new Date().toISOString(),
+      is_test: true,
+      vessel_name: 'Тестовое судно',
+      mmsi: '000000000',
+    };
+    try {
+      return await this.createSignal({ ...defaults, ...(payload || {}) });
+    } catch (error) {
+      console.error('generateTestSignal failed', error);
+      throw error;
+    }
+  },
+
+  async processEmailQueue() {
+    try {
+      return await request<any>(`${API_BASE}/tasks/email/process`, { method: 'POST' });
+    } catch (error) {
+      console.warn('processEmailQueue endpoint unavailable, using stub.', error);
+      return { success: false, message: 'Email queue processing not available in this build.' };
+    }
+  },
+
+  async syncWithExternal() {
+    try {
+      return await request<any>(`${API_BASE}/tasks/integration/sync`, { method: 'POST' });
+    } catch (error) {
+      console.warn('syncWithExternal endpoint unavailable, using stub.', error);
+      return { success: false, message: 'External sync not available in this build.' };
+    }
+  },
+
+  async runSystemCheck() {
+    try {
+      return await request<any>(`${API_BASE}/tasks/system/check`, { method: 'POST' });
+    } catch (error) {
+      console.warn('runSystemCheck endpoint unavailable, using stub.', error);
+      return { success: false, message: 'System check not available in this build.' };
+    }
   },
 };
