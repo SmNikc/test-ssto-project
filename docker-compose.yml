@@ -30,9 +30,14 @@ services:
     environment:
       NODE_ENV: production
       PORT: "3001"
-      # Оставляю хост базы как у сервисного имени 'postgres'.
-      # Если у вас было 'ssto-postgres' — замените здесь, но функционал не меняем.
+      # Основная строка подключения
       DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/ssto"
+      # Дублирование для fallback (добавлено для решения проблемы)
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: ssto
     ports:
       - "3001:3001"
     networks:
@@ -40,10 +45,11 @@ services:
         aliases:
           - backend
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3001/health || curl -s http://127.0.0.1:3001/health"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3001/health || curl -s http://127.0.0.1:3001/health || exit 1"]
       interval: 10s
-      timeout: 3s
+      timeout: 5s
       retries: 20
+      start_period: 30s
 
   frontend:
     build:
@@ -51,7 +57,8 @@ services:
     image: test-ssto-project-frontend:latest
     container_name: ssto-frontend
     depends_on:
-      - backend
+      backend:
+        condition: service_started
     ports:
       - "80:80"
 
