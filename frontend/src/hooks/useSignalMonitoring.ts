@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import BackendService from '../services/BackendService';
+import { BackendService } from '../services/BackendService';
 import { Socket } from 'socket.io-client';
 
 // Типизация сигнала

@@ -2,6 +2,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { io, Socket } from 'socket.io-client';
 
+// Поддерживаем все известные варианты имени события на случай различий между бэкендами
+const SOCKET_SIGNAL_EVENTS = ['signal', 'new_signal', 'new-signal', 'signal:new'];
+
 const API_BASE =
   // @ts-ignore
   (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE_URL) || '/api';
@@ -53,99 +56,9 @@ export const BackendService = {
     return request<{ status: string }>(`${API_BASE}/health`, { method: 'GET' });
   },
 
-  // Заявки
-  getRequests(params?: Query) {
-    return request<any>(`${API_BASE}/requests${buildQuery(params)}`, { method: 'GET' });
-  },
-  getRequest(id: string) {
-    return request<any>(`${API_BASE}/requests/${encodeURIComponent(id)}`, { method: 'GET' });
-  },
-  createRequest(payload: Record<string, any>) {
-    return request<any>(`${API_BASE}/requests`, { method: 'POST', body: JSON.stringify(payload) });
-  },
-
-  // Терминалы
-  getTerminals(params?: Query) {
-    return request<any>(`${API_BASE}/terminals${buildQuery(params)}`, { method: 'GET' });
-  },
-  createTerminal(payload: Record<string, any>) {
-    return request<any>(`${API_BASE}/terminals`, { method: 'POST', body: JSON.stringify(payload) });
-  },
-  updateTerminal(id: string, payload: Record<string, any>) {
-    return request<any>(`${API_BASE}/terminals/${encodeURIComponent(id)}`, {
-      method: 'PUT',
-      body: JSON.stringify(payload),
-    });
-  },
-  deleteTerminal(id: string) {
-    return request<any>(`${API_BASE}/terminals/${encodeURIComponent(id)}`, { method: 'DELETE' });
-  },
-
-  // PDF (по заявке)
-  async getRequestPdf(id: string): Promise<ArrayBuffer> {
-    const res = await fetch(`${API_BASE}/requests/${encodeURIComponent(id)}/pdf`, {
-      method: 'GET',
-      credentials: 'include',
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
-    return await res.arrayBuffer();
-  },
-
-  // Общая генерация PDF (по любому пути)
-  async generatePdf(path: string, payload: Record<string, any>): Promise<ArrayBuffer> {
-    const res = await fetch(`${API_BASE}${path}`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
-    return await res.arrayBuffer();
-  },
-
-  // Письмо/уведомление (MailHog проверяется на бэке)
-  sendNotificationEmail(payload: { to: string; subject: string; body: string }) {
-    return request<any>(`${API_BASE}/notifications/email`, {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
-  },
-
-  // Auth
-  login(email: string, password: string) {
-    return request<any>(`${API_BASE}/auth/login`, {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    });
-  },
-  logout() {
-    return request<any>(`${API_BASE}/auth/logout`, { method: 'POST' });
-  },
-
-  // Socket.IO
-  createSocket(extra?: Parameters<typeof io>[1]): Socket {
-    return io('/', {
-      path: '/socket.io',
-      transports: ['websocket', 'polling'],
-      withCredentials: true,
-      autoConnect: true,
-      ...extra,
-    });
-  },
-  initWebSocket(onSignal?: (signal: any) => void, extra?: Parameters<typeof io>[1]): Socket {
-    const socket = this.createSocket(extra);
-    if (onSignal) {
-      socket.on('signal', onSignal);
-      socket.on('new-signal', onSignal);
-    }
-    return socket;
-  },
-  disconnectSocket(sock?: Socket) {
-    const s = sock as Socket | undefined;
-    if (s && s.connected) s.disconnect();
-  },
-
-  // Сигналы
+  // --------------------------
+  // СИГНАЛЫ
+  // --------------------------
   getSignals(params?: Query) {
     return request<any>(`${API_BASE}/signals${buildQuery(params)}`, { method: 'GET' });
   },
@@ -174,29 +87,166 @@ export const BackendService = {
     return request<any>(`${API_BASE}/signals/generate-report/${encodeURIComponent(id)}`, { method: 'POST' });
   },
 
-  // Доп. действия (заглушки с вызовом бэка, если появится маршрут)
-  async generateTestSignal(payload: Record<string, any> = {}) {
-    try {
-      return await request<any>(`${API_BASE}/testing/simulate`, {
-        method: 'POST',
-        body: JSON.stringify(payload),
+  // --------------------------
+  // ЗАЯВКИ
+  // --------------------------
+  getRequests(params?: Query) {
+    return request<any>(`${API_BASE}/requests${buildQuery(params)}`, { method: 'GET' });
+  },
+  getRequest(id: string) {
+    return request<any>(`${API_BASE}/requests/${encodeURIComponent(id)}`, { method: 'GET' });
+  },
+  createRequest(payload: Record<string, any>) {
+    return request<any>(`${API_BASE}/requests`, { method: 'POST', body: JSON.stringify(payload) });
+  },
+
+  // --------------------------
+  // ТЕРМИНАЛЫ
+  // --------------------------
+  getTerminals(params?: Query) {
+    return request<any>(`${API_BASE}/terminals${buildQuery(params)}`, { method: 'GET' });
+  },
+  createTerminal(payload: Record<string, any>) {
+    return request<any>(`${API_BASE}/terminals`, { method: 'POST', body: JSON.stringify(payload) });
+  },
+  updateTerminal(id: string, payload: Record<string, any>) {
+    return request<any>(`${API_BASE}/terminals/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  },
+  deleteTerminal(id: string) {
+    return request<any>(`${API_BASE}/terminals/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  },
+
+  // --------------------------
+  // PDF
+  // --------------------------
+  async getRequestPdf(id: string): Promise<ArrayBuffer> {
+    const res = await fetch(`${API_BASE}/requests/${encodeURIComponent(id)}/pdf`, {
+      method: 'GET',
+      credentials: 'include',
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+    return await res.arrayBuffer();
+  },
+
+  // Общая генерация PDF (по любому пути)
+  async generatePdf(path: string, payload: Record<string, any>): Promise<ArrayBuffer> {
+    const res = await fetch(`${API_BASE}${path}`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+    return await res.arrayBuffer();
+  },
+
+  // --------------------------
+  // EMAIL / УВЕДОМЛЕНИЯ
+  // --------------------------
+  // Письмо/уведомление (MailHog проверяется на бэке)
+  sendNotificationEmail(payload: { to: string; subject: string; body: string }) {
+    return request<any>(`${API_BASE}/notifications/email`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  // --------------------------
+  // АВТОРИЗАЦИЯ
+  // --------------------------
+  login(email: string, password: string) {
+    return request<any>(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+  },
+  logout() {
+    return request<any>(`${API_BASE}/auth/logout`, { method: 'POST' });
+  },
+
+  // --------------------------
+  // SOCKET.IO
+  // --------------------------
+  createSocket(extra?: Parameters<typeof io>[1]): Socket {
+    return io('/', {
+      path: '/socket.io',
+      transports: ['websocket', 'polling'],
+      withCredentials: true,
+      autoConnect: true,
+      ...extra,
+    });
+  },
+  initWebSocket(onSignal?: (payload: any) => void, extra?: Parameters<typeof io>[1]): Socket {
+    const socket = this.createSocket(extra);
+    if (onSignal) {
+      SOCKET_SIGNAL_EVENTS.forEach((evt) => {
+        socket.on(evt, onSignal);
       });
-    } catch (error) {
-      console.warn('generateTestSignal fallback', error);
-      return { success: false, message: 'Не удалось запустить симуляцию' };
+    }
+    return socket;
+  },
+  disconnectSocket(sock?: Socket) {
+    const s = sock as Socket | undefined;
+    if (s && s.connected) s.disconnect();
+  },
+
+  // --------------------------
+  // ДОП. ДЕЙСТВИЯ / ТАСКИ
+  // --------------------------
+  async generateTestSignal(payload?: Record<string, any>) {
+    const defaults = {
+      terminal_number: 'TEST-TERMINAL',
+      signal_type: 'TEST',
+      received_at: new Date().toISOString(),
+      is_test: true,
+      vessel_name: 'Тестовое судно',
+      mmsi: '000000000',
+    };
+    // Основной путь — через создание сигнала (как в main), затем fallback на /testing/simulate (как в feature-ветке)
+    try {
+      return await this.createSignal({ ...defaults, ...(payload || {}) });
+    } catch (primaryError) {
+      console.warn('generateTestSignal via createSignal failed, trying /testing/simulate', primaryError);
+      try {
+        return await request<any>(`${API_BASE}/testing/simulate`, {
+          method: 'POST',
+          body: JSON.stringify({ ...defaults, ...(payload || {}) }),
+        });
+      } catch (fallbackError) {
+        console.error('generateTestSignal fallback failed', fallbackError);
+        throw fallbackError;
+      }
     }
   },
+
   async processEmailQueue() {
-    console.warn('processEmailQueue: маршрут на бэке не найден, возвращаем заглушку');
-    return { success: false, message: 'Маршрут обработки email-очереди недоступен' };
+    try {
+      return await request<any>(`${API_BASE}/tasks/email/process`, { method: 'POST' });
+    } catch (error) {
+      console.warn('processEmailQueue endpoint unavailable, using stub.', error);
+      return { success: false, message: 'Email queue processing not available in this build.' };
+    }
   },
+
   async syncWithExternal() {
-    console.warn('syncWithExternal: маршрут на бэке не найден, возвращаем заглушку');
-    return { success: false, message: 'Маршрут синхронизации недоступен' };
+    try {
+      return await request<any>(`${API_BASE}/tasks/integration/sync`, { method: 'POST' });
+    } catch (error) {
+      console.warn('syncWithExternal endpoint unavailable, using stub.', error);
+      return { success: false, message: 'External sync not available in this build.' };
+    }
   },
+
   async runSystemCheck() {
-    console.warn('runSystemCheck: маршрут на бэке не найден, возвращаем заглушку');
-    return { success: false, message: 'Маршрут проверки системы недоступен' };
+    try {
+      return await request<any>(`${API_BASE}/tasks/system/check`, { method: 'POST' });
+    } catch (error) {
+      console.warn('runSystemCheck endpoint unavailable, using stub.', error);
+      return { success: false, message: 'System check not available in this build.' };
+    }
   },
 };
 

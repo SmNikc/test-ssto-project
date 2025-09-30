@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Paper, Typography, Grid, Button } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
-import BackendService from '../services/BackendService';
+import { BackendService } from '../services/BackendService';
 import { useAuth } from '../contexts/AuthContext';
 
 type RequestItem = {

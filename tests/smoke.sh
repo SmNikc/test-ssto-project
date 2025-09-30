@@ -1,4 +1,3 @@
---- FILE: tests/smoke.sh
 #!/usr/bin/env bash
 set -euo pipefail
 
