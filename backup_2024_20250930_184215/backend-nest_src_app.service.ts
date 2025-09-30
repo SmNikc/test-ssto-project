@@ -222,7 +222,7 @@ export class AppService implements OnModuleInit {
         mmsi: '273123456',
         imo: '9123456',
         owner_organization: 'Тестовая организация',
-        last_test: '2025-09-20',
+        last_test: '2024-09-20',
         status: 'active',
         created_at: new Date().toISOString()
       },
@@ -233,7 +233,7 @@ export class AppService implements OnModuleInit {
         mmsi: '273234567',
         imo: '9234567',
         owner_organization: 'Тестовая организация',
-        last_test: '2025-09-15',
+        last_test: '2024-09-15',
         status: 'active',
         created_at: new Date().toISOString()
       },
@@ -259,7 +259,7 @@ export class AppService implements OnModuleInit {
         vessel_name: 'Капитан Иванов',
         mmsi: '273123456',
         imo: '9123456',
-        planned_test_date: '2025-09-25',
+        planned_test_date: '2024-09-25',
         status: 'approved',
         owner_organization: 'Тестовая организация',
         created_at: new Date().toISOString()
@@ -270,7 +270,7 @@ export class AppService implements OnModuleInit {
         vessel_name: 'Северная Звезда',
         mmsi: '273345678',
         imo: '9345678',
-        planned_test_date: '2025-09-30',
+        planned_test_date: '2024-09-30',
         status: 'pending',
         owner_organization: 'test.com123',
         created_at: new Date().toISOString()
