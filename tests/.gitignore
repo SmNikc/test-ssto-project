@@ -1,0 +1,7 @@
+artifacts/*
+!artifacts/.gitkeep
+reports/*
+!reports/.gitkeep
+playwright-report/
+playwright-output/
+node_modules/

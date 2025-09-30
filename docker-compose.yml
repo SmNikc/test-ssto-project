@@ -27,12 +27,17 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      mailhog:
+        condition: service_started
     environment:
       NODE_ENV: production
       PORT: "3001"
-      # Оставляю хост базы как у сервисного имени 'postgres'.
-      # Если у вас было 'ssto-postgres' — замените здесь, но функционал не меняем.
       DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/ssto"
+      SMTP_HOST: mailhog
+      SMTP_PORT: "1025"
+      SMTP_USER: od_smrcc@morflot.ru
+      SMTP_PASS: dev-password
+      SMTP_FROM: "ГМСКЦ <od_smrcc@morflot.ru>"
     ports:
       - "3001:3001"
     networks:
@@ -54,6 +59,13 @@ services:
       - backend
     ports:
       - "80:80"
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: ssto-mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
 
 volumes:
   db_data:
