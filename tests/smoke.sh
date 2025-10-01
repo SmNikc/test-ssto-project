@@ -5,7 +5,8 @@ API_BASE="${API_BASE:-http://localhost:3001}"
 MAILHOG="${MAILHOG:-http://localhost:8025}"
 
 echo "[SMOKE] /health"
-curl -fsS "${API_BASE}/health" | jq .
+curl -fsS "${API_BASE}/health" | tee tests/health.json | jq .
+jq -e '.status == "ok" and .db == "up"' tests/health.json >/dev/null
 
 echo "[SMOKE] login (operator)"
 TOK=$(curl -fsS -X POST "${API_BASE}/api/auth/login" -H 'Content-Type: application/json' \
@@ -14,7 +15,7 @@ test -n "$TOK"
 
 echo "[SMOKE] create request"
 REQ=$(curl -fsS -X POST "${API_BASE}/api/requests" -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json' \
-  -d '{"terminal_number":"TST-0001","vessel_name":"M/V TESTER","mmsi":"273123456","owner_email":"owner@example.com"}' | jq -r '.id')
+  -d '{"terminal_number":"TST-0001","vessel_name":"M/V TESTER","mmsi":"273123456","contact_email":"owner@example.com","contact_person":"Автотест"}' | jq -r '.id')
 echo "request id=$REQ"
 
 echo "[SMOKE] send TEST signal (matched)"

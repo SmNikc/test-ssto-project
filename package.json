@@ -1,4 +1,20 @@
 {
+  "name": "test-ssto-project",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test:smoke": "bash tests/smoke.sh",
+    "test:backend:unit": "npm --prefix backend-nest run test:unit",
+    "test:backend:contract": "npm --prefix backend-nest run test:contract",
+    "test:e2e": "playwright test --config=tests/e2e/playwright.config.ts",
+    "lint:backend": "npm --prefix backend-nest run lint",
+    "lint:frontend": "npm --prefix frontend run typecheck",
+    "coverage:backend": "npm --prefix backend-nest run test -- --coverage"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0",
+    "pdf-parse": "^1.1.2"
+  },
   "dependencies": {
     "@nestjs/terminus": "^11.0.0"
   }

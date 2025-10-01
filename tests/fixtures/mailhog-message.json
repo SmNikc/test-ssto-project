@@ -1,0 +1,9 @@
+{
+  "from": "ГМСКЦ <test-ssto@localhost>",
+  "to": [
+    "owner@example.com",
+    "od_smrcc@morflot.ru"
+  ],
+  "subject": "Подтверждение тестового сигнала",
+  "containsPdf": true
+}

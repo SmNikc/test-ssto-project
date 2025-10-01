@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { buildRecipientList } from '../email/recipient.policy';
 const nodemailer = require('nodemailer');
 const Imap = require('imap');
 const { simpleParser } = require('mailparser');
@@ -354,9 +355,11 @@ export class EmailService {
     html?: string;
     attachments?: any[];
   }): Promise<any> {
+    const recipients = buildRecipientList(options.to);
+
     const mailOptions = {
       from: this.configService.get('SMTP_USER'),
-      to: options.to,
+      to: recipients,
       subject: options.subject,
       text: options.text,
       html: options.html || options.text,
@@ -370,9 +373,15 @@ export class EmailService {
    * Отправка отчета по email
    */
   async sendTestReport(testData: any, pdfBuffer?: Buffer): Promise<void> {
+    const recipients = buildRecipientList([
+      testData.requesterEmail,
+      testData.ownerEmail,
+      testData.operatorEmail,
+    ].filter(Boolean) as string[]);
+
     const mailOptions = {
       from: this.configService.get('SMTP_USER'),
-      to: testData.requesterEmail,
+      to: recipients,
       subject: `Отчет о тестировании ССТО - ${testData.vesselName}`,
       html: '<h2>Тестирование ССТО завершено</h2><p>Результаты во вложении.</p>',
       attachments: pdfBuffer ? [{

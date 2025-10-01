@@ -1,4 +1,3 @@
---- FILE: tests/assert-pdf.js
 const fs = require('fs');
 const pdf = require('pdf-parse');
 

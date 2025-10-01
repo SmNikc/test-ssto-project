@@ -1,0 +1,10 @@
+{
+  "signal_type": "SOS",
+  "terminal_number": "TST-0001",
+  "mmsi": "273123456",
+  "latitude": 60.0000,
+  "longitude": 31.0000,
+  "received_at": "2025-09-25T11:00:00Z",
+  "source": "automation",
+  "notes": "Проверка аварийного сценария"
+}

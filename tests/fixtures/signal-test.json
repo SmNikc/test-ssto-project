@@ -1,0 +1,11 @@
+{
+  "signal_type": "TEST",
+  "terminal_number": "TST-0001",
+  "mmsi": "273123456",
+  "imo": "9876543",
+  "latitude": 59.9386,
+  "longitude": 30.3141,
+  "received_at": "2025-09-25T10:30:00Z",
+  "source": "automation",
+  "notes": "Автотест Приказ №115 — координаты и UTC"
+}

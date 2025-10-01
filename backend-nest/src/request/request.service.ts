@@ -1,8 +1,9 @@
 // backend-nest/src/request/request.service.ts
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { Transaction } from 'sequelize';
+import { Op, Transaction } from 'sequelize';
 import SSASRequest from '../models/request.model';
+import { addMonths, differenceInCalendarDays, isAfter, isBefore, subDays } from 'date-fns';
 
 export enum RequestStatus {
   DRAFT = 'DRAFT',
@@ -89,15 +90,16 @@ export class RequestService {
     if (!data.mmsi || !data.vessel_name) {
       throw new BadRequestException('MMSI and vessel_name are required');
     }
-    
+
     const requestData = {
       ...data,
       // было: status: data.status || RequestStatus.DRAFT
       // стало: нормализация под БД, без изменения вашей семантики
       status: this.normalizeDbStatus(data.status ?? RequestStatus.DRAFT)
     };
-    
-    return this.reqModel.create(requestData as any);
+
+    const created = await this.reqModel.create(requestData as any);
+    return this.ensureRequestNumber(created);
   }
 
   async update(id: string, data: Partial<SSASRequest>) {
@@ -159,5 +161,79 @@ export class RequestService {
     const request = await this.findOne(id);
     const currentStatus = request.status as RequestStatus;
     return STATUS_TRANSITIONS[currentStatus] || [];
+  }
+
+  private async ensureRequestNumber(entity: SSASRequest): Promise<SSASRequest> {
+    if (entity.request_number) {
+      return entity;
+    }
+
+    const createdAt = entity.getDataValue('createdAt') || new Date();
+    const year = new Date(createdAt).getFullYear();
+    const count = await this.reqModel.count({
+      where: {
+        request_number: {
+          [Op.like]: `REQ-${year}-%`,
+        } as any,
+      },
+    });
+
+    const sequence = String(count + 1).padStart(4, '0');
+    entity.setDataValue('request_number', `REQ-${year}-${sequence}`);
+    await entity.save();
+    return entity;
+  }
+
+  /**
+   * Расчёт следующей плановой даты теста.
+   * Согласно письму Минтранса от 29.05.2024 тест должен проводиться не реже одного раза в 12 месяцев.
+   */
+  calculateNextTestDate(lastCompletedTest: Date): Date {
+    return addMonths(lastCompletedTest, 12);
+  }
+
+  /**
+   * Возвращает плановые даты напоминаний T-30 и T-0.
+   */
+  getReminderWindow(nextTestDate: Date): { remind30: Date; remind0: Date } {
+    const remind0 = new Date(nextTestDate);
+    const remind30 = subDays(nextTestDate, 30);
+    return { remind30, remind0 };
+  }
+
+  /**
+   * Проверяет необходимость отправить напоминание исходя из текущей даты.
+   */
+  shouldSendReminder(nextTestDate: Date, now = new Date()): { type: 'none' | 'T-30' | 'T-0'; overdue: boolean } {
+    const { remind30, remind0 } = this.getReminderWindow(nextTestDate);
+
+    if (differenceInCalendarDays(now, nextTestDate) > 0) {
+      return { type: 'T-0', overdue: true };
+    }
+
+    if (!isAfter(now, remind30) && !isAfter(now, remind0)) {
+      return { type: 'none', overdue: false };
+    }
+
+    if (isAfter(now, remind30) && !isAfter(now, remind0)) {
+      return { type: 'T-30', overdue: false };
+    }
+
+    if (isAfter(now, remind0) || now.toDateString() === remind0.toDateString()) {
+      return { type: 'T-0', overdue: false };
+    }
+
+    return { type: 'none', overdue: false };
+  }
+
+  /**
+   * Проверяет, можно ли принять новую заявку без выполнения теста за последние 12 месяцев.
+   */
+  isBlockedByCycle(lastCompletedTest?: Date, now = new Date()): boolean {
+    if (!lastCompletedTest) {
+      return false;
+    }
+    const nextAllowedDate = this.calculateNextTestDate(lastCompletedTest);
+    return isBefore(nextAllowedDate, now);
   }
 }
