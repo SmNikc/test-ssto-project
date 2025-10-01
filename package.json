@@ -1,15 +1,20 @@
 {
-  "name": "test-ssto-qa",
+  "name": "test-ssto-quality",
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "test:smoke": "bash tests/smoke/api-health.sh",
+    "test:smoke:ci": "API_BASE=http://localhost:3001/api MAILHOG=http://localhost:8025 bash tests/smoke/api-health.sh",
+    "test:contracts": "npm --prefix backend-nest run test -- --runInBand --runTestsByPath test/functional/contracts/health.contract.spec.ts test/functional/contracts/requests.contract.spec.ts",
+    "test:negative": "npm --prefix backend-nest run test -- --runInBand --runTestsByPath test/functional/request-service.spec.ts",
+    "test:pdf": "npm --prefix backend-nest run test -- --runInBand --runTestsByPath test/functional/report.service.pdf.spec.ts",
+    "test:functional": "npm run test:contracts && npm run test:negative && npm run test:pdf",
     "test:backend:unit": "npm --prefix backend-nest run test -- --runInBand --testPathPattern=unit",
     "test:backend:integration": "cross-env NODE_ENV=test npm --prefix backend-nest run test -- --runInBand --testPathPattern=integration",
     "test:coverage": "npm --prefix backend-nest run test -- --runInBand --coverage",
-    "test:smoke": "bash tests/smoke.sh",
-    "test:smoke:ci": "API_BASE=http://localhost:3001/api MAILHOG=http://localhost:8025 bash tests/smoke.sh",
-    "test:e2e": "npx playwright test",
+    "test:e2e": "npx playwright test --config=tests/e2e/playwright.config.ts",
     "test:all": "npm run test:backend:unit && npm run test:backend:integration",
+    "ci:functional": "npm run test:smoke && npm run test:functional && npm run test:e2e",
     "lint:backend": "npm --prefix backend-nest run lint"
   },
   "dependencies": {
