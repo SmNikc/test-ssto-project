@@ -1,20 +1,57 @@
-version: "3.9"
+# docker-compose.override.yml
+# Дополнительные сервисы для локальной разработки
+
+version: '3.8'
 
 services:
-  # Дополняем базовый сервис БД (в базовом compose он называется "postgres")
-  postgres:
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d ssto -h 127.0.0.1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+  # MailHog - для перехвата и просмотра email в разработке
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: ssto-mailhog
+    ports:
+      - "1025:1025"  # SMTP сервер
+      - "8025:8025"  # Web UI
     networks:
-      default:
-        aliases:
-          - ssto-postgres   # алиас, чтобы хост ssto-postgres из env backend продолжал работать
+      - ssto-network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
-  # Дополняем базовый сервис backend, НЕ меняя его окружение/переменные
+  # Переопределяем backend для использования MailHog
   backend:
+    environment:
+      - SMTP_HOST=mailhog
+      - SMTP_PORT=1025
+      - SMTP_SECURE=false
+      - SMTP_USER=
+      - SMTP_PASS=
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
+      - mailhog
+
+  # Добавляем pgAdmin для управления БД (опционально)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: ssto-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@ssto.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    networks:
+      - ssto-network
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    profiles:
+      - tools  # Запускается только с флагом --profile tools
+
+networks:
+  ssto-network:
+    driver: bridge
+
+volumes:
+  pgadmin-data:

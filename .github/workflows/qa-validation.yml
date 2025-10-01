@@ -1,81 +1,81 @@
 name: QA Validation
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
-    branches: [ main ]
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
 
 jobs:
-  tests:
+  test-suite:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-    env:
-      E2E_BASE_URL: http://localhost
-      API_BASE: http://localhost:3001/api
-      MAILHOG: http://localhost:8025
-      SMOKE_PRIMARY_EMAIL: od_smrcc@morflot.ru
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    timeout-minutes: 30
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: ssto
+          POSTGRES_PASSWORD: sstopass
+          POSTGRES_DB: sstodb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
-
-      - name: Install root dependencies
-        run: npm install
-
-      - name: Install backend dependencies
-        run: npm install
-        working-directory: backend-nest
-
-      - name: Install frontend dependencies
-        run: npm install
-        working-directory: frontend
-
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps
-
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm --prefix backend-nest ci
+          npm --prefix frontend ci
+      
       - name: Launch application stack
-        run: docker compose up -d postgres backend frontend mailhog
-
-      - name: Wait for backend readiness
         run: |
-          echo "Waiting for backend health..."
-          timeout 180 bash -c 'until curl -fsS http://localhost:3001/health; do sleep 5; done'
-
-      - name: Backend unit tests
+          # Запускаем только существующие сервисы
+          docker compose up -d postgres backend frontend
+          # Ждем готовности сервисов
+          sleep 10
+          docker compose ps
+      
+      - name: Run smoke tests
+        run: |
+          export API_BASE=http://localhost:3001/api
+          bash tests/smoke.sh
+      
+      - name: Run unit tests
         run: npm run test:backend:unit
-
-      - name: Backend integration tests
+      
+      - name: Run integration tests
         run: npm run test:backend:integration
-
-      - name: Smoke scenario
-        run: npm run test:smoke:ci
-
-      - name: Playwright E2E
+      
+      - name: Run E2E tests
         run: npm run test:e2e
-
-      - name: Archive QA artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: qa-artifacts
-          path: |
-            backend-nest/coverage
-            tests/mailhog-snapshot.json
-            tests/artifacts/playwright-report
-            playwright-report
-          if-no-files-found: ignore
-
-      - name: Collect docker logs
-        if: always()
+      
+      - name: Collect logs on failure
+        if: failure()
         run: |
-          mkdir -p tests/artifacts
-          docker compose logs > tests/artifacts/docker-compose.log
-
-      - name: Shutdown stack
+          docker compose logs > docker-logs.txt
+          echo "=== Docker containers status ===" >> docker-logs.txt
+          docker ps -a >> docker-logs.txt
+      
+      - name: Upload test artifacts
         if: always()
-        run: docker compose down
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-artifacts
+          path: |
+            tests/smoke.log
+            docker-logs.txt
+            coverage/
+            test-results/

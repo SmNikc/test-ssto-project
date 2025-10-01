@@ -1,3 +1,7 @@
+// frontend/src/pages/LoginPage.tsx
+// ОПТИМИЗИРОВАННАЯ ВЕРСИЯ с учетом характеристик SVG файла mss2018.svg
+// SVG: 284×284px, viewBox="0 0 284 284", цвета: #2D2E83 (синий), #BE1622 (красный)
+
 import React, { useState } from 'react';
 import { 
   Box, 
@@ -17,6 +21,7 @@ const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const { login, error, loading } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -31,12 +36,14 @@ const LoginPage = () => {
   return (
     <Box
       sx={{
-        height: '100vh',
+        minHeight: '100vh',
+        height: 'auto',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        position: 'relative'
+        position: 'relative',
+        py: 4
       }}
     >
       <Paper 
@@ -44,55 +51,85 @@ const LoginPage = () => {
         sx={{ 
           p: 5, 
           width: { xs: '90%', sm: 450 },
+          maxWidth: 450,
           borderRadius: 3,
           position: 'relative',
           overflow: 'visible',
-          mt: 8
+          mt: { xs: 6, sm: 4 },
+          mb: 2
         }}
       >
-        {/* Эмблема Морспасслужбы */}
+        {/* ✅ ЭМБЛЕМА МОРСПАССЛУЖБЫ - ОПТИМИЗИРОВАННАЯ */}
         <Box
           sx={{
             position: 'absolute',
-            top: -60,
+            top: { xs: -50, sm: -60 },
             left: '50%',
             transform: 'translateX(-50%)',
-            width: 120,
-            height: 120,
+            width: { xs: 100, sm: 120 },
+            height: { xs: 100, sm: 120 },
             borderRadius: '50%',
             backgroundColor: '#fff',
             boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            p: 1.5
+            p: 1.5,
+            // Анимация появления
+            animation: 'fadeIn 0.5s ease-in',
+            '@keyframes fadeIn': {
+              from: { opacity: 0, transform: 'translateX(-50%) scale(0.8)' },
+              to: { opacity: 1, transform: 'translateX(-50%) scale(1)' }
+            }
           }}
         >
-          {/* Временный текст вместо изображения */}
-          <Box
-            sx={{
-              textAlign: 'center',
-              color: '#1976d2',
-              fontWeight: 'bold',
-              fontSize: '14px',
-              lineHeight: 1.2
-            }}
-          >
-            ФГБУ<br/>
-            МОРСКАЯ<br/>
-            СПАСАТЕЛЬНАЯ<br/>
-            СЛУЖБА
-          </Box>
+          {!imageError ? (
+            /* НАСТОЯЩАЯ ЭМБЛЕМА mss2018.svg (284×284px, сине-красная) */
+            <img 
+              src="/mss2018.svg" 
+              alt="ФГБУ Морская спасательная служба"
+              loading="eager"
+              style={{ 
+                width: '90%', 
+                height: '90%',
+                objectFit: 'contain',
+                // Улучшение качества отрисовки SVG
+                imageRendering: '-webkit-optimize-contrast',
+                WebkitFontSmoothing: 'antialiased',
+                MozOsxFontSmoothing: 'grayscale'
+              }}
+              onError={() => {
+                console.error('Ошибка загрузки эмблемы. Файл mss2018.svg не найден в /frontend/public/');
+                setImageError(true);
+              }}
+            />
+          ) : (
+            /* Fallback - текстовая версия с цветами эмблемы */
+            <Box
+              sx={{
+                textAlign: 'center',
+                color: '#2D2E83', // Цвет эмблемы
+                fontWeight: 'bold',
+                fontSize: { xs: '11px', sm: '14px' },
+                lineHeight: 1.2
+              }}
+            >
+              ФГБУ<br/>
+              МОРСКАЯ<br/>
+              СПАСАТЕЛЬНАЯ<br/>
+              СЛУЖБА
+            </Box>
+          )}
         </Box>
 
         {/* Заголовки */}
-        <Box sx={{ mt: 8, mb: 4, textAlign: 'center' }}>
+        <Box sx={{ mt: { xs: 6, sm: 8 }, mb: 3, textAlign: 'center' }}>
           <Typography 
             variant="h4" 
             gutterBottom 
             sx={{ 
               fontWeight: 700,
-              color: '#333',
+              color: '#2D2E83', // Цвет соответствует эмблеме
               fontSize: { xs: '1.5rem', sm: '2rem' }
             }}
           >
@@ -124,7 +161,7 @@ const LoginPage = () => {
           <Alert 
             severity="error" 
             sx={{ 
-              mb: 3,
+              mb: 2,
               borderRadius: 2
             }}
           >
@@ -176,6 +213,7 @@ const LoginPage = () => {
                     onClick={() => setShowPassword(!showPassword)}
                     edge="end"
                     size="small"
+                    aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
                   >
                     {showPassword ? <VisibilityOff /> : <Visibility />}
                   </IconButton>
@@ -223,6 +261,9 @@ const LoginPage = () => {
               boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)',
               '&:hover': {
                 background: 'linear-gradient(45deg, #1976D2 30%, #2196F3 90%)',
+              },
+              '&:disabled': {
+                background: '#ccc',
               }
             }}
           >
@@ -238,7 +279,7 @@ const LoginPage = () => {
         </form>
 
         {/* Примеры логинов */}
-        <Box sx={{ mt: 4, p: 2, bgcolor: '#f5f5f5', borderRadius: 2 }}>
+        <Box sx={{ mt: 3, p: 2, bgcolor: '#f5f5f5', borderRadius: 2 }}>
           <Typography variant="caption" sx={{ display: 'block', mb: 1, fontWeight: 600 }}>
             Тестовые учетные записи:
           </Typography>
@@ -254,7 +295,7 @@ const LoginPage = () => {
         </Box>
 
         {/* Футер */}
-        <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid #eee', textAlign: 'center' }}>
+        <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid #eee', textAlign: 'center' }}>
           <Typography variant="caption" sx={{ color: '#999' }}>
             © 2025 ФГБУ "Морская спасательная служба"<br/>
             Все права защищены
