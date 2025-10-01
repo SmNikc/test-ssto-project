@@ -65,6 +65,7 @@ REQUEST_PAYLOAD=$(cat <<EOF
     "imo": "IMO$(shuf -i 1000000-9999999 -n 1)",
     "call_sign": "TEST$(shuf -i 100-999 -n 1)",
     "owner_organization": "Test Organization",
+    "ship_owner": "Test Organization",
     "owner_email": "owner@test.ru",
     "contact_person": "Test Contact",
     "contact_phone": "+7 (900) 123-45-67",

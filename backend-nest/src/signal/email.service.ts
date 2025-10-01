@@ -19,7 +19,7 @@ export class EmailService implements OnModuleInit, OnModuleDestroy {
   async onModuleInit() {
     const enabled = this.configService.get('IMAP_ENABLED') === 'true';
     if (!enabled) {
-      this.logger.log('📧 Email monitoring disabled (IMAP_ENABLED=false)');
+      this.logger.log('📧 Email monitoring DISABLED (IMAP_ENABLED=false - skipping all IMAP operations)');
       return;
     }
     

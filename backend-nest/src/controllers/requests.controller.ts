@@ -142,10 +142,22 @@ export class RequestsController {
         data,
       });
     } catch (error: any) {
+      // Подробное логирование для диагностики
+      const details = error?.errors?.map((e: any) => ({
+        message: e?.message,
+        path: e?.path,
+        type: e?.type,
+      }));
+      console.error('[REQUESTS] Failed to create request', {
+        error: error?.message,
+        details,
+        payload: dto,
+      });
       return res.status(HttpStatus.BAD_REQUEST).json({
         success: false,
         message: 'Ошибка создания заявки',
         error: error.message,
+        details,
       });
     }
   }
