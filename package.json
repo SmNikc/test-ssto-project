@@ -1,5 +1,22 @@
 {
+  "name": "test-ssto-qa",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test:backend:unit": "npm --prefix backend-nest run test -- --runInBand --testPathPattern=unit",
+    "test:backend:integration": "cross-env NODE_ENV=test npm --prefix backend-nest run test -- --runInBand --testPathPattern=integration",
+    "test:coverage": "npm --prefix backend-nest run test -- --runInBand --coverage",
+    "test:smoke": "bash tests/smoke.sh",
+    "test:smoke:ci": "API_BASE=http://localhost:3001/api MAILHOG=http://localhost:8025 bash tests/smoke.sh",
+    "test:e2e": "npx playwright test",
+    "test:all": "npm run test:backend:unit && npm run test:backend:integration",
+    "lint:backend": "npm --prefix backend-nest run lint"
+  },
   "dependencies": {
     "@nestjs/terminus": "^11.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.2",
+    "cross-env": "^7.0.3"
   }
 }
