@@ -10,9 +10,10 @@ import {
   Body,
   Param,
   Res,
+  Req,
   HttpStatus,
 } from '@nestjs/common';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { RequestService, RequestStatus } from '../request/request.service';
 
 @Controller('requests')
@@ -131,9 +132,19 @@ export class RequestsController {
 
   // POST /requests — создание
   @Post()
-  async create(@Body() dto: any, @Res() res: Response) {
+  async create(@Body() dto: any, @Req() req: Request, @Res() res: Response) {
     try {
+      // ✅ ДОБАВЛЕНО: Логирование входящего запроса
+      console.log('[REQUESTS] Incoming POST /requests', {
+        receivedKeys: Object.keys(dto || {}),
+        vessel_name: dto?.vessel_name,
+        mmsi: dto?.mmsi,
+        ship_owner: dto?.ship_owner,
+        contact_person: dto?.contact_person,
+      });
+
       const payload = this.normalizeCreateDto(dto);
+      console.log('[REQUESTS] Normalized payload', payload);
       const created = await this.requestService.create(payload);
       const data = this.withRequestNumber(created);
       return res.status(HttpStatus.CREATED).json({
