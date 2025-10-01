@@ -1,5 +1,17 @@
 {
-  "dependencies": {
-    "@nestjs/terminus": "^11.0.0"
+  "name": "test-ssto-quality",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test:smoke": "bash tests/smoke/api-health.sh",
+    "test:contracts": "npm --prefix backend-nest run test -- --runInBand --runTestsByPath test/functional/contracts/health.contract.spec.ts test/functional/contracts/requests.contract.spec.ts",
+    "test:negative": "npm --prefix backend-nest run test -- --runInBand --runTestsByPath test/functional/request-service.spec.ts",
+    "test:pdf": "npm --prefix backend-nest run test -- --runInBand --runTestsByPath test/functional/report.service.pdf.spec.ts",
+    "test:functional": "npm run test:contracts && npm run test:negative && npm run test:pdf",
+    "test:e2e": "npx playwright test --config=tests/e2e/playwright.config.ts",
+    "ci:functional": "npm run test:smoke && npm run test:functional && npm run test:e2e"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.2"
   }
 }

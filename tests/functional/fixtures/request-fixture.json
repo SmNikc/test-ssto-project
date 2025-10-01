@@ -1,0 +1,12 @@
+{
+  "vessel_name": "M/V TESTER",
+  "mmsi": "273123456",
+  "imo_number": "9123456",
+  "ship_owner": "ООО \"ТестФлот\"",
+  "contact_person": "Иван Петров",
+  "contact_phone": "+7 (495) 000-00-00",
+  "contact_email": "owner@example.com",
+  "planned_test_date": "2024-10-31T10:00:00Z",
+  "test_type": "routine",
+  "notes": "Плановый 12-месячный тест (письмо Минтранса 29.05.2024)"
+}
