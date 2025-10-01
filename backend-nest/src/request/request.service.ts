@@ -1,4 +1,5 @@
 // backend-nest/src/request/request.service.ts
+
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Op, Transaction } from 'sequelize';
@@ -7,24 +8,21 @@ import { addMonths, differenceInCalendarDays, isAfter, isBefore, subDays } from 
 
 export enum RequestStatus {
   DRAFT = 'DRAFT',
-  SUBMITTED = 'SUBMITTED',
-  IN_REVIEW = 'IN_REVIEW',
+  PENDING = 'PENDING',
   APPROVED = 'APPROVED',
-  IN_TESTING = 'IN_TESTING',
-  COMPLETED = 'COMPLETED',
   REJECTED = 'REJECTED',
-  CANCELLED = 'CANCELLED'
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
 }
 
+// Статусные переходы
 const STATUS_TRANSITIONS: Record<RequestStatus, RequestStatus[]> = {
-  [RequestStatus.DRAFT]: [RequestStatus.SUBMITTED, RequestStatus.CANCELLED],
-  [RequestStatus.SUBMITTED]: [RequestStatus.IN_REVIEW, RequestStatus.CANCELLED],
-  [RequestStatus.IN_REVIEW]: [RequestStatus.APPROVED, RequestStatus.REJECTED],
-  [RequestStatus.APPROVED]: [RequestStatus.IN_TESTING, RequestStatus.CANCELLED],
-  [RequestStatus.IN_TESTING]: [RequestStatus.COMPLETED, RequestStatus.CANCELLED],
+  [RequestStatus.DRAFT]: [RequestStatus.PENDING, RequestStatus.CANCELLED],
+  [RequestStatus.PENDING]: [RequestStatus.APPROVED, RequestStatus.REJECTED, RequestStatus.CANCELLED],
+  [RequestStatus.APPROVED]: [RequestStatus.COMPLETED, RequestStatus.CANCELLED],
+  [RequestStatus.REJECTED]: [RequestStatus.DRAFT, RequestStatus.PENDING],
   [RequestStatus.COMPLETED]: [],
-  [RequestStatus.REJECTED]: [RequestStatus.DRAFT],
-  [RequestStatus.CANCELLED]: []
+  [RequestStatus.CANCELLED]: [RequestStatus.DRAFT],
 };
 
 @Injectable()
@@ -34,67 +32,66 @@ export class RequestService {
     private readonly reqModel: typeof SSASRequest,
   ) {}
 
-  async findAll() {
-    try {
-      // If the database is unreachable or the query fails we don't want the
-      // whole `/requests` endpoint to crash with a 500 error.  Instead we log
-      // the problem and return an empty list so that the frontend can handle
-      // the situation gracefully.
-      return await this.reqModel.findAll();
-    } catch (error) {
-      console.error('Failed to fetch requests:', error);
-      return [];
-    }
-  }
-
-  async findOne(id: string) {
-    const row = await this.reqModel.findByPk(id);
-    if (!row) throw new NotFoundException(`Request #${id} not found`);
-    return row;
-  }
-
-  // ===== ДОБАВЛЕНО: нормализация статуса под ENUM в БД (без изменения бизнес-смыслов) =====
   /**
-   * Приводит значение статуса к допустимым меткам БД (строчные):
-   * pending / approved / rejected / completed / failed / matched / unmatched / in_review / in_testing / cancelled
-   * Если пришёл enum в верхнем регистре — маппим на ближайшую допустимую метку.
-   * Если пришла произвольная строка — берём 'pending' по умолчанию.
+   * Нормализация статуса для БД (если в БД другие значения)
    */
-  private normalizeDbStatus(input: any): string {
-    const allowed = new Set([
-      'pending', 'approved', 'rejected', 'completed', 'failed',
-      'matched', 'unmatched', 'in_review', 'in_testing', 'cancelled',
-    ]);
-
-    // Если прилетело одно из наших enum-значений — переводим в метки БД
-    switch (input) {
-      case RequestStatus.DRAFT:        return 'pending';
-      case RequestStatus.SUBMITTED:    return 'pending';
-      case RequestStatus.IN_REVIEW:    return 'in_review';
-      case RequestStatus.APPROVED:     return 'approved';
-      case RequestStatus.IN_TESTING:   return 'in_testing';
-      case RequestStatus.COMPLETED:    return 'completed';
-      case RequestStatus.REJECTED:     return 'rejected';
-      case RequestStatus.CANCELLED:    return 'cancelled';
-      default: break;
-    }
-
-    const raw = (input ?? '').toString().trim();
-    if (!raw) return 'pending';
-    const lower = raw.toLowerCase();
-    return allowed.has(lower) ? lower : 'pending';
+  private normalizeDbStatus(status: string): string {
+    const map: Record<string, string> = {
+      DRAFT: 'draft',
+      PENDING: 'pending',
+      APPROVED: 'approved',
+      REJECTED: 'rejected',
+      COMPLETED: 'completed',
+      CANCELLED: 'cancelled',
+    };
+    return map[status] || status.toLowerCase();
   }
-  // =========================================================================================
 
-  async create(data: Partial<SSASRequest>) {
+  /**
+   * Обратная нормализация статуса из БД
+   */
+  private normalizeAppStatus(dbStatus: string): RequestStatus {
+    const map: Record<string, RequestStatus> = {
+      draft: RequestStatus.DRAFT,
+      pending: RequestStatus.PENDING,
+      approved: RequestStatus.APPROVED,
+      rejected: RequestStatus.REJECTED,
+      completed: RequestStatus.COMPLETED,
+      cancelled: RequestStatus.CANCELLED,
+    };
+    return map[dbStatus.toLowerCase()] || RequestStatus.DRAFT;
+  }
+
+  /**
+   * Получить все заявки
+   */
+  async findAll(): Promise<SSASRequest[]> {
+    return this.reqModel.findAll({
+      order: [['createdAt', 'DESC']],
+    });
+  }
+
+  /**
+   * Получить заявку по ID
+   */
+  async findById(id: string | number): Promise<SSASRequest> {
+    const request = await this.reqModel.findByPk(id);
+    if (!request) {
+      throw new NotFoundException(`Request with ID ${id} not found`);
+    }
+    return request;
+  }
+
+  /**
+   * Создать новую заявку
+   */
+  async create(data: Partial<SSASRequest>): Promise<SSASRequest> {
     if (!data.mmsi || !data.vessel_name) {
       throw new BadRequestException('MMSI and vessel_name are required');
     }
 
     const requestData = {
       ...data,
-      // было: status: data.status || RequestStatus.DRAFT
-      // стало: нормализация под БД, без изменения вашей семантики
       status: this.normalizeDbStatus(data.status ?? RequestStatus.DRAFT)
     };
 
@@ -102,67 +99,68 @@ export class RequestService {
     return this.ensureRequestNumber(created);
   }
 
-  async update(id: string, data: Partial<SSASRequest>) {
-    // База данных не содержит отдельного поля `request_id`, поэтому
-    // обновление выполняется по первичному ключу `id`.
-    const patch: any = { ...data };
-    if (data.status !== undefined) {
-      patch.status = this.normalizeDbStatus(data.status);
+  /**
+   * Обновить заявку
+   */
+  async update(id: string, data: Partial<SSASRequest>): Promise<SSASRequest> {
+    const request = await this.findById(id);
+    
+    // Если обновляется статус, проверяем допустимость перехода
+    if (data.status) {
+      const currentStatus = this.normalizeAppStatus(request.status);
+      const newStatus = data.status as RequestStatus;
+      
+      if (!this.isTransitionAllowed(currentStatus, newStatus)) {
+        throw new BadRequestException(
+          `Transition from ${currentStatus} to ${newStatus} is not allowed`
+        );
+      }
+      
+      data.status = this.normalizeDbStatus(newStatus);
     }
-    await this.reqModel.update(patch, { where: { id } });
-    return this.findOne(id);
-  }
-
-  async updateStatus(id: string, status: string) {
-    const request = await this.findOne(id);
-    request.status = this.normalizeDbStatus(status);
-    await request.save();
+    
+    await request.update(data);
     return request;
   }
 
-  async remove(id: string) {
-    const request = await this.findOne(id);
+  /**
+   * Удалить заявку
+   */
+  async delete(id: string): Promise<void> {
+    const request = await this.findById(id);
     await request.destroy();
-    return { deleted: true };
   }
 
-  async findPending() {
-    // чтобы работало независимо от регистра в БД — используем оба варианта
+  /**
+   * Получить заявки по статусу
+   */
+  async findByStatus(status: RequestStatus): Promise<SSASRequest[]> {
+    const dbStatus = this.normalizeDbStatus(status);
     return this.reqModel.findAll({
-      where: {
-        status: ['SUBMITTED', 'IN_REVIEW', 'submitted', 'in_review', 'pending'] as any
-      }
+      where: { status: dbStatus },
+      order: [['createdAt', 'DESC']],
     });
   }
 
-  async transitionStatus(
-    id: string,
-    newStatus: RequestStatus,
-    transaction?: Transaction
-  ): Promise<SSASRequest> {
-    const request = await this.findOne(id);
-    const currentStatus = request.status as RequestStatus;
-    const allowedTransitions = STATUS_TRANSITIONS[currentStatus];
-    
-    if (!allowedTransitions || !allowedTransitions.includes(newStatus)) {
-      throw new BadRequestException(
-        `Cannot transition from ${currentStatus} to ${newStatus}`
-      );
-    }
-    
-    // сохраняем в БД нормализованную метку
-    request.status = this.normalizeDbStatus(newStatus);
-    await request.save({ transaction });
-    
-    return request;
+  /**
+   * Проверка допустимости перехода статусов
+   */
+  private isTransitionAllowed(from: RequestStatus, to: RequestStatus): boolean {
+    const allowedTransitions = STATUS_TRANSITIONS[from] || [];
+    return allowedTransitions.includes(to);
   }
 
-  async getAvailableTransitions(id: string): Promise<RequestStatus[]> {
-    const request = await this.findOne(id);
+  /**
+   * Получить доступные переходы для текущего статуса
+   */
+  getAvailableTransitions(request: SSASRequest): RequestStatus[] {
     const currentStatus = request.status as RequestStatus;
     return STATUS_TRANSITIONS[currentStatus] || [];
   }
 
+  /**
+   * Обеспечить наличие номера заявки
+   */
   private async ensureRequestNumber(entity: SSASRequest): Promise<SSASRequest> {
     if (entity.request_number) {
       return entity;
@@ -170,6 +168,7 @@ export class RequestService {
 
     const createdAt = entity.getDataValue('createdAt') || new Date();
     const year = new Date(createdAt).getFullYear();
+    
     const count = await this.reqModel.count({
       where: {
         request_number: {
@@ -181,6 +180,7 @@ export class RequestService {
     const sequence = String(count + 1).padStart(4, '0');
     entity.setDataValue('request_number', `REQ-${year}-${sequence}`);
     await entity.save();
+    
     return entity;
   }
 
@@ -194,46 +194,164 @@ export class RequestService {
 
   /**
    * Возвращает плановые даты напоминаний T-30 и T-0.
+   * T-30: за 30 дней до теста
+   * T-0: за 15 дней до теста
    */
   getReminderWindow(nextTestDate: Date): { remind30: Date; remind0: Date } {
-    const remind0 = new Date(nextTestDate);
     const remind30 = subDays(nextTestDate, 30);
+    const remind0 = subDays(nextTestDate, 15); // T-0 это за 15 дней, не в день теста
     return { remind30, remind0 };
   }
 
   /**
    * Проверяет необходимость отправить напоминание исходя из текущей даты.
+   * ИСПРАВЛЕНО: Корректная обработка граничных дат T-30 и T-0
    */
   shouldSendReminder(nextTestDate: Date, now = new Date()): { type: 'none' | 'T-30' | 'T-0'; overdue: boolean } {
     const { remind30, remind0 } = this.getReminderWindow(nextTestDate);
-
-    if (differenceInCalendarDays(now, nextTestDate) > 0) {
+    const daysUntilTest = differenceInCalendarDays(nextTestDate, now);
+    
+    // Если тест уже просрочен
+    if (daysUntilTest < 0) {
       return { type: 'T-0', overdue: true };
     }
-
-    if (!isAfter(now, remind30) && !isAfter(now, remind0)) {
-      return { type: 'none', overdue: false };
-    }
-
-    if (isAfter(now, remind30) && !isAfter(now, remind0)) {
-      return { type: 'T-30', overdue: false };
-    }
-
-    if (isAfter(now, remind0) || now.toDateString() === remind0.toDateString()) {
+    
+    // Используем сравнение дней вместо дат для избежания проблем с временными зонами
+    const daysUntilRemind30 = differenceInCalendarDays(remind30, now);
+    const daysUntilRemind0 = differenceInCalendarDays(remind0, now);
+    
+    // T-0: если до даты T-0 осталось 0 дней или меньше (включая день T-0)
+    if (daysUntilRemind0 <= 0) {
       return { type: 'T-0', overdue: false };
     }
-
+    
+    // T-30: если до даты T-30 осталось 0 дней или меньше, но еще не наступил T-0
+    if (daysUntilRemind30 <= 0 && daysUntilRemind0 > 0) {
+      return { type: 'T-30', overdue: false };
+    }
+    
+    // Еще рано для уведомлений
     return { type: 'none', overdue: false };
   }
 
   /**
-   * Проверяет, можно ли принять новую заявку без выполнения теста за последние 12 месяцев.
+   * Альтернативный метод с использованием сравнения дат (для обратной совместимости)
    */
-  isBlockedByCycle(lastCompletedTest?: Date, now = new Date()): boolean {
-    if (!lastCompletedTest) {
-      return false;
+  shouldSendReminderLegacy(nextTestDate: Date, now = new Date()): { type: 'none' | 'T-30' | 'T-0'; overdue: boolean } {
+    const { remind30, remind0 } = this.getReminderWindow(nextTestDate);
+    
+    // Если тест уже просрочен (дата теста прошла)
+    if (differenceInCalendarDays(now, nextTestDate) > 0) {
+      return { type: 'T-0', overdue: true };
     }
-    const nextAllowedDate = this.calculateNextTestDate(lastCompletedTest);
-    return isBefore(nextAllowedDate, now);
+    
+    // Получаем даты без времени для корректного сравнения
+    const nowDate = now.toDateString();
+    const remind30Date = remind30.toDateString();
+    const remind0Date = remind0.toDateString();
+    
+    // T-0: если сегодня дата T-0 или позже (но до даты теста)
+    if (nowDate === remind0Date || isAfter(now, remind0)) {
+      return { type: 'T-0', overdue: false };
+    }
+    
+    // T-30: если сегодня дата T-30 или позже (но до T-0)
+    if (nowDate === remind30Date || (isAfter(now, remind30) && isBefore(now, remind0))) {
+      return { type: 'T-30', overdue: false };
+    }
+    
+    // Еще рано для уведомлений
+    return { type: 'none', overdue: false };
+  }
+
+  /**
+   * Поиск заявок, требующих напоминания
+   */
+  async findRequestsNeedingReminders(): Promise<Array<{
+    request: SSASRequest;
+    reminderType: 'T-30' | 'T-0';
+    overdue: boolean;
+  }>> {
+    // Получаем все активные заявки
+    const activeRequests = await this.reqModel.findAll({
+      where: {
+        status: {
+          [Op.in]: [
+            this.normalizeDbStatus(RequestStatus.PENDING),
+            this.normalizeDbStatus(RequestStatus.APPROVED),
+          ],
+        },
+        test_date: {
+          [Op.ne]: null,
+        },
+      },
+    });
+
+    const results = [];
+    const now = new Date();
+
+    for (const request of activeRequests) {
+      if (!request.test_date) continue;
+      
+      const reminder = this.shouldSendReminder(request.test_date, now);
+      
+      if (reminder.type !== 'none') {
+        results.push({
+          request,
+          reminderType: reminder.type,
+          overdue: reminder.overdue,
+        });
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Массовое обновление статусов в транзакции
+   */
+  async bulkUpdateStatus(
+    ids: number[],
+    newStatus: RequestStatus,
+    transaction?: Transaction
+  ): Promise<number> {
+    const dbStatus = this.normalizeDbStatus(newStatus);
+    
+    const [affectedCount] = await this.reqModel.update(
+      { status: dbStatus },
+      {
+        where: { id: { [Op.in]: ids } },
+        transaction,
+      }
+    );
+    
+    return affectedCount;
+  }
+
+  /**
+   * Получить статистику по заявкам
+   */
+  async getStatistics(): Promise<{
+    total: number;
+    byStatus: Record<string, number>;
+    needingReminders: number;
+    overdue: number;
+  }> {
+    const all = await this.reqModel.findAll();
+    const byStatus: Record<string, number> = {};
+    
+    for (const status of Object.values(RequestStatus)) {
+      const dbStatus = this.normalizeDbStatus(status);
+      byStatus[status] = all.filter(r => r.status === dbStatus).length;
+    }
+
+    const reminders = await this.findRequestsNeedingReminders();
+    
+    return {
+      total: all.length,
+      byStatus,
+      needingReminders: reminders.length,
+      overdue: reminders.filter(r => r.overdue).length,
+    };
   }
 }
