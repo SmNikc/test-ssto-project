@@ -8,9 +8,9 @@
     "test:smoke": "bash tests/smoke/api-health.sh && bash tests/smoke/api-unmatched.sh",
     "test:smoke:ci": "cross-env API_BASE=http://localhost:3001/api MAILHOG=http://localhost:8025 bash tests/smoke/api-health.sh && cross-env API_BASE=http://localhost:3001/api bash tests/smoke/api-unmatched.sh",
 
-    "test:contracts": "npm --prefix backend-nest run test -- --config backend-nest/jest.config.ts --runInBand --runTestsByPath backend-nest/tests/functional/contracts/health.contract.spec.ts backend-nest/tests/functional/contracts/requests.contract.spec.ts backend-nest/tests/functional/contracts/signals.unmatched.contract.spec.ts backend-nest/tests/functional/contracts/signals.link.contract.spec.ts",
-    "test:negative": "npm --prefix backend-nest run test -- --config backend-nest/jest.config.ts --runInBand --runTestsByPath backend-nest/tests/functional/request-service.spec.ts",
-    "test:pdf": "npm --prefix backend-nest run test -- --config backend-nest/jest.config.ts --runInBand --runTestsByPath backend-nest/tests/functional/report.service.pdf.spec.ts",
+    "test:contracts": "npm --prefix backend-nest run test -- --config jest.config.ts --runInBand --runTestsByPath tests/functional/contracts/health.contract.spec.ts tests/functional/contracts/requests.contract.spec.ts tests/functional/contracts/signals.unmatched.contract.spec.ts tests/functional/contracts/signals.link.contract.spec.ts",
+    "test:negative": "npm --prefix backend-nest run test -- --config jest.config.ts --runInBand --runTestsByPath tests/functional/request-service.spec.ts",
+    "test:pdf": "npm --prefix backend-nest run test -- --config jest.config.ts --runInBand --runTestsByPath tests/functional/report.service.pdf.spec.ts",
     "test:functional": "npm run test:contracts && npm run test:negative && npm run test:pdf",
 
     "test:backend:unit": "npm --prefix backend-nest run test -- --runInBand --testPathPattern=unit",
