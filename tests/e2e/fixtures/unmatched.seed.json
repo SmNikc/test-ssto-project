@@ -1,0 +1,25 @@
+{
+  "requests": [
+    {
+      "id": 45,
+      "vessel_name": "АРКТИКА",
+      "mmsi": "273345000",
+      "imo_number": "9123456",
+      "ssas_number": "427315541",
+      "planned_test_date": "2025-10-05T10:00:00Z",
+      "status": "pending"
+    }
+  ],
+  "signals": [
+    {
+      "vessel_name": "АРКТИКА",
+      "mmsi": "273345000",
+      "terminal_number": "999999999",
+      "signal_type": "EMAIL",
+      "received_at": "2025-10-05T10:30:00Z",
+      "metadata": {
+        "note": "E2E seed unmatched; expect suggestions by MMSI+TIME"
+      }
+    }
+  ]
+}

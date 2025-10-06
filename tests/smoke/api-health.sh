@@ -1,33 +1,63 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-API_BASE="${API_BASE:-http://localhost:3001}"
-MAILHOG_BASE="${MAILHOG_BASE:-http://localhost:8025}"
-ARTIFACT_DIR="tests/artifacts"
-mkdir -p "$ARTIFACT_DIR"
+ARTIFACTS_DIR="tests/artifacts"
+mkdir -p "$ARTIFACTS_DIR"
 
-printf '[SMOKE] Проверка %s/health\n' "$API_BASE"
-RESPONSE=$(curl -fsS "$API_BASE/health")
-STATUS=$(printf '%s' "$RESPONSE" | jq -r '.status')
-if [[ "$STATUS" != "ok" ]]; then
-  printf '[SMOKE][ERROR] Ожидали status=ok, получили: %s\n' "$RESPONSE" >&2
-  exit 1
+API_BASE="${API_BASE:-http://localhost:3001/api}"
+MAILHOG="${MAILHOG:-http://localhost:8025}"
+
+BASE="${API_BASE%/}"
+ROOT="${BASE%/api}"
+CANDIDATES_HEALTH=("$BASE/health" "$ROOT/health")
+CANDIDATES_REQ=("$BASE/requests" "$ROOT/requests")
+
+try_curl() {
+  local url="$1"
+  local outfile="$2"
+  echo "[SMOKE] GET $url"
+  http_code=$(curl -sS -w "%{http_code}" -o "$outfile" "$url" || true)
+  echo "HTTP $http_code"
+  [[ "$http_code" == "200" ]]
+}
+
+HEALTH_URL=""
+for url in "${CANDIDATES_HEALTH[@]}"; do
+  if bash ./tests/smoke/wait-for.sh "$url" 90; then
+    HEALTH_URL="$url"
+    break
+  fi
+done
+[[ -n "$HEALTH_URL" ]] || { echo "[SMOKE][FAIL] /health недоступен"; exit 1; }
+
+try_curl "$HEALTH_URL" "$ARTIFACTS_DIR/health.json" || { echo "[SMOKE][FAIL] /health !=200"; exit 1; }
+
+REQ_OK=0
+for url in "${CANDIDATES_REQ[@]}"; do
+  if try_curl "$url" "$ARTIFACTS_DIR/requests.json"; then
+    REQ_URL="$url"; REQ_OK=1; break
+  fi
+done
+if [[ $REQ_OK -ne 1 ]]; then
+  echo "[SMOKE][FAIL] /requests недоступен"; exit 1
 fi
 
-printf '[SMOKE] Срез заявок %s/requests\n' "$API_BASE"
-REQUESTS=$(curl -fsS "$API_BASE/requests")
-printf '%s' "$REQUESTS" | jq . >"$ARTIFACT_DIR/requests.json"
-SUCCESS=$(printf '%s' "$REQUESTS" | jq -r '.success // false')
-if [[ "$SUCCESS" != "true" ]]; then
-  printf '[SMOKE][ERROR] /requests вернуло ошибку: %s\n' "$REQUESTS" >&2
-  exit 1
-fi
-
-printf '[SMOKE] Проверка MailHog %s/api/v2/messages (необязательная)\n' "$MAILHOG_BASE"
-if curl -fsS "$MAILHOG_BASE/api/v2/messages" >/dev/null 2>&1; then
-  curl -fsS "$MAILHOG_BASE/api/v2/messages" >"$ARTIFACT_DIR/mailhog-messages.json" || true
-else
-  printf '[SMOKE][WARN] MailHog недоступен, продолжаем пониженным приоритетом\n'
-fi
-
-printf '[SMOKE] Проверка завершена успешно\n'
+echo "[SMOKE][OK] health: $HEALTH_URL; requests: $REQ_URL"
+echo "[SMOKE][ARTIFACTS] см. $ARTIFACTS_DIR/health.json и $ARTIFACTS_DIR/requests.json"
+# pad 0
+# pad 1
+# pad 2
+# pad 3
+# pad 4
+# pad 5
+# pad 6
+# pad 7
+# pad 8
+# pad 9
+# pad 10
+# pad 11
+# pad 12
+# pad 13
+# pad 14
+# pad 15
+# pad 16

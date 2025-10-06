@@ -1,26 +1,28 @@
+// tests/e2e/playwright.config.ts
 import { defineConfig, devices } from '@playwright/test';
 
-const baseURL = process.env.E2E_BASE_URL || 'http://localhost';
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
 
 export default defineConfig({
-  testDir: 'tests/e2e',
+  testDir: './tests/e2e',
   timeout: 60_000,
-  retries: process.env.CI ? 1 : 0,
-  reporter: [
-    ['list'],
-    ['html', { outputFolder: 'tests/artifacts/playwright-report', open: 'never' }],
-  ],
+  expect: { timeout: 10_000 },
+  fullyParallel: false,
   use: {
-    baseURL,
-    trace: 'retain-on-failure',
-    video: 'retain-on-failure',
+    baseURL: BASE_URL,
+    trace: 'on-first-retry',
+    video: process.env.CI ? 'retain-on-failure' : 'off',
     screenshot: 'only-on-failure',
-    actionTimeout: 15_000,
   },
   projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+  ],
+  webServer: [
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
+      command: 'npm --prefix frontend run dev',
+      url: BASE_URL,
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    }
   ],
 });

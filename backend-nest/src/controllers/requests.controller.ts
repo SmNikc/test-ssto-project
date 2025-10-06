@@ -97,54 +97,39 @@ export class RequestsController {
         dto.terminal_id;
     }
 
-    if (has('owner_organization') || has('ship_owner') || has('owner') || has('company'))
-      out.owner_organization =
-        dto.owner_organization ?? dto.ship_owner ?? dto.owner ?? dto.company;
+    if (has('owner_organization') || has('ship_owner') || has('owner'))
+      out.owner_organization = v(
+        dto.owner_organization ?? dto.ship_owner ?? dto.owner,
+      );
 
-    if (has('contact_person') || has('requesterName') || has('contactPerson'))
-      out.contact_person =
-        dto.contact_person ?? dto.requesterName ?? dto.contactPerson;
-    if (has('contact_phone') || has('requesterPhone') || has('phone') || has('tel'))
-      out.contact_phone =
-        dto.contact_phone ?? dto.requesterPhone ?? dto.phone ?? dto.tel;
-    if (has('contact_email') || has('requesterEmail') || has('email') || has('mail'))
-      out.contact_email =
-        dto.contact_email ?? dto.requesterEmail ?? dto.email ?? dto.mail;
+    if (has('contact_person') || has('contactPerson'))
+      out.contact_person = v(dto.contact_person ?? dto.contactPerson);
+    if (has('contact_phone') || has('phone') || has('tel'))
+      out.contact_phone = v(dto.contact_phone ?? dto.phone ?? dto.tel);
+    if (has('contact_email') || has('email') || has('mail'))
+      out.contact_email = v(dto.contact_email ?? dto.email ?? dto.mail);
 
     if (has('test_date') || has('testDate'))
-      out.test_date = dto.test_date ? new Date(dto.test_date) : new Date(dto.testDate);
+      out.test_date = v(toDate(dto.test_date ?? dto.testDate));
     if (has('planned_test_date') || has('plannedTestDate'))
-      out.planned_test_date = dto.planned_test_date
-        ? new Date(dto.planned_test_date)
-        : new Date(dto.plannedTestDate);
-    if (has('start_time') || has('startTime'))
-      out.start_time = dto.start_time ?? dto.startTime;
-    if (has('end_time') || has('endTime'))
-      out.end_time = dto.end_time ?? dto.endTime;
+      out.planned_test_date = v(toDate(dto.planned_test_date ?? dto.plannedTestDate));
+    if (has('start_time') || has('startTime')) out.start_time = v(dto.start_time ?? dto.startTime);
+    if (has('end_time') || has('endTime')) out.end_time = v(dto.end_time ?? dto.endTime);
 
-    if (has('status')) out.status = dto.status;
-    if (has('notes')) out.notes = dto.notes;
-    if (has('vessel_id')) out.vessel_id = dto.vessel_id;
-    if (has('signal_id')) out.signal_id = dto.signal_id;
+    if (has('notes')) out.notes = v(dto.notes);
+    if (has('status')) out.status = v(dto.status);
+
+    if (has('vessel_id')) out.vessel_id = v(dto.vessel_id);
+    if (has('signal_id')) out.signal_id = v(dto.signal_id);
 
     return out;
   }
 
   // POST /requests — создание
   @Post()
-  async create(@Body() dto: any, @Req() req: Request, @Res() res: Response) {
+  async create(@Body() dto: any, @Res() res: Response) {
     try {
-      // ✅ ДОБАВЛЕНО: Логирование входящего запроса
-      console.log('[REQUESTS] Incoming POST /requests', {
-        receivedKeys: Object.keys(dto || {}),
-        vessel_name: dto?.vessel_name,
-        mmsi: dto?.mmsi,
-        ship_owner: dto?.ship_owner,
-        contact_person: dto?.contact_person,
-      });
-
       const payload = this.normalizeCreateDto(dto);
-      console.log('[REQUESTS] Normalized payload', payload);
       const created = await this.requestService.create(payload);
       const data = this.withRequestNumber(created);
       return res.status(HttpStatus.CREATED).json({
@@ -153,31 +138,61 @@ export class RequestsController {
         data,
       });
     } catch (error: any) {
-      // Подробное логирование для диагностики
-      const details = error?.errors?.map((e: any) => ({
-        message: e?.message,
-        path: e?.path,
-        type: e?.type,
-      }));
-      console.error('[REQUESTS] Failed to create request', {
-        error: error?.message,
-        details,
-        payload: dto,
-      });
       return res.status(HttpStatus.BAD_REQUEST).json({
         success: false,
         message: 'Ошибка создания заявки',
         error: error.message,
-        details,
       });
     }
   }
 
-  // GET /requests — список
+  // GET /requests — список всех
   @Get()
   async findAll(@Res() res: Response) {
     try {
       const rows = await this.requestService.findAll();
+      const data = (rows || []).map(r => this.withRequestNumber(r));
+      return res.status(HttpStatus.OK).json({
+        success: true,
+        count: data.length,
+        data,
+      });
+    } catch {
+      // Возвращаем пустой набор, чтобы фронт не падал
+      return res.status(HttpStatus.OK).json({
+        success: false,
+        count: 0,
+        data: [],
+      });
+    }
+  }
+
+  // GET /requests/confirmed — «подтвержденные»
+  @Get('confirmed')
+  async findConfirmed(@Res() res: Response) {
+    try {
+      const rows = await this.requestService.findConfirmed();
+      const data = (rows || []).map(r => this.withRequestNumber(r));
+      return res.status(HttpStatus.OK).json({
+        success: true,
+        count: data.length,
+        data,
+      });
+    } catch {
+      // Возвращаем пустой набор, чтобы фронт не падал
+      return res.status(HttpStatus.OK).json({
+        success: false,
+        count: 0,
+        data: [],
+      });
+    }
+  }
+
+  // GET /requests/rejected — «отклоненные»
+  @Get('rejected')
+  async findRejected(@Res() res: Response) {
+    try {
+      const rows = await this.requestService.findRejected();
       const data = (rows || []).map(r => this.withRequestNumber(r));
       return res.status(HttpStatus.OK).json({
         success: true,

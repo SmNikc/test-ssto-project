@@ -1,18 +1,21 @@
+// tests/e2e/playwright.config.ts
 import { defineConfig, devices } from '@playwright/test';
 
+const PORT = 3000;
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || `http://localhost:${PORT}`;
+
 export default defineConfig({
-  testDir: './',
-  fullyParallel: false,
+  testDir: './tests/e2e',
   timeout: 60_000,
-  expect: {
-    timeout: 10_000,
-  },
-  reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost',
+    baseURL: BASE_URL,
     trace: 'retain-on-failure',
-    screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+  },
+  webServer: {
+    command: 'npm --prefix frontend run dev',
+    url: BASE_URL,
+    reuseExistingServer: !process.env.CI,
+    timeout: 120_000,
   },
   projects: [
     {
