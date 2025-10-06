@@ -4,23 +4,31 @@
   "private": true,
   "scripts": {
     "test:unit": "npm run test:unit:node && npm run test:unit:backend",
+
     "test:smoke": "bash tests/smoke/api-health.sh && bash tests/smoke/api-unmatched.sh",
     "test:smoke:ci": "cross-env API_BASE=http://localhost:3001/api MAILHOG=http://localhost:8025 bash tests/smoke/api-health.sh && cross-env API_BASE=http://localhost:3001/api bash tests/smoke/api-unmatched.sh",
+
     "test:contracts": "npm --prefix backend-nest run test -- --config backend-nest/jest.config.ts --runInBand --runTestsByPath backend-nest/tests/functional/contracts/health.contract.spec.ts backend-nest/tests/functional/contracts/requests.contract.spec.ts backend-nest/tests/functional/contracts/signals.unmatched.contract.spec.ts backend-nest/tests/functional/contracts/signals.link.contract.spec.ts",
     "test:negative": "npm --prefix backend-nest run test -- --config backend-nest/jest.config.ts --runInBand --runTestsByPath backend-nest/tests/functional/request-service.spec.ts",
     "test:pdf": "npm --prefix backend-nest run test -- --config backend-nest/jest.config.ts --runInBand --runTestsByPath backend-nest/tests/functional/report.service.pdf.spec.ts",
     "test:functional": "npm run test:contracts && npm run test:negative && npm run test:pdf",
+
     "test:backend:unit": "npm --prefix backend-nest run test -- --runInBand --testPathPattern=unit",
     "test:backend:integration": "cross-env NODE_ENV=test npm --prefix backend-nest run test -- --runInBand --testPathPattern=integration",
     "test:coverage": "npm --prefix backend-nest run test -- --runInBand --coverage",
+
     "test:e2e": "npx playwright test --config=tests/e2e/playwright.config.ts",
     "test:e2e:live": "npx playwright test tests/e2e/*live*.spec.ts --config=tests/e2e/playwright.config.ts",
     "test:e2e:live:ui": "npx playwright test tests/e2e/operator-link-button.live.spec.ts --config=tests/e2e/playwright.config.ts",
+
     "build:backend": "npm --prefix backend-nest run build",
     "lint:backend": "npm --prefix backend-nest run lint",
+
     "test:unit:backend": "npm --prefix backend-nest run test -- --runInBand --testPathPattern=unit",
     "test:unit:node": "node --test tests/unit/*.test.js",
+
     "seed:e2e": "cross-env ENABLE_TEST_SEED=1 API_BASE=http://localhost:3001/api bash tests/fixtures/seed-unmatched.sh",
+
     "ci:functional": "npm run test:smoke:ci && npm run test:functional && npm run test:e2e",
     "ci:all": "npm run seed:e2e && npm run test:unit && npm run test:smoke:ci && npm run test:functional && npm run test:e2e && npm run test:e2e:live"
   },
