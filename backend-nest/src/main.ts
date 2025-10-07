@@ -52,5 +52,6 @@ async function bootstrap() {
 
   // eslint-disable-next-line no-console
   console.log(`Backend listening on http://localhost:${port}`);
+  console.log('Health check: http://localhost:3001/health');  // Verbose for demo
 }
 bootstrap();
