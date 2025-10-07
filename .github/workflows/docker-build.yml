@@ -1,0 +1,48 @@
+# .github/workflows/docker-publish.yml
+name: Docker Build & Publish to GHCR
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend-nest
+          push: true
+          tags: |
+            ghcr.io/smnikc/test-ssto-project/backend:latest
+            ghcr.io/smnikc/test-ssto-project/backend:${{ github.sha }}
+
+      - name: Build and push Frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: |
+            ghcr.io/smnikc/test-ssto-project/frontend:latest
+            ghcr.io/smnikc/test-ssto-project/frontend:${{ github.sha }}
