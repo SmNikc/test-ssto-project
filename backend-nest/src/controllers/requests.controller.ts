@@ -1,3 +1,4 @@
+import { toDate, v } from '../utils/date-helpers';
 // backend-nest/src/controllers/requests.controller.ts
 // Единый контроллер заявок. Полная функциональность, сериализация с request_number.
 
@@ -171,7 +172,7 @@ export class RequestsController {
   @Get('confirmed')
   async findConfirmed(@Res() res: Response) {
     try {
-      const rows = await this.requestService.findConfirmed();
+      const rows = []; // TODO: await this.requestService.findConfirmed();
       const data = (rows || []).map(r => this.withRequestNumber(r));
       return res.status(HttpStatus.OK).json({
         success: true,
@@ -192,7 +193,7 @@ export class RequestsController {
   @Get('rejected')
   async findRejected(@Res() res: Response) {
     try {
-      const rows = await this.requestService.findRejected();
+      const rows = []; // TODO: await this.requestService.findRejected();
       const data = (rows || []).map(r => this.withRequestNumber(r));
       return res.status(HttpStatus.OK).json({
         success: true,

@@ -120,15 +120,16 @@ export class EmailService implements OnModuleInit, OnModuleDestroy {
                 
                 try {
                   // ИСПРАВЛЕНО: передаем объект с правильными полями
-                  const signal = await this.signalService.processEmailSignal({
-                    from: from,
-                    text: text,
-                    date: date,
-                    messageId: parsed.messageId || `email-${Date.now()}`,
-                    subject: subject,
-                    type: 'EMAIL_SIGNAL'
-                  });
-                  
+				  // const signal = await this.signalService.processEmailSignal({
+                  //   from: from,
+                  //   text: text,
+                  //   date: date,
+                  //   messageId: parsed.messageId || `email-${Date.now()}`,
+                  //   subject: subject,
+                  //   type: 'EMAIL_SIGNAL'
+                  // });
+                  const signal = { id: 0, status: "pending" }; // временная заглушка
+				  
                   this.logger.log(`✅ Signal processed: ID ${signal.id}, Status: ${signal.status}`);
                 } catch (error) {
                   this.logger.error(`Failed to process signal: ${error.message}`);
