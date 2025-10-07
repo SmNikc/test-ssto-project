@@ -12,7 +12,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -52,7 +51,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -75,6 +73,7 @@ jobs:
 
       - name: Start backend
         env:
+          PORT: 3001
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ssto
           DB_HOST: localhost
           DB_PORT: 5432
@@ -129,7 +128,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -146,39 +144,40 @@ jobs:
         run: npx playwright install --with-deps
 
       - name: Start backend for E2E
-  env:
-    DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ssto
-    DB_HOST: localhost
-    DB_PORT: 5432
-    DB_USER: postgres
-    DB_PASS: postgres
-    DB_NAME: ssto
-    NODE_ENV: test
-    ENABLE_TEST_SEED: '1'
-  run: |
-    if npm --prefix backend-nest run | grep -q " start:prod"; then
-      nohup npm --prefix backend-nest run start:prod >/tmp/backend-e2e.log 2>&1 &
-    elif [ -f backend-nest/dist/main.js ]; then
-      nohup node backend-nest/dist/main.js >/tmp/backend-e2e.log 2>&1 &
-    else
-      echo "WARN: cannot find backend start command or dist/main.js."
-    fi
-    sleep 5
+        env:
+          PORT: 3001
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ssto
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: postgres
+          DB_PASS: postgres
+          DB_NAME: ssto
+          NODE_ENV: test
+          ENABLE_TEST_SEED: '1'
+        run: |
+          if npm --prefix backend-nest run | grep -q " start:prod"; then
+            nohup npm --prefix backend-nest run start:prod >/tmp/backend-e2e.log 2>&1 &
+          elif [ -f backend-nest/dist/main.js ]; then
+            nohup node backend-nest/dist/main.js >/tmp/backend-e2e.log 2>&1 &
+          else
+            echo "WARN: cannot find backend start command or dist/main.js."
+          fi
+          sleep 5
 
-- name: Seed data for E2E (live)
-  env:
-    API_BASE: http://localhost:3001/api
-    ENABLE_TEST_SEED: '1'
-  run: |
-    bash tests/fixtures/seed-unmatched.sh
+      - name: Seed data for E2E (live)
+        env:
+          API_BASE: http://localhost:3001/api
+          ENABLE_TEST_SEED: '1'
+        run: |
+          bash tests/fixtures/seed-unmatched.sh
 
-- name: Run Playwright tests (live, no mocks)
+      - name: Run Playwright tests (live, no mocks)
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:3000
           API_BASE: http://localhost:3001/api
         run: |
           npx playwright test --config=tests/e2e/playwright.config.ts
-npx playwright test tests/e2e/operator-live.spec.ts
+          npx playwright test tests/e2e/operator-live.spec.ts
 
   ci_all:
     needs: contracts
@@ -198,10 +197,14 @@ npx playwright test tests/e2e/operator-live.spec.ts
         with:
           node-version: 20
           cache: 'npm'
+          
       - run: npm ci
+      
       - run: npm --prefix backend-nest ci
+      
       - name: Start backend for ci:all
         env:
+          PORT: 3001
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ssto
           DB_HOST: localhost
           DB_PORT: 5432
@@ -219,6 +222,7 @@ npx playwright test tests/e2e/operator-live.spec.ts
             echo "WARN: cannot find backend start command or dist/main.js."
           fi
           sleep 5
+          
       - name: Run ci:all (seed + full test suite)
         env:
           API_BASE: http://localhost:3001/api

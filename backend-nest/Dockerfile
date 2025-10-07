@@ -1,49 +1,39 @@
 # Stage 1: Builder
 FROM node:20-alpine AS builder
 
-# Установка build tools для компиляции нативных модулей (sqlite3, bcrypt)
+# System deps for native builds (bcrypt, etc.)
 RUN apk add --no-cache python3 make g++ gcc
 
 WORKDIR /app
 
-# Копируем package files
+# Install dependencies
 COPY package*.json ./
+RUN npm ci
 
-# Устанавливаем все зависимости (включая dev)
-RUN npm install
-
-# Копируем исходный код
+# Copy source
 COPY . .
 
-# Собираем приложение
+# Build NestJS
 RUN npm run build
+
+# Reduce node_modules to production set (keeps compiled bcrypt)
+RUN npm prune --omit=dev
 
 # Stage 2: Runner
 FROM node:20-alpine AS runner
-
-# Установка build tools (нужны для sqlite3 при npm ci)
-RUN apk add --no-cache python3 make g++ gcc
-
 WORKDIR /app
 
-# Копируем package files
-COPY package*.json ./
-
-# Устанавливаем только production зависимости
-RUN npm ci --omit=dev
-
-# Копируем собранное приложение из builder
+# Copy built artifacts and production deps
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 
-# Копируем дополнительные файлы (если есть)
-COPY --from=builder /app/tsconfig.json ./tsconfig.json
-
-# Порт приложения
+ENV NODE_ENV=production
 EXPOSE 3001
 
-# Healthcheck
+# Healthcheck (optional endpoint /health)
 HEALTHCHECK --interval=10s --timeout=3s --start-period=30s \
   CMD node -e "require('http').get('http://localhost:3001/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
 
-# Запуск
-CMD ["node", "dist/main"]
+# Start
+CMD ["node", "dist/main.js"]
