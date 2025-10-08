@@ -1,25 +1,45 @@
 import React from 'react';
 import { Grid, Button } from '@mui/material';
 import { useTrainingMode } from '../contexts/TrainingModeContext';
-import BackendService from '../services/BackendService';
+import { BackendService } from '../services/BackendService';
 
 const QuickActionsPanel = () => {
   const { toggleTrainingMode } = useTrainingMode();
 
-  const handleGenerateTest = () => {
-    BackendService.generateTestSignal();
+  const handleGenerateTest = async () => {
+    try {
+      await BackendService.generateTestSignal();
+      console.info('Тестовый сигнал отправлен.');
+    } catch (error) {
+      console.error('Не удалось сгенерировать тестовый сигнал', error);
+    }
   };
 
-  const handleProcessEmail = () => {
-    BackendService.processEmailQueue();
+  const handleProcessEmail = async () => {
+    try {
+      await BackendService.processEmailQueue();
+      console.info('Запущена обработка email очереди.');
+    } catch (error) {
+      console.error('Не удалось обработать email очередь', error);
+    }
   };
 
-  const handleSync = () => {
-    BackendService.syncWithExternal();
+  const handleSync = async () => {
+    try {
+      await BackendService.syncWithExternal();
+      console.info('Синхронизация с внешними системами завершена.');
+    } catch (error) {
+      console.error('Синхронизация завершилась ошибкой', error);
+    }
   };
 
-  const handleSystemCheck = () => {
-    BackendService.runSystemCheck();
+  const handleSystemCheck = async () => {
+    try {
+      await BackendService.runSystemCheck();
+      console.info('Проверка системы завершена.');
+    } catch (error) {
+      console.error('Проверка системы завершилась ошибкой', error);
+    }
   };
 
   return (

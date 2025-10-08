@@ -1,7 +1,7 @@
 Folder PATH listing for volume Windows
 Volume serial number is 7018-58EE
 C:\PROJECTS\TEST-SSTO-PROJECT\FRONTEND\SRC
-│   app.tsx
+│   App.tsx
 │   config.d.ts
 │   config.js
 │   index.tsx

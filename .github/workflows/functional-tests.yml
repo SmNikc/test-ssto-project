@@ -1,0 +1,64 @@
+name: Functional QA Gates
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  functional-suite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install root QA tooling
+        run: npm install
+
+      - name: Install backend dependencies
+        run: npm install
+        working-directory: backend-nest
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Build Docker images
+        run: docker compose build backend frontend
+
+      - name: Start application stack
+        run: docker compose up -d postgres backend frontend
+
+      - name: Wait for backend health
+        run: ./tests/smoke/wait-for.sh http://localhost:3001/health 180
+
+      - name: Smoke check (S1, S6)
+        run: npm run test:smoke
+        env:
+          API_BASE: http://localhost:3001
+          MAILHOG_BASE: http://localhost:8025
+
+      - name: Contract tests (S1, S2)
+        run: npm run test:contracts
+
+      - name: Negative & business rules (S2, S3)
+        run: npm run test:negative
+
+      - name: PDF compliance (S5)
+        run: npm run test:pdf
+
+      - name: UI E2E (S4)
+        run: npm run test:e2e
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost
+
+      - name: Shutdown stack
+        if: always()
+        run: docker compose down -v

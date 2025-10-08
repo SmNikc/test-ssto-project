@@ -101,7 +101,7 @@ export default function EmailSimulator() {
     return match ? match[1] : '273' + Math.floor(100000 + Math.random() * 900000);
   };
 
-  const extractContactPerson = (email: any): string => {
+  const extractContactPerson = (_email: unknown): string => {
     const names = ['Иванов И.И.', 'Петров П.П.', 'Смирнова Е.В.', 'Козлов А.С.'];
     return names[Math.floor(Math.random() * names.length)];
   };

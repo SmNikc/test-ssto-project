@@ -1,0 +1,81 @@
+name: QA Validation
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+jobs:
+  test-suite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: ssto
+          POSTGRES_PASSWORD: sstopass
+          POSTGRES_DB: sstodb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm --prefix backend-nest ci
+          npm --prefix frontend ci
+      
+      - name: Launch application stack
+        run: |
+          # Запускаем только существующие сервисы
+          docker compose up -d postgres backend frontend
+          # Ждем готовности сервисов
+          sleep 10
+          docker compose ps
+      
+      - name: Run smoke tests
+        run: |
+          export API_BASE=http://localhost:3001/api
+          bash tests/smoke.sh
+      
+      - name: Run unit tests
+        run: npm run test:backend:unit
+      
+      - name: Run integration tests
+        run: npm run test:backend:integration
+      
+      - name: Run E2E tests
+        run: npm run test:e2e
+      
+      - name: Collect logs on failure
+        if: failure()
+        run: |
+          docker compose logs > docker-logs.txt
+          echo "=== Docker containers status ===" >> docker-logs.txt
+          docker ps -a >> docker-logs.txt
+      
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-artifacts
+          path: |
+            tests/smoke.log
+            docker-logs.txt
+            coverage/
+            test-results/

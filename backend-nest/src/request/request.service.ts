@@ -89,8 +89,15 @@ export class RequestService {
     if (!data.mmsi || !data.vessel_name) {
       throw new BadRequestException('MMSI and vessel_name are required');
     }
-    
+
+    const shipOwner =
+      (typeof data.ship_owner === 'string' && data.ship_owner.trim()) ||
+      (typeof data.owner_organization === 'string' && data.owner_organization.trim()) ||
+      'N/A SHIP OWNER';
+
     const requestData = {
+      ...data,
+      ship_owner: shipOwner,
       ...data,
       // было: status: data.status || RequestStatus.DRAFT
       // стало: нормализация под БД, без изменения вашей семантики

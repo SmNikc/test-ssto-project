@@ -1,0 +1,18 @@
+--- FILE: tests/smoke.http
+### @name health
+GET http://localhost:3001/health
+
+###
+# @name login
+POST http://localhost:3001/api/auth/login
+Content-Type: application/json
+
+{"username":"operator","password":"operator"}
+
+###
+# @name create_request
+POST http://localhost:3001/api/requests
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.access_token}}
+
+{"terminal_number":"TST-0001","vessel_name":"M/V TESTER","mmsi":"273123456","owner_email":"owner@example.com"}

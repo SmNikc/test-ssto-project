@@ -4,8 +4,11 @@
     "declaration": false,
     "removeComments": true,
     "sourceMap": true,
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "module": "Node16"
   },
+  "include": ["src/**/*.ts"],
   "exclude": [
     "node_modules",
     "**/node_modules/**",
