@@ -3,7 +3,27 @@ import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe, RequestMethod } from '@nestjs/common';
-import { json, urlencoded } from 'express';
+import { createRequire } from 'module';
+
+type ExpressModule = typeof import('express');
+
+const moduleRequire = createRequire(__filename);
+
+function loadExpress(): ExpressModule {
+  try {
+    return moduleRequire('express') as ExpressModule;
+  } catch (rootErr) {
+    try {
+      const platformMain = moduleRequire.resolve('@nestjs/platform-express');
+      const platformRequire = createRequire(platformMain);
+      return platformRequire('express') as ExpressModule;
+    } catch {
+      throw rootErr;
+    }
+  }
+}
+
+const { json, urlencoded } = loadExpress();
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
