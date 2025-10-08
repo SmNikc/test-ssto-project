@@ -27,6 +27,12 @@ export default class Signal extends Model {
   terminal_number!: string | null;
 
   @Column({
+    type: DataType.STRING,
+    allowNull: true,
+  })
+  vessel_name?: string;
+
+  @Column({
     type: DataType.STRING(9),
     allowNull: false,
   })
