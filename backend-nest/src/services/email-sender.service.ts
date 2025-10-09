@@ -16,10 +16,15 @@ export class EmailSenderService implements OnModuleInit {
 
   private async initializeTransporter() {
     const host = this.configService.get<string>('SMTP_HOST', 'smtp.gmail.com');
-    const port = this.configService.get<number>('SMTP_PORT', 587);
+    const port = Number(this.configService.get<string>('SMTP_PORT', '587'));
     const user = this.configService.get<string>('SMTP_USER');
-    const pass = this.configService.get<string>('SMTP_PASS');
-    this.defaultFrom = this.configService.get<string>('SMTP_FROM', 'ГМСКЦ <noreply@gmskc.ru>');
+    const pass =
+      this.configService.get<string>('SMTP_PASS') ??
+      this.configService.get<string>('SMTP_PASSWORD');
+    const fromAddress = this.configService.get<string>('SMTP_FROM');
+    const fromName = this.configService.get<string>('SMTP_FROM_NAME');
+    this.defaultFrom =
+      fromAddress || (fromName && user ? `${fromName} <${user}>` : user || 'ГМСКЦ <noreply@gmskc.ru>');
 
     if (!user || !pass) {
       this.logger.warn('SMTP credentials not configured');
@@ -31,7 +36,7 @@ export class EmailSenderService implements OnModuleInit {
     const config = {
       host,
       port,
-      secure: port === 465,
+      secure: this.isSecureTransport(),
       auth: { user, pass }
     };
 
@@ -43,6 +48,16 @@ export class EmailSenderService implements OnModuleInit {
     } catch (error) {
       this.logger.warn('SMTP verification skipped:', error.message);
     }
+  }
+
+  private isSecureTransport(): boolean {
+    const secureValue = this.configService.get<string>('SMTP_SECURE', '');
+    if (secureValue) {
+      return ['true', '1', 'yes', 'on'].includes(secureValue.toLowerCase());
+    }
+
+    const port = Number(this.configService.get<string>('SMTP_PORT', '587'));
+    return port === 465;
   }
 
   // Основной метод отправки

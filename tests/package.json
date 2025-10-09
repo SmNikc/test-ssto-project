@@ -1,0 +1,20 @@
+{
+  "name": "test-ssto-functional-tests",
+  "private": true,
+  "scripts": {
+    "pretest": "mkdir -p artifacts reports",
+    "smoke": "bash ./smoke/smoke.sh",
+    "test": "jest --config jest.config.cjs --runInBand",
+    "e2e": "playwright test",
+    "report": "echo 'See artifacts directory for outputs'"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.47.2",
+    "axios": "^1.7.4",
+    "jest": "^29.7.0",
+    "pdf-parse": "^1.1.1",
+    "supertest": "^7.1.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.4"
+  }
+}

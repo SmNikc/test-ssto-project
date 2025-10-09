@@ -1,5 +1,4 @@
 version: "3.9"
-
 services:
   postgres:
     image: postgres:14-alpine
@@ -17,7 +16,7 @@ services:
       retries: 20
     volumes:
       - db_data:/var/lib/postgresql/data
-
+      
   backend:
     build:
       context: ./backend-nest
@@ -27,17 +26,25 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      mailhog:
+        condition: service_started
     environment:
       NODE_ENV: production
       PORT: "3001"
-      # Основная строка подключения
       DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/ssto"
-      # Дублирование для fallback (добавлено для решения проблемы)
       DB_HOST: postgres
       DB_PORT: "5432"
       DB_USER: postgres
       DB_PASSWORD: postgres
       DB_NAME: ssto
+      SMTP_HOST: mailhog
+      SMTP_PORT: "1025"
+      SMTP_SECURE: "false"
+      SMTP_USER: od_smrcc@morflot.ru
+      SMTP_PASS: dev-password
+      SMTP_PASSWORD: dev-password
+      SMTP_FROM: "ГМСКЦ <od_smrcc@morflot.ru>"
+      SMTP_FROM_NAME: 'ГМСКЦ «Тест ССТО»'
     ports:
       - "3001:3001"
     networks:
@@ -50,7 +57,7 @@ services:
       timeout: 5s
       retries: 20
       start_period: 30s
-
+      
   frontend:
     build:
       context: ./frontend
@@ -61,10 +68,17 @@ services:
         condition: service_started
     ports:
       - "80:80"
-
+      
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: ssto-mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+      
 volumes:
   db_data:
-
+  
 networks:
   default:
     name: ssto-net

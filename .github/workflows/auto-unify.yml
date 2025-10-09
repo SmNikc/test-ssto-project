@@ -1,0 +1,112 @@
+name: Auto Unify QA
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_branch:
+        description: 'Базовая ветка'
+        required: false
+        default: main
+      run_e2e:
+        description: 'Запускать Playwright UI'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    env:
+      TEST_SSTO_BASE_URL: http://localhost:3001
+      TEST_SSTO_WEB_URL: http://localhost
+      TEST_SSTO_MAILHOG_URL: http://localhost:8025
+      TEST_SSTO_ARTIFACTS_DIR: tests/artifacts
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: |
+            backend-nest/package-lock.json
+            frontend/package-lock.json
+            tests/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend-nest
+        run: npm ci
+
+      - name: Run backend unit tests
+        working-directory: backend-nest
+        run: npm run test:ci
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install test harness dependencies
+        working-directory: tests
+        run: npm ci
+
+      - name: Install Playwright browsers
+        if: inputs.run_e2e == true
+        working-directory: tests
+        run: npx playwright install --with-deps
+
+      - name: Start docker compose
+        run: docker compose up -d --build
+
+      - name: Wait for services
+        run: |
+          set -euo pipefail
+          for i in {1..60}; do
+            if curl -fsS http://localhost:3001/health >/dev/null 2>&1; then
+              echo "Backend is ready"; break
+            fi
+            sleep 5
+            if [[ $i -eq 60 ]]; then
+              echo "Backend did not become ready" >&2
+              exit 1
+            fi
+          done
+          for i in {1..30}; do
+            if curl -fsS http://localhost:8025/api/v2/messages >/dev/null 2>&1; then
+              echo "MailHog is ready"; break
+            fi
+            sleep 5
+          done
+
+      - name: Run smoke tests
+        run: npm run smoke --prefix tests
+
+      - name: Run API tests
+        run: npm test --prefix tests
+
+      - name: Run Playwright UI tests
+        if: inputs.run_e2e == true
+        run: npm run e2e --prefix tests
+
+      - name: Collect docker logs
+        if: always()
+        run: docker compose logs --no-color > tests/artifacts/docker-compose.log || true
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ssto-tests
+          path: |
+            backend-nest/reports
+            tests/artifacts
+            playwright-report
+          if-no-files-found: ignore
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
