@@ -1,8 +1,10 @@
+--- FILE: backend-nest/src/services/report.service.ts ---
 import { Injectable } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as PDFDocument from 'pdfkit';
 import Signal from '../models/signal.model';
+import SSASRequest from '../models/request.model';
 
 @Injectable()
 export class ReportService {
@@ -67,105 +69,82 @@ export class ReportService {
     return filePath;
   }
 
-  /** Универсальный отчёт по сигналу (если нет связанной заявки) */
-  async generateForSignal(signal: Signal & { request?: any | null }): Promise<string> {
-    const request = signal.request ?? null;
-    if (request) {
-      return this.generateTestConfirmation(request, signal);
+  /** Универсальный отчёт по сигналу с поддержкой связанных заявок */
+  async generateForSignal(signal: Signal & { request?: SSASRequest | null }): Promise<string> {
+    // Получаем plain объект если это Sequelize модель
+    const signalData = typeof signal?.get === 'function' ? signal.get({ plain: true }) : signal;
+    const request = signalData?.request || signalData?.SSASRequest || signal.request || null;
+    const requestData = request && typeof request.get === 'function' ? request.get({ plain: true }) : request;
+    
+    // Если есть связанная заявка - генерируем подтверждение
+    if (requestData) {
+      return this.generateTestConfirmation(requestData, signalData || signal);
     }
 
+    // Иначе генерируем обычный отчет по сигналу
     const doc = new (PDFDocument as any)({
       size: 'A4',
       margins: { top: 50, bottom: 50, left: 50, right: 50 },
     });
 
-    const fileName = `signal_${signal.id ?? 'x'}_${Date.now()}.pdf`;
+    const fileName = `signal_${signalData?.id || signal?.id || 'unknown'}_${Date.now()}.pdf`;
     const filePath = path.join(this.ensureReportsDirectory(), fileName);
     doc.pipe(fs.createWriteStream(filePath));
 
-    doc.fontSize(16).text('Signal Report', { align: 'center' });
-    doc.moveDown().fontSize(11);
-    doc.text(`Signal ID: ${signal.id ?? '—'}`);
-    doc.text(`Terminal Number: ${signal.terminal_number ?? '—'}`);
-    doc.text(`Vessel Name: ${signal.vessel_name ?? '—'}`);
-    doc.text(`MMSI: ${signal.mmsi ?? '—'}`);
-    doc.text(`Signal Type: ${signal.signal_type ?? '—'}`);
-    doc.text(`Status: ${signal.status ?? '—'}`);
-    doc.text(`Received At: ${signal.received_at ? new Date(signal.received_at).toISOString() : '—'}`);
+    // Заголовок
+    doc.fontSize(16).text('Отчет по сигналу ССТО', { align: 'center' });
+    doc.moveDown();
 
-    if ((signal as any).coordinates) {
-      doc.moveDown().text('Coordinates:');
-      const lat = (signal as any).coordinates?.lat ?? '—';
-      const lon = (signal as any).coordinates?.lng ?? (signal as any).coordinates?.lon ?? '—';
-      doc.text(`Latitude: ${lat}`);
-      doc.text(`Longitude: ${lon}`);
+    // Основная информация о сигнале
+    doc.fontSize(12);
+    doc.text(`ID сигнала: ${signalData?.id ?? signal?.id ?? 'N/A'}`);
+    doc.text(`Тип сигнала: ${signalData?.signal_type ?? signal?.signal_type ?? 'N/A'}`);
+    doc.text(`Статус: ${signalData?.status ?? signal?.status ?? 'N/A'}`);
+    
+    // Форматирование времени с учетом локали
+    const receivedAt = signalData?.received_at || signal?.received_at;
+    doc.text(`Время получения: ${receivedAt ? new Date(receivedAt).toLocaleString('ru-RU') : 'N/A'}`);
+    
+    doc.text(`Терминал: ${signalData?.terminal_number ?? signal?.terminal_number ?? 'N/A'}`);
+    doc.text(`MMSI: ${signalData?.mmsi ?? signal?.mmsi ?? 'N/A'}`);
+    doc.text(`Название судна: ${signalData?.vessel_name ?? signal?.vessel_name ?? 'N/A'}`);
+    doc.text(`Позывной: ${signalData?.call_sign ?? signal?.call_sign ?? 'N/A'}`);
+
+    // Координаты если есть
+    const coordinates = signalData?.coordinates || signal?.coordinates;
+    if (coordinates) {
+      doc.moveDown();
+      doc.text('Координаты:');
+      const lat = coordinates.lat ?? 'N/A';
+      const lon = coordinates.lng ?? coordinates.lon ?? 'N/A';
+      doc.text(`  Широта: ${lat}`);
+      doc.text(`  Долгота: ${lon}`);
     }
 
-    if ((signal as any).metadata) {
-      doc.moveDown().text('Metadata:');
+    // Метаданные если есть
+    const metadata = signalData?.metadata || signal?.metadata;
+    if (metadata) {
+      doc.moveDown();
+      doc.text('Метаданные:');
       try {
-        doc.text(JSON.stringify((signal as any).metadata, null, 2));
-      } catch {
-        doc.text(String((signal as any).metadata));
+        const metadataStr = JSON.stringify(metadata, null, 2);
+        // Разбиваем длинные строки для корректного отображения в PDF
+        const lines = metadataStr.split('\n');
+        lines.forEach(line => {
+          if (line.length > 80) {
+            // Разбиваем длинные строки
+            const chunks = line.match(/.{1,80}/g) || [];
+            chunks.forEach(chunk => doc.text(chunk));
+          } else {
+            doc.text(line);
+          }
+        });
+      } catch (e) {
+        doc.text(String(metadata));
       }
     }
 
     doc.end();
-    return filePath;
-  }
-
-  async generateForSignal(signal: any): Promise<string> {
-    const doc = new PDFDocument({
-      size: 'A4',
-      margins: { top: 50, bottom: 50, left: 50, right: 50 },
-    });
-
-    const reportsDir = path.join(__dirname, '../../uploads/reports');
-    if (!fs.existsSync(reportsDir)) {
-      fs.mkdirSync(reportsDir, { recursive: true });
-    }
-
-    const fileName = `signal_${signal?.id ?? 'unknown'}_${Date.now()}.pdf`;
-    const filePath = path.join(reportsDir, fileName);
-
-    doc.pipe(fs.createWriteStream(filePath));
-
-    const signalData = typeof signal?.get === 'function' ? signal.get({ plain: true }) : signal;
-    const request = signalData?.request || signalData?.SSASRequest;
-    const requestData = request && typeof request.get === 'function' ? request.get({ plain: true }) : request;
-
-    doc.fontSize(16).text('Отчет по сигналу ССТО', { align: 'center' });
-    doc.moveDown();
-
-    doc.fontSize(12);
-    doc.text(`ID сигнала: ${signalData?.id ?? 'N/A'}`);
-    doc.text(`Тип сигнала: ${signalData?.signal_type ?? 'N/A'}`);
-    doc.text(`Статус: ${signalData?.status ?? 'N/A'}`);
-    doc.text(`Время получения: ${signalData?.received_at ? new Date(signalData.received_at).toLocaleString('ru-RU') : 'N/A'}`);
-    doc.text(`Терминал: ${signalData?.terminal_number ?? 'N/A'}`);
-    doc.text(`MMSI: ${signalData?.mmsi ?? 'N/A'}`);
-    doc.text(`Название судна: ${signalData?.vessel_name ?? requestData?.vessel_name ?? 'N/A'}`);
-
-    if (signalData?.coordinates) {
-      doc.moveDown();
-      doc.text('Координаты:');
-      const { lat, lng } = signalData.coordinates;
-      doc.text(`  Широта: ${lat ?? 'N/A'}`);
-      doc.text(`  Долгота: ${lng ?? 'N/A'}`);
-    }
-
-    if (requestData) {
-      doc.moveDown();
-      doc.text('Связанная заявка:');
-      doc.text(`  ID заявки: ${requestData.id ?? 'N/A'}`);
-      doc.text(`  Номер заявки: ${requestData.request_number ?? 'N/A'}`);
-      doc.text(`  Контактное лицо: ${requestData.contact_person ?? 'N/A'}`);
-      doc.text(`  Email: ${requestData.contact_email ?? 'N/A'}`);
-      doc.text(`  Телефон: ${requestData.contact_phone ?? 'N/A'}`);
-    }
-
-    doc.end();
-
     return filePath;
   }
 }

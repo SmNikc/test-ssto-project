@@ -1,3 +1,4 @@
+--- FILE: backend-nest/src/models/signal.model.ts ---
 import {
   Table,
   Column,
@@ -30,7 +31,7 @@ export default class Signal extends Model {
     type: DataType.STRING,
     allowNull: true,
   })
-  vessel_name?: string;
+  vessel_name!: string | null;
 
   @Column({
     type: DataType.STRING(9),
@@ -43,13 +44,6 @@ export default class Signal extends Model {
     allowNull: true,
   })
   call_sign!: string | null;
-
-  // <— ДОБАВЛЕНО: используется сервисами/отчётами
-  @Column({
-    type: DataType.STRING,
-    allowNull: true,
-  })
-  vessel_name!: string | null;
 
   @Column({
     type: DataType.STRING,
