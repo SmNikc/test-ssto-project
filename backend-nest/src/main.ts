@@ -1,57 +1,77 @@
+// backend-nest/src/main.ts
+import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import { ConfigService } from '@nestjs/config';
-import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { ValidationPipe, RequestMethod } from '@nestjs/common';
+import { createRequire } from 'module';
 
-async function bootstrap() {
-  // Создание NestJS приложения
-  const app = await NestFactory.create(AppModule);
-  
-  // Получение конфигурации из .env
-  const configService = app.get(ConfigService);
+type ExpressModule = typeof import('express');
 
-  // Настройка CORS
-  app.enableCors({
-    origin: (origin, callback) => {
-      // Берем разрешенные origin из переменной окружения или используем дефолтные
-      const corsOrigins = configService.get<string>('CORS_ORIGIN', 'http://localhost:5173').split(',').map(o => o.trim());
-      
-      // Разрешаем запросы от указанных origin, file:// и null (для file://)
-      if (!origin || corsOrigins.includes(origin) || origin?.startsWith('file://')) {
-        callback(null, true);
-      } else {
-        // В dev режиме разрешаем все для удобства разработки
-        if (configService.get<string>('NODE_ENV') === 'development') {
-          callback(null, true);
-        } else {
-          callback(new Error('Not allowed by CORS'));
-        }
-      }
-    },
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    credentials: true,
-    allowedHeaders: 'Content-Type, Accept, Authorization',
-    preflightContinue: false,
-    optionsSuccessStatus: 204,
-  });
+const moduleRequire = createRequire(__filename);
 
-  // Глобальная валидация
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      transform: true,
-      forbidNonWhitelisted: false,
-    }),
-  );
-
-  // Запуск API на порту из .env
-  const port = configService.get<number>('PORT', 3001);
-  await app.listen(port);
-
-  console.log(`🚀 Backend listening on http://localhost:${port}`);
-  console.log(`📡 API endpoints available at: http://localhost:${port}/api`);
-  console.log(`🔐 Keycloak: ${configService.get<string>('KEYCLOAK_ENABLED') === 'true' ? 'Enabled' : 'Disabled'}`);
-  console.log(`🌐 CORS enabled for: ${configService.get<string>('CORS_ORIGIN', 'http://localhost:5173')}`);
+function loadExpress(): ExpressModule {
+  try {
+    return moduleRequire('express') as ExpressModule;
+  } catch (rootErr) {
+    try {
+      const platformMain = moduleRequire.resolve('@nestjs/platform-express');
+      const platformRequire = createRequire(platformMain);
+      return platformRequire('express') as ExpressModule;
+    } catch {
+      throw rootErr;
+    }
+  }
 }
 
+const { json, urlencoded } = loadExpress();
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+
+  // Helmet (не обязателен). Пытаемся подключить — без падения если пакета нет.
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const helmet = require('helmet');
+    if (helmet) app.use(helmet());
+  } catch {}
+
+  // Глобальный префикс /api, но /health — БЕЗ префикса.
+  app.setGlobalPrefix('api', {
+    exclude: [{ path: 'health', method: RequestMethod.GET }],
+  });
+
+  // CORS: из env либо безопасный fallback для dev/Docker.
+  const corsOrigins = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',').map((s) => s.trim()).filter(Boolean)
+    : ['http://localhost:5173', 'http://localhost', 'http://127.0.0.1', 'http://host.docker.internal'];
+
+  app.enableCors({
+    origin: (origin, cb) => {
+      if (!origin || corsOrigins.includes(origin)) cb(null, true);
+      else cb(null, false);
+    },
+    credentials: true,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: 'Content-Type,Authorization,X-Requested-With,Origin,Accept',
+  });
+
+  // Лимиты тела (согласованы с Nginx client_max_body_size)
+  const bodyLimit = process.env.BODY_LIMIT || '20mb';
+  app.use(json({ limit: bodyLimit }));
+  app.use(urlencoded({ extended: true, limit: bodyLimit }));
+
+  // Валидация DTO
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: false }));
+
+  // Доверяем X-Forwarded-* за Nginx
+  const http = (app.getHttpAdapter() as any).getInstance?.();
+  if (http?.set) http.set('trust proxy', 1);
+
+  const port = parseInt(process.env.PORT || '3001', 10);
+  await app.listen(port, '0.0.0.0');
+
+  // eslint-disable-next-line no-console
+  console.log(`Backend listening on http://localhost:${port}`);
+  console.log('Health check: http://localhost:3001/health');  // Verbose for demo
+}
 bootstrap();

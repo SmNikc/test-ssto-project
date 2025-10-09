@@ -1,5 +1,15 @@
-// frontend/src/contexts/AuthContext.tsx
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+
+/**
+ * ЕДИНЫЙ ПУТЬ ДЛЯ API:
+ * - Всегда ходим на относительный префикс "/api" (без localhost/портов)
+ * - В dev проксирует Vite (vite.config.ts), в Docker — Nginx (nginx.conf)
+ */
+const API_PREFIX = '/api';
+const api = (path: string) => {
+  const p = path.startsWith('/') ? path : `/${path}`;
+  return p.startsWith('/api') ? p : `${API_PREFIX}${p}`;
+};
 
 interface User {
   id: number;
@@ -21,9 +31,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_BASE_URL = 'http://localhost:3001';
-
-// Функция для безопасного декодирования JWT с поддержкой UTF-8
+/** Декод JWT с поддержкой UTF‑8 */
 const decodeJWT = (token: string) => {
   try {
     const base64Url = token.split('.')[1];
@@ -32,7 +40,7 @@ const decodeJWT = (token: string) => {
       atob(base64)
         .split('')
         .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
+        .join(''),
     );
     return JSON.parse(jsonPayload);
   } catch (e) {
@@ -42,149 +50,124 @@ const decodeJWT = (token: string) => {
 };
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [user, setUser]         = useState<User | null>(null);
+  const [loading, setLoading]   = useState<boolean>(true);
+  const [error, setError]       = useState<string | null>(null);
 
+  /** ЛОГИН: POST /api/auth/login → сохранить токены → роль → редирект /{role} */
   const login = async (email: string, password: string) => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      const response = await fetch(api('/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password }),
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
-        throw new Error(data.message || 'Ошибка авторизации');
+        throw new Error(data?.message || 'Ошибка авторизации');
       }
-      
-      // Сохраняем токены
-      if (data.accessToken || data.access_token) {
-        const token = data.accessToken || data.access_token;
-        const refreshToken = data.refreshToken || data.refresh_token;
-        
-        sessionStorage.setItem('token', token);
-        sessionStorage.setItem('refreshToken', refreshToken);
-        
-        // Декодируем токен с поддержкой UTF-8
-        const payload = decodeJWT(token);
-        
-        if (!payload) {
-          throw new Error('Ошибка декодирования токена');
-        }
-        
-        console.log('Token payload:', payload);
-        
-        // Извлекаем роль
-        let userRole: 'operator' | 'client' | 'admin' = 'client';
-        
-        if (payload.realm_access?.roles) {
-          if (payload.realm_access.roles.includes('admin')) {
-            userRole = 'admin';
-          } else if (payload.realm_access.roles.includes('operator')) {
-            userRole = 'operator';
-          } else if (payload.realm_access.roles.includes('client')) {
-            userRole = 'client';
-          }
-        } else if (payload.role) {
-          userRole = payload.role;
-        }
-        
-        const userData: User = {
-          id: payload.sub ? parseInt(payload.sub) : 1,
-          email: payload.email || email,
-          role: userRole,
-          organization_name: payload.organization_name || '',
-          full_name: payload.name || email
-        };
-        
-        setUser(userData);
-        
-        // Перенаправляем
-        setTimeout(() => {
-          window.location.href = `/${userRole}`;
-        }, 100);
-      } else {
-        throw new Error('Токен не получен от сервера');
+
+      const token        = data.accessToken || data.access_token || data.token;
+      const refreshToken = data.refreshToken || data.refresh_token;
+      if (!token) throw new Error('Токен не получен от сервера');
+
+      sessionStorage.setItem('token', token);
+      if (refreshToken) sessionStorage.setItem('refreshToken', refreshToken);
+
+      const payload = decodeJWT(token);
+      if (!payload) throw new Error('Ошибка декодирования токена');
+
+      let userRole: 'operator' | 'client' | 'admin' = 'client';
+      if (payload.realm_access?.roles) {
+        if (payload.realm_access.roles.includes('admin')) userRole = 'admin';
+        else if (payload.realm_access.roles.includes('operator')) userRole = 'operator';
+        else if (payload.realm_access.roles.includes('client')) userRole = 'client';
+      } else if (payload.role && ['operator', 'client', 'admin'].includes(payload.role)) {
+        userRole = payload.role;
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка авторизации');
+
+      const userData: User = {
+        id: payload.sub ? parseInt(String(payload.sub), 10) || 1 : 1,
+        email: payload.email || payload.preferred_username || email,
+        role: userRole,
+        organization_name: payload.organization_name || '',
+        full_name: payload.name || payload.full_name || email,
+      };
+
+      setUser(userData);
+
+      setTimeout(() => {
+        window.location.href = `/${userRole}`;
+      }, 100);
+    } catch (err: any) {
+      setError(err?.message || 'Ошибка авторизации');
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
+  /** ЛОГАУТ: POST /api/auth/logout → чистка → /login */
   const logout = async () => {
     const refreshToken = sessionStorage.getItem('refreshToken');
-    
+
     if (refreshToken) {
       try {
-        await fetch(`${API_BASE_URL}/api/auth/logout`, {
+        await fetch(api('/auth/logout'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refreshToken })
+          body: JSON.stringify({ refreshToken }),
         });
       } catch (err) {
         console.error('Logout error:', err);
       }
     }
-    
+
     sessionStorage.removeItem('token');
     sessionStorage.removeItem('refreshToken');
     setUser(null);
     window.location.href = '/login';
   };
 
+  /** ПРОВЕРКА СЕССИИ: валидность JWT (exp), при необходимости — refresh */
   const checkAuth = async () => {
     const token = sessionStorage.getItem('token');
     if (!token) {
       setLoading(false);
       return;
     }
-    
+
     try {
-      // Декодируем JWT токен с поддержкой UTF-8
       const payload = decodeJWT(token);
-      
-      if (!payload) {
-        throw new Error('Невалидный токен');
-      }
-      
-      // Проверяем срок действия токена
+      if (!payload) throw new Error('Невалидный токен');
+
       if (payload.exp && payload.exp * 1000 < Date.now()) {
         await refreshToken();
         return;
       }
-      
-      // Извлекаем роль
+
       let userRole: 'operator' | 'client' | 'admin' = 'client';
-      
       if (payload.realm_access?.roles) {
-        if (payload.realm_access.roles.includes('admin')) {
-          userRole = 'admin';
-        } else if (payload.realm_access.roles.includes('operator')) {
-          userRole = 'operator';
-        } else if (payload.realm_access.roles.includes('client')) {
-          userRole = 'client';
-        }
-      } else if (payload.role) {
+        if (payload.realm_access.roles.includes('admin')) userRole = 'admin';
+        else if (payload.realm_access.roles.includes('operator')) userRole = 'operator';
+        else if (payload.realm_access.roles.includes('client')) userRole = 'client';
+      } else if (payload.role && ['operator', 'client', 'admin'].includes(payload.role)) {
         userRole = payload.role;
       }
-      
+
       const userData: User = {
-        id: payload.sub ? parseInt(payload.sub) : 1,
+        id: payload.sub ? parseInt(String(payload.sub), 10) || 1 : 1,
         email: payload.email || payload.preferred_username || '',
         role: userRole,
         organization_name: payload.organization_name || '',
-        full_name: payload.name || ''
+        full_name: payload.name || '',
       };
-      
+
       setUser(userData);
     } catch (err) {
       console.error('Auth check error:', err);
@@ -195,30 +178,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  /** REFRESH: POST /api/auth/refresh → новая пара токенов → checkAuth() */
   const refreshToken = async () => {
     const refreshTokenValue = sessionStorage.getItem('refreshToken');
     if (!refreshTokenValue) {
-      throw new Error('No refresh token');
+      await logout();
+      return;
     }
-    
+
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+      const response = await fetch(api('/auth/refresh'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken: refreshTokenValue })
+        body: JSON.stringify({ refreshToken: refreshTokenValue }),
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to refresh token');
       }
-      
+
       const data = await response.json();
-      const newToken = data.accessToken || data.access_token;
+      const newToken        = data.accessToken || data.access_token;
       const newRefreshToken = data.refreshToken || data.refresh_token;
-      
+
+      if (!newToken) throw new Error('No access token on refresh');
+
       sessionStorage.setItem('token', newToken);
-      sessionStorage.setItem('refreshToken', newRefreshToken);
-      
+      if (newRefreshToken) sessionStorage.setItem('refreshToken', newRefreshToken);
+
       await checkAuth();
     } catch (err) {
       console.error('Token refresh error:', err);
@@ -228,29 +215,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     checkAuth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const value = {
+  const value: AuthContextType = {
     user,
     loading,
     error,
     login,
     logout,
     checkAuth,
-    refreshToken
+    refreshToken,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
   return context;
 };

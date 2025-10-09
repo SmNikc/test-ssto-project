@@ -65,7 +65,7 @@ const EmergencyAlert = ({ signal }: EmergencyAlertProps) => {
   const logCriticalEvent = (signal: any) => {
     console.log('Критическое событие:', signal);
     // Здесь можно добавить запись в backend или local storage
-    fetch('http://localhost:3001/logs/critical', {
+    fetch('/api/logs/critical', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json; charset=utf-8' },
       body: JSON.stringify({
@@ -79,12 +79,16 @@ const EmergencyAlert = ({ signal }: EmergencyAlertProps) => {
   
   const notifyPersonnel = (signal: any) => {
     // Push-уведомление (используя service worker или websocket)
+    if ('vibrate' in navigator) {
+      // @ts-ignore — тип Navigator не содержит vibrate в стандартной декларации
+      navigator.vibrate([200, 100, 200]);
+    }
+
     if ('serviceWorker' in navigator && 'PushManager' in window) {
       navigator.serviceWorker.ready.then(registration => {
         registration.showNotification('ЭКСТРЕННАЯ ТРЕВОГА ССТО', {
           body: `Реальное срабатывание на судне ${signal.vessel_name}. Координаты: ${signal.coordinates.lat}, ${signal.coordinates.lng}`,
           icon: '/icons/emergency.png',
-          vibrate: [200, 100, 200],
           tag: 'emergency-alert',
           data: { signalId: signal.id }
         });
@@ -92,7 +96,7 @@ const EmergencyAlert = ({ signal }: EmergencyAlertProps) => {
     }
     
     // Email и SMS - через backend
-    fetch('http://localhost:3001/notifications/emergency', {
+    fetch('/api/notifications/emergency', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json; charset=utf-8' },
       body: JSON.stringify(signal)

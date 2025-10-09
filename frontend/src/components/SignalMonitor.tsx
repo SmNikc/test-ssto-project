@@ -35,7 +35,7 @@ export default function SignalMonitor() {
 
   const fetchSignals = async () => {
     try {
-      const response = await fetch('http://localhost:3001/signals');
+      const response = await fetch('/api/signals');
       const data = await response.json();
       if (Array.isArray(data)) {
         setSignals(data);
@@ -54,7 +54,7 @@ export default function SignalMonitor() {
     try {
       const today = new Date().toISOString().split('T')[0];
       const response = await fetch(
-        `http://localhost:3001/signals/statistics?startDate=${today}&endDate=${today}`
+        `/api/signals/statistics?startDate=${today}&endDate=${today}`
       );
       const data = await response.json();
       setStats(data);

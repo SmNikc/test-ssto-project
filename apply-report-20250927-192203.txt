@@ -1,0 +1,20 @@
+=== APPLY START 2025-09-27T19:22:03 ===
+Mode: APPLY
+Repo: C:\Projects\test-ssto-project
+backend-nest/src/models/signal.model.ts: OK (has vessel_name)
+Backup → backend-nest/src/services/report.service.ts
+backend-nest/src/services/report.service.ts: OK
+Backup → backend-nest/src/signal/signal.module.ts
+backend-nest/src/signal/signal.module.ts: OK
+frontend/vite.config.ts: OK
+frontend/nginx.conf: OK
+frontend/src/config.js: OK
+frontend/tsconfig.json: OK
+frontend/src/components/EmergencyAlert.tsx: no change
+Backup → frontend/src/services/BackendService.ts
+frontend/src/services/BackendService.ts: ensure socket.io path + transports
+frontend-static/backend-nest: OK (absent)
+DB migration: skipped (no --migrate-db)
+Backups: C:\Projects\test-ssto-project\apply-backup-20250927-192203
+Report:  C:\Projects\test-ssto-project\apply-report-20250927-192203.txt
+=== APPLY END 2025-09-27T19:22:06 ===

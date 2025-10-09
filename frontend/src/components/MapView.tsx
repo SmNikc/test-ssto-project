@@ -13,7 +13,7 @@ const MapView = () => {
 
   const fetchSignals = async () => {
     try {
-      const response = await fetch('http://localhost:3001/signals', {
+      const response = await fetch('/api/signals', {
         headers: {
           'Authorization': `Bearer ${sessionStorage.getItem('token')}`
         }

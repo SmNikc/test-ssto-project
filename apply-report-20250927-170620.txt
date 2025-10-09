@@ -1,0 +1,10 @@
+﻿=== APPLY START 09/27/2025 17:06:20 ===
+backend-nest/src/models/signal.model.ts: OK (has vessel_name)
+Backup → backend-nest\src\services\report.service.ts
+backend-nest/src/services/report.service.ts: OK
+Backup → backend-nest\src\signal\signal.module.ts
+backend-nest/src/signal/signal.module.ts: OK
+Backup → frontend\src\components\RequestList.tsx
+frontend/src\components\RequestList.tsx: API → /api
+Backup → frontend\vite.config.ts
+frontend/vite.config.ts: patched → /api (rewrite) + /socket.io (ws)

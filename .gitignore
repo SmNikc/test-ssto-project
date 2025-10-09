@@ -134,3 +134,13 @@ pgdata/
 pgadmin-data/
 Data/
 *.rar
+
+# Добавьте в .gitignore:
+*.py
+*.old  
+*.backup*
+*backup*/
+merge-backup*/
+frontend-static/
+dist/
+*.log

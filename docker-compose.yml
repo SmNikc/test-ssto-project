@@ -1,80 +1,70 @@
-version: '3.8'
+version: "3.9"
 
 services:
-  # PostgreSQL База данных
   postgres:
     image: postgres:14-alpine
     container_name: ssto-postgres
     environment:
-      POSTGRES_DB: sstodb
-      POSTGRES_USER: ssto
-      POSTGRES_PASSWORD: sstopass
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ssto
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ssto || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./test_data.sql:/docker-entrypoint-initdb.d/test_data.sql
-    networks:
-      - ssto-network
+      - db_data:/var/lib/postgresql/data
 
-  # Keycloak (опционально)
-  keycloak:
-    image: quay.io/keycloak/keycloak:22.0
-    container_name: ssto-keycloak
-    environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
-      KC_DB_USERNAME: ssto
-      KC_DB_PASSWORD: sstopass
-    ports:
-      - "8080:8080"
-    depends_on:
-      - postgres
-    command: start-dev
-    networks:
-      - ssto-network
-
-  # Backend NestJS
   backend:
-    build: ./backend-nest
+    build:
+      context: ./backend-nest
+      dockerfile: Dockerfile
+    image: test-ssto-project-backend:latest
     container_name: ssto-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
       NODE_ENV: production
-      PORT: 3001
+      PORT: "3001"
+      # Основная строка подключения
+      DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/ssto"
+      # Дублирование для fallback (добавлено для решения проблемы)
       DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USER: ssto
-      DB_PASSWORD: sstopass
-      DB_NAME: sstodb
-      SIMPLE_AUTH_MODE: ${SIMPLE_AUTH_MODE:-true}
-      KEYCLOAK_URL: http://keycloak:8080/realms/ssto
+      DB_PORT: "5432"
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: ssto
     ports:
       - "3001:3001"
-    depends_on:
-      - postgres
-    volumes:
-      - ./backend-nest:/app
-      - /app/node_modules
     networks:
-      - ssto-network
-    command: npm run start:prod
+      default:
+        aliases:
+          - backend
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3001/health || curl -s http://127.0.0.1:3001/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
 
-  # Frontend React
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+    image: test-ssto-project-frontend:latest
     container_name: ssto-frontend
+    depends_on:
+      backend:
+        condition: service_started
     ports:
       - "80:80"
-    depends_on:
-      - backend
-    networks:
-      - ssto-network
-
-networks:
-  ssto-network:
-    driver: bridge
 
 volumes:
-  postgres_data:
+  db_data:
+
+networks:
+  default:
+    name: ssto-net

@@ -1,0 +1,11 @@
+=== MERGE START 09/27/2025 11:38:55 ===
+\Projects\test-ssto-project\frontend-static\backend-nest :: moved to backup
+backend-nest\src\services\report.service.ts :: ok (no change)
+backend-nest\src\models\signal.model.ts :: ok (no change)
+backend-nest/src/signal/signal.module.ts :: add ReportService to exports
+backend-nest\src\signal\signal.module.ts :: patched (repo baseline)
+frontend\src\contexts\AuthContext.tsx :: ok (no change)
+frontend\src\components\auth.component.tsx :: ok (no change)
+frontend/nginx.conf :: ok (has /api proxy)
+frontend/src/config.js :: created shim
+=== MERGE END 09/27/2025 11:38:58 ===

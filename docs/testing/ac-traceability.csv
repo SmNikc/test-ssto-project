@@ -1,0 +1,10 @@
+AC_ID,Requirement,Test_ID,Test_File,Tooling
+S1,"/health и /requests доступны без ошибок","SMK-API-01","tests/smoke/api-health.sh","bash + curl + jq"
+S1,"Контракт /health возвращает {status:'ok'}","CON-HEALTH-01","backend-nest/test/functional/contracts/health.contract.spec.ts","Jest + Supertest"
+S2,"Создание заявки требует MMSI и возвращает request_number","CON-REQ-01","backend-nest/test/functional/contracts/requests.contract.spec.ts","Jest + Supertest"
+S2,"Отсутствие MMSI приводит к BadRequestException","NEG-REQ-01","backend-nest/test/functional/request-service.spec.ts","Jest + in-memory repository"
+S2,"Статус заявки нормализуется в pending","NEG-REQ-02","backend-nest/test/functional/request-service.spec.ts","Jest + in-memory repository"
+S3,"Запрет нелегальных переходов статусов","NEG-REQ-03","backend-nest/test/functional/request-service.spec.ts","Jest + in-memory repository"
+S4,"Оператор успешно входит и попадает на панель","E2E-OP-01","tests/e2e/operator-login.spec.ts","Playwright"
+S5,"PDF подтверждение содержит реквизиты Минтранса/ГМСКЦ","PDF-REP-01","backend-nest/test/functional/report.service.pdf.spec.ts","Node.js binary scan"
+S6,"Логирование smoke-среза заявок","SMK-API-02","tests/smoke/api-health.sh","bash + curl + jq"

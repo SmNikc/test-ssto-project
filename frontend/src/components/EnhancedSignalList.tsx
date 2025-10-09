@@ -144,7 +144,7 @@ export default function EnhancedSignalList() {
   };
 
   // Получение иконки по типу
-  const getTypeIcon = (type: string) => {
+  const getTypeIcon = (type: Signal['signal_type']): JSX.Element => {
     switch (type) {
       case 'REAL_ALERT':
         return <ErrorIcon color="error" />;
@@ -153,9 +153,8 @@ export default function EnhancedSignalList() {
       case 'TEST_WITHOUT_REQUEST':
         return <WarningIcon color="warning" />;
       case 'UNKNOWN':
-        return <InfoIcon color="action" />;
       default:
-        return null;
+        return <InfoIcon color="action" />;
     }
   };
 
