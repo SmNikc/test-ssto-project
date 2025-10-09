@@ -16,12 +16,13 @@ const config: Config.InitialOptions = {
   reporters: [
     'default',
     [
-      'jest-junit',
+      '<rootDir>/../tools/junit-reporter.js',
       {
         outputDirectory: 'reports/junit',
         outputName: 'backend-tests.xml',
         classNameTemplate: '{classname}',
-        titleTemplate: '{title}'
+        titleTemplate: '{title}',
+        suiteName: 'backend-tests',
       },
     ],
   ],
