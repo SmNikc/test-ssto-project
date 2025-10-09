@@ -1,4 +1,3 @@
---- FILE: jest.config.ts ---
 import type { Config } from '@jest/types';
 
 const config: Config.InitialOptions = {
@@ -12,32 +11,29 @@ const config: Config.InitialOptions = {
   transformIgnorePatterns: ['/node_modules/'],
   testMatch: ['**/?(*.)+(spec|test).+(ts|tsx|js)'],
   
-  // Reporters - объединяем из обеих веток
   reporters: [
     'default',
     [
-      '<rootDir>/../tools/junit-reporter.js',
+      'jest-junit',
       {
         outputDirectory: 'reports/junit',
         outputName: 'backend-tests.xml',
         classNameTemplate: '{classname}',
-        titleTemplate: '{title}',
-        suiteName: 'backend-tests',
+        titleTemplate: '{title}'
       },
     ],
   ],
   
-  // Coverage настройки - объединяем лучшее из обеих веток
   collectCoverage: true,
   coverageDirectory: 'reports/coverage',
-  coverageProvider: 'v8', // из main ветки
+  coverageProvider: 'v8',
   collectCoverageFrom: [
     '<rootDir>/src/**/*.ts',
     '!<rootDir>/src/main.ts',
     '!<rootDir>/src/**/*.module.ts',
     '!<rootDir>/src/**/index.ts',
   ],
-  coverageReporters: ['text', 'lcov', 'text-summary'], // объединено
+  coverageReporters: ['text', 'lcov', 'text-summary'],
   coverageThreshold: {
     global: {
       branches: 60,
@@ -47,7 +43,6 @@ const config: Config.InitialOptions = {
     },
   },
   
-  // Timeout из codex ветки
   testTimeout: 30000,
 };
 
