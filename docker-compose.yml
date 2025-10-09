@@ -31,15 +31,12 @@ services:
     environment:
       NODE_ENV: production
       PORT: "3001"
-      # Основная строка подключения
       DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/ssto"
-      # Дублирование для fallback (добавлено для решения проблемы)
       DB_HOST: postgres
       DB_PORT: "5432"
       DB_USER: postgres
       DB_PASSWORD: postgres
       DB_NAME: ssto
-      # SMTP настройки для почты
       SMTP_HOST: mailhog
       SMTP_PORT: "1025"
       SMTP_USER: od_smrcc@morflot.ru
