@@ -39,9 +39,12 @@ services:
       DB_NAME: ssto
       SMTP_HOST: mailhog
       SMTP_PORT: "1025"
+      SMTP_SECURE: "false"
       SMTP_USER: od_smrcc@morflot.ru
       SMTP_PASS: dev-password
+      SMTP_PASSWORD: dev-password
       SMTP_FROM: "ГМСКЦ <od_smrcc@morflot.ru>"
+      SMTP_FROM_NAME: 'ГМСКЦ «Тест ССТО»'
     ports:
       - "3001:3001"
     networks:

@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
+import type { TransportOptions } from 'nodemailer';
 
 @Injectable()
 export class EmailSenderService implements OnModuleInit {
@@ -16,23 +17,28 @@ export class EmailSenderService implements OnModuleInit {
 
   private async initializeTransporter() {
     const host = this.configService.get<string>('SMTP_HOST', 'smtp.gmail.com');
-    const port = this.configService.get<number>('SMTP_PORT', 587);
+    const port = Number(this.configService.get<string>('SMTP_PORT', '587'));
     const user = this.configService.get<string>('SMTP_USER');
-    const pass = this.configService.get<string>('SMTP_PASS');
-    this.defaultFrom = this.configService.get<string>('SMTP_FROM', 'ГМСКЦ <noreply@gmskc.ru>');
-
-    if (!user || !pass) {
-      this.logger.warn('SMTP credentials not configured');
-      return;
-    }
+    const pass =
+      this.configService.get<string>('SMTP_PASS') ??
+      this.configService.get<string>('SMTP_PASSWORD');
+    const fromAddress = this.configService.get<string>('SMTP_FROM');
+    const fromName = this.configService.get<string>('SMTP_FROM_NAME');
+    this.defaultFrom =
+      fromAddress || (fromName && user ? `${fromName} <${user}>` : user || 'ГМСКЦ <noreply@gmskc.ru>');
 
     this.logger.log(`Initializing SMTP: ${host}:${port}`);
 
-    const config = {
+    const auth = user && pass ? { user, pass } : undefined;
+    if (!auth) {
+      this.logger.warn('SMTP credentials not configured, attempting anonymous connection');
+    }
+
+    const config: TransportOptions = {
       host,
       port,
-      secure: port === 465,
-      auth: { user, pass }
+      secure: this.isSecureTransport(),
+      ...(auth ? { auth } : {})
     };
 
     this.transporter = nodemailer.createTransport(config);
@@ -43,6 +49,16 @@ export class EmailSenderService implements OnModuleInit {
     } catch (error) {
       this.logger.warn('SMTP verification skipped:', error.message);
     }
+  }
+
+  private isSecureTransport(): boolean {
+    const secureValue = this.configService.get<string>('SMTP_SECURE', '');
+    if (secureValue) {
+      return ['true', '1', 'yes', 'on'].includes(secureValue.toLowerCase());
+    }
+
+    const port = Number(this.configService.get<string>('SMTP_PORT', '587'));
+    return port === 465;
   }
 
   // Основной метод отправки

@@ -36,7 +36,7 @@ login_code=$(echo "$login_response" | tail -n1)
 if [[ "$login_code" != "200" ]]; then
   fail "Login failed with code $login_code"
 fi
-access_token=$(node -e "const r=$login_body;const data=typeof r==='string'?JSON.parse(r):r; if(!data.accessToken&&!data.access_token) process.exit(1); console.log(data.accessToken||data.access_token);") || fail "Access token missing"
+access_token=$(node -e "const data = JSON.parse(process.argv[1]); if (!data.accessToken && !data.access_token) { process.exit(1); } console.log(data.accessToken || data.access_token);" "$login_body") || fail "Access token missing"
 log "Token acquired (${#access_token} chars)"
 
 ts=$(date +%s)

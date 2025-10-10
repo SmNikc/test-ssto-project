@@ -8,12 +8,8 @@ WORKDIR /app
 
 # Install dependencies
 COPY package*.json ./
-# `npm ci` fails when lockfiles are regenerated locally without internet
-# access, so we explicitly refresh the lockfile before installing. This
-# ensures CI builds (which have registry access) stay reproducible while
-# keeping local builds functional in restricted environments.
-RUN npm install --package-lock-only \
-  && npm ci
+# Install dependencies with locked versions
+RUN npm ci
 
 # Copy source
 COPY . .

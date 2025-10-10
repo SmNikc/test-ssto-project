@@ -11,15 +11,36 @@ export class EmailService {
 
   constructor(private configService: ConfigService) {
     // Настройка SMTP
+    const host = this.configService.get('SMTP_HOST', 'smtp.gmail.com');
+    const port = Number(this.configService.get('SMTP_PORT', 587));
+    const user = this.configService.get('SMTP_USER');
+    const pass =
+      this.configService.get('SMTP_PASS') ?? this.configService.get('SMTP_PASSWORD');
+    const fromAddress = this.configService.get('SMTP_FROM');
+    const fromName = this.configService.get('SMTP_FROM_NAME');
+    const secureValue = this.configService.get<string>('SMTP_SECURE', '');
+    const secure = secureValue
+      ? ['true', '1', 'yes', 'on'].includes(secureValue.toLowerCase())
+      : port === 465;
+
+    const auth = user && pass ? { user, pass } : undefined;
     this.transporter = nodemailer.createTransport({
-      host: this.configService.get('SMTP_HOST', 'smtp.gmail.com'),
-      port: this.configService.get('SMTP_PORT', 587),
-      secure: false,
-      auth: {
-        user: this.configService.get('SMTP_USER'),
-        pass: this.configService.get('SMTP_PASSWORD')
-      }
+      host,
+      port,
+      secure,
+      ...(auth ? { auth } : {})
     });
+
+    if (!auth) {
+      console.warn('SMTP credentials not configured, attempting anonymous connection');
+    }
+
+    if (fromAddress || fromName) {
+      const from = fromAddress || (fromName && user ? `${fromName} <${user}>` : undefined);
+      if (from) {
+        this.transporter.options.from = from;
+      }
+    }
 
     // Настройка IMAP
     this.imap = new Imap({

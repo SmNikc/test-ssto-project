@@ -11,10 +11,13 @@ module.exports = {
   reporters: [
     'default',
     [
-      'jest-junit',
+      path.join(__dirname, '..', 'tools', 'junit-reporter.js'),
       {
         outputDirectory: path.join(REPORTS_DIR, 'junit'),
         outputName: 'functional-tests.xml',
+        suiteName: 'functional-tests',
+        classNameTemplate: '{classname}',
+        titleTemplate: '{title}',
       },
     ],
   ],
